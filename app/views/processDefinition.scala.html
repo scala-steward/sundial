@@ -1,0 +1,126 @@
+@(processDefinition: model.ProcessDefinition, taskDefinitions: Seq[model.TaskDefinitionTemplate], processes: Seq[dto.ProcessDTO], triggers: Seq[model.ProcessTriggerRequest])(implicit request: RequestHeader)
+
+@main(s"${processDefinition.name} - Sundial") {
+
+    <script>
+    function triggerProcess(name) {
+        if(confirm("Are you sure you want to trigger a '" + name + "' process?")) {
+            var request = jsRoutes.controllers.ProcessDefinitions.postTriggerByProcessDefinitionName(name);
+            $.ajax($.extend(request, {async:true}))
+                .done(function() { location.reload(); })
+                .fail(function() { alert("Trigger failed!"); location.reload(); });
+        }
+    }
+
+    function pauseProcess(name) {
+        var request = jsRoutes.controllers.ProcessDefinitions.postPauseByProcessDefinitionName(name);
+        $.ajax($.extend(request, {async:true}))
+            .done(function() { location.reload(); })
+            .fail(function() { alert("Pause process failed"); });
+    }
+
+    function resumeProcess(name) {
+        var request = jsRoutes.controllers.ProcessDefinitions.postResumeByProcessDefinitionName(name);
+        $.ajax($.extend(request, {async:true}))
+            .done(function() { location.reload(); })
+            .fail(function() { alert("Pause process failed"); });
+    }
+
+    function triggerTask(processName, taskName) {
+        if(confirm("Are you sure you want to trigger a '" + taskName + "' task?")) {
+            var request = jsRoutes.controllers.ProcessDefinitions.postTriggerByProcessDefinitionName(processName, taskName);
+            $.ajax($.extend(request, {async:true}))
+                .done(function() { location.reload(); })
+                .fail(function() { alert("Trigger failed!"); location.reload(); });
+        }
+    }
+    </script>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+
+                <ol class="breadcrumb">
+                    <li><a href="@routes.Application.processDefinitions()">Process Definitions</a></li>
+                    <li>@processDefinition.name</li>
+                </ol>
+
+                <h1>@processDefinition.name</h1>
+
+                <div style="margin-top:15px; margin-bottom:15px;">
+                    <a href='javascript:triggerProcess("@processDefinition.name");'>Trigger Process</a>
+                </div>
+                <div style="margin-top:15px; margin-bottom:15px;">
+                    @if(processDefinition.isPaused) {
+                        <a href='javascript:resumeProcess("@processDefinition.name");'>Resume Process</a>
+                    } else {
+                        <a href='javascript:pauseProcess("@processDefinition.name");'>Pause Process</a>
+                    }
+                </div>
+
+                <h2>Process Log</h2>
+
+                @if(!triggers.isEmpty) {
+                    <div class="alert alert-info" role="alert">
+                        <strong>There are open process trigger requests for this process definition:</strong>
+                        <ul>
+                        @triggers.map { trigger =>
+                            <li>@trigger.processDefinitionName requested at @trigger.requestedAt</li>
+                        }
+                        </ul>
+                    </div>
+                }
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Started</th>
+                            <th>Ended</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @processes.map { process =>
+                        <tr>
+                            <td>@{util.DateUtils.basicDateTimeFormat.format(process.startedAt)}</td>
+                            <td>@process.endedAt.map(util.DateUtils.basicDateTimeFormat.format)</td>
+                            <td>@process.durationStr</td>
+                            <td>
+                                <a href="@routes.Application.processDetail(process.id.toString)">
+                                @process.status
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+
+                <h2>Process Definition</h2>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Task Name</th>
+                            <th>Executable</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @taskDefinitions.map { taskDef =>
+                        <tr>
+                            <td>
+                                <div style="margin-bottom:15px;">@taskDef.name</div>
+                                <a href='javascript:triggerTask("@processDefinition.name", "@taskDef.name");'>Trigger Task</a>
+                            </td>
+                            <td><pre>@util.Json.mapper().writerWithDefaultPrettyPrinter().writeValueAsString(controllers.ModelConverter.toExternalExecutable(taskDef.executable))</pre></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+
+}

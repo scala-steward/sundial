@@ -1,0 +1,42 @@
+@(sundialDao: dao.SundialDao)(implicit request: RequestHeader)
+
+<html>
+    <head></head>
+    <body>
+
+        <h1>Processes</h1>
+        @sundialDao.processDefinitionDao.loadProcessDefinitions().map { processDef =>
+            <h2>@processDef.name</h2>
+            @sundialDao.processDao.findProcesses(Some(processDef.name), None, None, None, limit=Some(10)).map { process =>
+                <hr/>
+                <h3>@process.startedAt</h3>
+                <div>Process ID: @process.id</div>
+                <img src="@routes.Application.processGraph(process.id.toString())"/>
+                <table cellspacing="3">
+                    @sundialDao.processDao.loadTasksForProcess(process.id).map { task =>
+                        <tr>
+                            <td>@task.taskDefinitionName</td>
+                            <td>@task.status</td>
+                            <td>
+                                <table>
+                                    @sundialDao.taskMetadataDao.loadMetadataForTask(task.id).map { entry =>
+                                        <tr>
+                                            <td>@entry.key</td>
+                                            <td>@entry.value</td>
+                                        </tr>
+                                    }
+                                    @sundialDao.taskLogsDao.loadEventsForTask(task.id).map { entry =>
+                                        <tr>
+                                            <td colspan="2">@entry.message</td>
+                                        </tr>
+                                    }
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                </table>
+            }
+        }
+
+    </body>
+</html>

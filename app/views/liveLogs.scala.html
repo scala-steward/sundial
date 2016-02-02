@@ -1,0 +1,96 @@
+@(processId: java.util.UUID)
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Live Logs</title>
+        <style>
+            body {
+                margin-top:80px;
+            }
+            table * {
+                font-family: "Consolas", "Courier New", Courier, mono;
+                font-size:9pt;
+            }
+            #topnav {
+                background-color: #eee;
+                position: fixed;
+                top: 0px;
+                left: 0px;
+                right: 0px;
+                height: 70px;
+                border-bottom:1px solid black;
+            }
+            #topnav td {
+                padding: 5px;
+            }
+            #process-info {
+                border-bottom:1px solid black;
+            }
+            #process-info td {
+                padding: 10px;
+            }
+            #process-info * {
+                font-family: "Helvetic Neue", Helvetica, Arial;
+                font-size: 12pt;
+            }
+            #process-info span {
+                font-weight: bold;
+            }
+
+            .level-ERROR * {
+                color: red;
+            }
+
+            .level-ERROR pre {
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="topnav">
+            <div style="height:45px" id="process-info">
+                <table>
+                    <tr>
+                        <td>Process <span id="process-name"/></td>
+                        <td>Started at <span id="process-started"/></td>
+                        <td>Status: <span id="process-status"/></td>
+                        <td>Runtime: <span id="process-duration"/></td>
+                        <td>Last updated: <span id="last-updated"/></td>
+                        <td style="padding-left:50px;">
+                            Filter:
+                            <select class="form-control" id="process-task" style="font-size:10pt;">
+                                <option value="" selected>All Tasks</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input id="chk-follow" type="checkbox" checked/> Follow end of logs
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div style="height:30px" id="process-header">
+                <table>
+                    <tr style="font-weight: bold;">
+                        <td width="145">Task Name</td>
+                        <td width="115">Timestamp</td>
+                        <td>Message</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <table class="sink not-loaded">
+            <tr><td>Loading logs...</td></tr>
+        </table>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.js"></script>
+        <script>
+        var processId = '@processId'
+        var endpoint = '@routes.LiveLogs.logsData(processId.toString)'
+        </script>
+        <script src="@routes.Assets.at("javascripts/livelog.js")"></script>
+    </body>
+</html>

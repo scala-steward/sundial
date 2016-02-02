@@ -1,0 +1,47 @@
+@(task: model.Task, previousRuns: Seq[model.Task], logs: Seq[model.TaskEventLog], willRetry: Boolean)
+
+<html>
+<body>
+    <b>@task.processDefinitionName - @task.taskDefinitionName</b> <br/>
+    <span style="font-size:6pt;">
+        Task ID: @task.id <br/>
+        Process ID: @task.processId
+    </span> <br/><br/>
+    @if(willRetry) {
+        The task has failed for reason @task.status and will be retried.
+    } else {
+        The task has failed for reason @task.status and will not be retried.
+    }
+    <br/>
+
+    <b>Event Logs</b><br/>
+    @if(logs.isEmpty) {
+        No logs available.
+    } else {
+        <table>
+        @logs.sortBy(_.when).reverse.map { event =>
+            <tr>
+                <td>@event.when.format("dd MM - hh:mm:ss")</td>
+                <td>@event.source</td>
+                <td>@event.message</td>
+            </tr>
+        }
+        </table>
+    }
+    <br/><br/>
+
+    <b>Previous Runs</b>
+    @if(previousRuns.isEmpty) {
+        The task has not previously run during this process.
+    } else {
+        <table>
+        @previousRuns.sortBy(_.startedAt).reverse.map { previousTask =>
+            <tr>
+                <td>@previousTask.startedAt.format("dd MM - hh:mm:ss")</td>
+                <td>@previousTask.status.getClass.getName</td>
+            </tr>
+        }
+        </table>
+    }
+</body>
+</html>

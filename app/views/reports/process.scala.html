@@ -1,0 +1,36 @@
+@(process: model.Process,
+  processDefinition: model.ProcessDefinition,
+  tasks: Seq[model.Task],
+  taskDefinitions: Seq[model.TaskDefinition],
+  logsDao: dao.TaskLogsDao,
+  graphUrl: String)
+
+<div style="font-family:helvetica;">
+    <img src="@graphUrl"/>
+
+    @taskDefinitions.map { taskDef =>
+        <h2 style="font-family:helvetica;">@taskDef.name</h2>
+        <table cellspacing="0" cellpadding="3" border="1">
+            @if(!tasks.exists(_.taskDefinitionName == taskDef.name)) {
+                <tr>
+                    <td>The task has not run.</td>
+                </tr>
+            }
+            @tasks.filter(_.taskDefinitionName == taskDef.name).map { task =>
+                <tr>
+                    <td>@task.startedAt.format("M/d - h:mm:ss a")</td>
+                    <td colspan="2">
+                        <b>Started task with ID @task.id</b>
+                    </td>
+                </tr>
+                @logsDao.loadEventsForTask(task.id).map { entry =>
+                    <tr>
+                        <td>@entry.when.format("M/d - h:mm:ss a")</td>
+                        <td>@entry.source</td>
+                        <td>@entry.message</td>
+                    </tr>
+                }
+            }
+        </table>
+    }
+</div>

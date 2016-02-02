@@ -1,0 +1,35 @@
+@(task: model.Task, files: Seq[(String, String)])(implicit request: RequestHeader)
+
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <title>@task.taskDefinitionName task logs from @task.startedAt</title>
+    </head>
+
+    <body>
+
+        <h1>Task Logs</h1>
+        <h2>@task.taskDefinitionName in @task.processDefinitionName</h2>
+        <p>
+            Task started at @task.startedAt, with status: @task.status
+        </p>
+
+        <table>
+            <tr>
+                @files.zipWithIndex.map { case ((name, _), ix) =>
+                    <td style="padding-right:10px">
+                        <a href="#log_@ix">@name</a>
+                    </td>
+                }
+            </tr>
+        </table>
+
+        @files.zipWithIndex.map { case ((name, messages), ix) =>
+            <h2 name="log_@ix">@name</h2>
+            <pre style="white-space: pre-wrap;">@messages</pre>
+        }
+
+    </body>
+
+</html>

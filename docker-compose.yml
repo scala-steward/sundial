@@ -1,0 +1,18 @@
+web:
+  build: .
+  ports:
+    - "9000:9000"
+  links:
+    - db
+  volumes:
+    - ~/.aws:/root/.aws
+  environment:
+    SUNDIAL_ECS_CLUSTER: 
+  privileged: true
+db:
+  image: postgres:9.4.4
+  ports:
+    - "5432:5432"
+  environment:
+    POSTGRES_PASSWORD: password
+    POSTGRES_USER: postgres

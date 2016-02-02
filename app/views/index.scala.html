@@ -1,0 +1,55 @@
+@(processes: Seq[dto.ProcessDTO], triggers: Seq[model.ProcessTriggerRequest])(implicit request: RequestHeader)
+
+@main("Sundial Process Log") {
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <h1>Process Log</h1>
+
+                @if(!triggers.isEmpty) {
+                    <div class="alert alert-info" role="alert">
+                        <strong>There are open process trigger requests:</strong>
+                        <ul>
+                            @triggers.map { trigger =>
+                                <li>@trigger.processDefinitionName requested at @trigger.requestedAt</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Definition Name</th>
+                            <th>Started</th>
+                            <th>Ended</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @processes.map { process =>
+                        <tr>
+                            <td>
+                                <a href="@routes.Application.processDefinition(process.name)">
+                                @process.name
+                                </a>
+                            </td>
+                            <td>@{util.DateUtils.basicDateTimeFormat.format(process.startedAt)}</td>
+                            <td>@{process.endedAt.map(util.DateUtils.basicDateTimeFormat.format)}</td>
+                            <td>@process.durationStr</td>
+                            <td>
+                                <a href="@routes.Application.processDetail(process.id.toString)">
+                                    @process.status
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+}

@@ -1,0 +1,24 @@
+#!/bin/sh -ex
+
+
+# CodeDeploy uses a working directory other than the script directory, which isn't acceptable
+cd ${0%/*}
+# Set environment variables that are parameters, resources, and outputs from CloudFormation
+eval $(./cfn-env.sh)
+
+$(aws ecr get-login --region $REGION)
+
+docker pull _DOCKER_REGISTRY_/_DOCKER_REPO_:_BUILD_ID_
+docker stop _DOCKER_REPO_ || true
+docker rm _DOCKER_REPO_ || true
+mkdir -pv /var/log/sundial
+chmod a+w /var/log/sundial
+exec docker run -d --name=_DOCKER_REPO_ -p 9000:9000 \
+    -e "SUNDIAL_DB_NAME=$PARAMETER_DBName" \
+    -e "SUNDIAL_DB_USERNAME=$PARAMETER_DBUsername" \
+    -e "SUNDIAL_DB_PASSWORD=$PARAMETER_DBPassword" \
+    -e "SUNDIAL_DB_URL=$OUTPUT_DBInstanceEndpoint" \
+    -e "SUNDIAL_ECS_CLUSTER=$RESOURCE_ECSCluster" \
+    -v "/var/log/sundial:/opt/service/logs" \
+    _DOCKER_REGISTRY_/_DOCKER_REPO_:_BUILD_ID_ \
+    -Dconfig.file=conf/application.prod.conf \

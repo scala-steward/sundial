@@ -1,0 +1,751 @@
+{
+  "apidoc": {
+    "version": "0.9.6"
+  },
+  "name": "svc-sundial",
+  "description": "A service for scheduling and running Docker-based jobs",
+  "unions": {
+    "process_schedule": {
+      "description": "A specification for when a process should be run",
+      "types": [
+        {"type": "cron_schedule"},
+        {"type": "continuous_schedule"}
+      ]
+    },
+    "task_executable": {
+      "types": [
+        {"type": "docker_image_command"},
+        {"type": "shell_script_command"}
+      ]
+    }
+  },
+  "enums": {
+    "task_status": {
+      "values": [
+        {"name": "running", "description": "The task is currently executing or awaiting backoff"},
+        {"name": "failed", "description": "The task has irrevocably failed"},
+        {"name": "succeeded", "description": "The task has succeeded without serious errors"}
+      ]
+    },
+    "process_status": {
+      "values": [
+        {"name": "running", "description": "The process has tasks currently executing"},
+        {"name": "succeeded", "description": "All of the process's tasks succeeded on its last run"},
+        {"name": "failed", "description": "At least one of the process's tasks failed on its last run"}
+      ]
+    },
+    "process_overlap_action": {
+      "values": [
+        {"name": "wait", "description": "The process should wait until the currently running instance finishes"},
+        {"name": "terminate", "description": "The currently running process should be killed"}
+      ]
+    }
+  },
+  "models": {
+
+    "subscription": {
+      "description": "A subscription for process notifications",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+
+    "process_definition": {
+      "description": "A grouping of related tasks that are run as a single unit on the same schedule",
+      "fields": [
+        {
+          "name": "process_definition_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "paused",
+          "description": "If true, ignore schedule and only start process if triggered manually",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "process_description",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "schedule",
+          "description": "The schedule that the process runs on; if not specified, the process will only run when triggered manually",
+          "type": "process_schedule",
+          "required": false
+        },
+        {
+          "name": "task_definitions",
+          "type": "[task_definition]",
+          "required": true
+        },
+        {
+          "name": "overlap_action",
+          "type": "process_overlap_action",
+          "required": true,
+          "default": "wait"
+        },
+        {
+          "name": "subscriptions",
+          "type": "[subscription]",
+          "required": true
+        }
+      ]
+    },
+
+    "task_definition": {
+      "description": "An individual task that runs as part of a process",
+      "fields": [
+        {
+          "name": "task_definition_name",
+          "type": "string",
+          "description": "The canonical name for this task used by other tasks to identify this task",
+          "required": true
+        },
+        {
+          "name": "dependencies",
+          "type": "[task_dependency]",
+          "description": "The tasks that must have completed prior to this one beginning",
+          "required": true
+        },
+        {
+          "name": "executable",
+          "type": "task_executable",
+          "required": true
+        },
+        {
+          "name": "max_attempts",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "max_runtime_seconds",
+          "type": "integer",
+          "description": "The execution time (for a single attempt) after which the system will kill the task",
+          "required": false
+        },
+        {
+          "name": "backoff_base_seconds",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "backoff_exponent",
+          "type": "double",
+          "required": true,
+          "default": 1.0
+        },
+        {
+          "name": "require_explicit_success",
+          "description": "If true, the task must explicitly update its status with Sundial in order to succeed.",
+          "type": "boolean",
+          "required": true
+        }
+      ]
+    },
+
+    "task_dependency": {
+      "fields": [
+        {
+          "name": "task_definition_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "success_required",
+          "type": "boolean",
+          "required": true,
+          "default": true
+        }
+      ]
+    },
+
+    "docker_image_command": {
+      "fields": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "required": true,
+          "default": "latest"
+        },
+        {
+          "name": "command",
+          "type": "[string]",
+          "required": true
+        },
+        {
+          "name": "memory",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "cpu",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "log_paths",
+          "type": "[string]",
+          "required": true,
+          "default": []
+        }
+      ]
+    },
+
+    "shell_script_command": {
+      "fields": [
+        {
+          "name": "script",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "environment_variables",
+          "type": "[environment_variable]",
+          "required": false
+        }
+      ]
+    },
+
+    "environment_variable": {
+      "fields": [
+        {
+          "name": "variable_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+
+    "cron_schedule": {
+      "description": "See http://quartz-scheduler.org/api/2.2.0/org/quartz/CronExpression.html",
+      "fields": [
+        {
+          "name": "day_of_week",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "month",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "day_of_month",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "hours",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "minutes",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+
+    "continuous_schedule": {
+      "fields": [
+        {
+          "name": "buffer_seconds",
+          "type": "integer",
+          "required": false,
+          "description": "The minimum amount of time (in seconds) that must pass between executions of the process "
+        }
+      ]
+    },
+
+    "process": {
+      "fields": [
+        {
+          "name": "process_id",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "process_definition_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "start_time",
+          "type": "date-time-iso8601",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "process_status",
+          "required": true
+        },
+        {
+          "name": "task",
+          "type": "[task]",
+          "required": true
+        }
+      ]
+    },
+
+    "task": {
+      "fields": [
+        {
+          "name": "task_id",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "process_id",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "process_definition_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "task_definition_name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "start_time",
+          "type": "date-time-iso8601",
+          "required": true
+        },
+        {
+          "name": "end_time",
+          "type": "date-time-iso8601",
+          "required": false
+        },
+        {
+          "name": "previous_attempt_count",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "log_entries",
+          "type": "[log_entry]",
+          "required": true
+        },
+        {
+          "name": "metadata_entries",
+          "type": "[metadata_entry]",
+          "required": true
+        },
+        {
+          "name": "execution_state",
+          "type": "[metadata_entry]",
+          "description": "Internal bookkeeping metadata used for task scheduling (e.g. ECS task ID and cluster name)",
+          "required": false
+        },
+        {
+          "name": "status",
+          "type": "task_status",
+          "required": true
+        }
+      ]
+    },
+
+    "log_entry": {
+      "fields": [
+        {
+          "name": "log_entry_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Uniquely identifies the log message to prevent duplication"
+        },
+        {
+          "name": "when",
+          "type": "date-time-iso8601",
+          "required": true
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+
+    "metadata_entry": {
+      "fields": [
+        {
+          "name": "metadata_entry_id",
+          "type": "uuid",
+          "required": true,
+          "description": "Uniquely identifies the metadata entry to prevent duplication"
+        },
+        {
+          "name": "when",
+          "type": "date-time-iso8601",
+          "required": true
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }
+  },
+
+  "resources": {
+    "process_definition": {
+      "operations": [
+        {
+          "method": "GET",
+          "parameters": [],
+          "path": "/",
+          "description": "Get all currently registered process definitions",
+          "responses": {
+            "200": {
+              "type": "[process_definition]"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "path": "/:process_definition_name",
+          "description": "Get a registered process definition",
+          "responses": {
+            "200": {
+              "type": "process_definition"
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "body": {
+            "type": "process_definition"
+          },
+          "path": "/:process_definition_name",
+          "description": "Updates or creates a process definition",
+          "responses": {
+            "200": {
+              "type": "process_definition"
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "path": "/:process_definition_name",
+          "description": "Deletes a registered process definition",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "task_definition_name",
+              "location": "query",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "path": "/:process_definition_name/trigger",
+          "description": "Triggers a new instance of the process",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "path": "/:process_definition_name/pause",
+          "description": "Pause the process schedule",
+          "responses": {
+            "204": {
+              "type": "unit"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": true,
+              "type": "string"
+            }
+          ],
+          "path": "/:process_definition_name/resume",
+          "description": "Resume the process schedule",
+          "responses": {
+            "204": {
+              "type": "unit"
+            }
+          }
+        }
+
+      ]
+    },
+    "process": {
+      "operations": [
+        {
+          "method": "GET",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "name": "start_time",
+              "required": false,
+              "type": "date-time-iso8601"
+            },
+            {
+              "name": "end_time",
+              "required": false,
+              "type": "date-time-iso8601"
+            },
+            {
+              "name": "max_records",
+              "required": false,
+              "type": "integer"
+            },
+            {
+              "name": "allowed_statuses",
+              "required": true,
+              "type": "[process_status]"
+            }
+          ],
+          "path": "/",
+          "description": "Retrieves a list of process runs based on search parameters.",
+          "responses": {
+            "200": {
+              "type": "[process]"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "parameters": [
+            {
+              "name": "process_id",
+              "required": true,
+              "type": "uuid"
+            }
+          ],
+          "path": "/:process_id",
+          "description": "Retrieves a process run",
+          "responses": {
+            "200": {
+              "type": "process"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "process_id",
+              "required": true,
+              "type": "uuid"
+            }
+          ],
+          "path": "/:process_id/retry",
+          "description": "Retries a failed process run by restarting failed tasks; tasks will be given a single additional attempt",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "process_id",
+              "required": true,
+              "type": "uuid"
+            }
+          ],
+          "path": "/:process_id/kill",
+          "description": "Terminates an active process",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        }
+      ]
+    },
+    "task": {
+      "operations": [
+        {
+          "method": "GET",
+          "parameters": [
+            {
+              "name": "process_definition_name",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "task_definition_name",
+              "required": true,
+              "type": "string"
+            },
+            {
+              "name": "allowed_statuses",
+              "required": true,
+              "type": "[task_status]"
+            },
+            {
+              "name": "start_time",
+              "required": false,
+              "type": "date-time-iso8601"
+            },
+            {
+              "name": "end_time",
+              "required": false,
+              "type": "date-time-iso8601"
+            },
+            {
+              "name": "limit",
+              "required": false,
+              "type": "integer"
+            }
+          ],
+          "path": "/",
+          "description": "Retrieves the most recent tasks meeting the given criteria",
+          "responses": {
+            "200": {
+              "type": "[task]"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "task_id",
+              "required": true,
+              "type": "uuid"
+            }
+          ],
+          "body": {
+            "type": "[log_entry]"
+          },
+          "path": "/:task_id/log_entries",
+          "description": "Appends log entries for a task; intended for use within the task executable",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "task_id",
+              "required": true,
+              "type": "uuid"
+            }
+          ],
+          "body": {
+            "type": "[metadata_entry]"
+          },
+          "path": "/:task_id/metadata",
+          "description": "Appends metadata entries for a task; intended for use within the task executable",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "task_id",
+              "required": true,
+              "type": "uuid"
+            }
+          ],
+          "path": "/:task_id/succeed",
+          "description": "Marks the task as having succeeded",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        },
+        {
+          "method": "POST",
+          "parameters": [
+            {
+              "name": "task_id",
+              "required": true,
+              "type": "uuid"
+            }
+          ],
+          "path": "/:task_id/fail",
+          "description": "Marks the task as having failed",
+          "responses": {
+            "204": {"type": "unit"}
+          }
+        }
+      ]
+    }
+  }
+}

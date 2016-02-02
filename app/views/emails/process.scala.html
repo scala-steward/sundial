@@ -1,0 +1,87 @@
+@(process: dto.ProcessDTO)
+
+<div style="font-family:helvetica, arial, sans-serif">
+
+    <h2>Process Summary: @process.name</h2>
+
+    <img src="@process.graphUrl"/><br/>
+
+    <p>
+        Process for @process.name has
+        @if(process.success) {
+            completed successfully
+        } else {
+            failed
+        }
+        after @process.durationStr
+        with process ID @process.id.
+    </p>
+
+    <h2>Task Summary</h2>
+
+    <table cellspacing="0" cellpadding="5" border="1" style="border-color:#eee">
+        @process.tasks.map { task =>
+            <tr>
+                <td>@task.name</td>
+                <td>
+                @if(task.attempts == 0) {
+                    Did Not Run
+                } else {
+                    @if(task.success) {
+                        Suceeded
+                    } else {
+                        Failed for reason @task.reason.getOrElse("Unknown")
+                    }
+                    after @task.attempts
+                    @if(task.attempts == 1) {
+                        attempt
+                    } else {
+                        attempts
+                    }
+                }
+                </td>
+                <td>
+                @Html(task.durationStr.getOrElse("&nbsp;"))
+                </td>
+            </tr>
+        }
+    </table>
+
+    <h2>Task Detail</h2>
+
+    @process.tasks.map { task =>
+        <h3>@task.name</h3>
+        <div style="margin-left: 30px">
+            <p>
+            @if(task.attempts == 0) {
+                Did not run.
+            } else {
+                @if(task.success) {
+                    Suceeded
+                } else {
+                    Failed
+                }
+                after @task.attempts
+                @if(task.attempts == 1) {
+                    attempt.
+                } else {
+                    attempts.
+                }
+            }
+            </p>
+            @if(task.attempts > 0) {
+                <h4>Event Log</h4>
+                <table cellspacing="0" cellpadding="5" border="1" style="border-color : #eee">
+                @task.logs.map { log =>
+                    <tr>
+                        <td width="250">@log.when.format("yyyy-MM-dd h:mm:ss a")</td>
+                        <td width="120">@log.source</td>
+                        <td width="500">@log.message</td>
+                    </tr>
+                }
+                </table>
+            }
+        </div>
+    }
+
+</div>

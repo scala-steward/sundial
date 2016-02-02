@@ -1,0 +1,4 @@
+#!/bin/sh -ex
+
+docker stop _DOCKER_REPO_ || true
+docker rm _DOCKER_REPO_ || true

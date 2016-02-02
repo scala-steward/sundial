@@ -1,0 +1,3 @@
+#!/bin/sh -ex
+
+exec nc -z localhost 9000

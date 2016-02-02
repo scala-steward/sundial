@@ -1,0 +1,15 @@
+version: 0.0
+os: linux
+hooks:
+  ApplicationStart:
+    - location: start.sh
+      timeout: 900
+      runas: root
+  ApplicationStop:
+    - location: stop.sh
+      timeout: 900
+      runas: root
+  ValidateService:
+    - location: healthcheck.sh
+      timeout: 60
+      runas: root

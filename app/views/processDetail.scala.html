@@ -1,0 +1,154 @@
+@(process: dto.ProcessDTO, taskMetadata: Map[java.util.UUID, Map[String, String]])(implicit request: RequestHeader)
+@import model.TaskStatusType
+
+@main("Process Detail") {
+
+    <script>
+        function killProcess(id) {
+            if(confirm("Are you sure you want to kill this process?")) {
+                var request = jsRoutes.controllers.Processes.postKillByProcessId(id);
+                $.ajax($.extend(request, {async:true}))
+                    .done(function() { location.reload(); })
+                    .fail(function() { alert("Kill request failed!"); location.reload(); });
+            }
+        }
+
+        function retryProcess(id) {
+            if(confirm("Please confirm you wish to retry failed tasks within this process")) {
+                var request = jsRoutes.controllers.Processes.postRetryByProcessId(id);
+                $.ajax($.extend(request, {async:true}))
+                    .done(function() { location.reload(); })
+                    .fail(function() { alert("Retry request failed!"); location.reload(); });
+            }
+        }
+    </script>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+
+                <ol class="breadcrumb">
+                    <li><a href="@routes.Application.processDefinitions()">Process Definitions</a></li>
+                    <li><a href="@routes.Application.processDefinition(process.name)">@process.name</a></li>
+                    <li>@process.startedAt</li>
+                </ol>
+
+                <h1>Process Detail</h1>
+                <h3>@process.name (started at @util.DateUtils.basicDateTimeFormat.format(process.startedAt))</h3>
+
+                <img src="@routes.Application.processGraph(process.id.toString())" style="margin:20px"/>
+
+                <p>
+                    <a href="@routes.LiveLogs.logs(process.id.toString)" target="_blank">View Live Logs</a>
+                </p>
+                <p>
+                    @if(process.status == "Running") {
+                        <a href="javascript:killProcess('@process.id.toString');">Kill Running Process</a>
+                    }
+                    @if(process.status == "Failed" || process.status == "Running") {
+                        <a href="javascript:retryProcess('@process.id.toString');">Retry Failed Tasks</a>
+                    }
+                </p>
+
+                <p>
+                    Process for @process.name
+                    @if(process.status == "Running") {
+                        is currently running
+                    } else {
+                        @if(process.success) {
+                            completed successfully
+                        } else {
+                            failed
+                        }
+                        after @process.durationStr
+                    }
+                    with process ID @process.id.
+                </p>
+
+                <h3>Task Summary</h3>
+
+                <table class="table">
+                @process.tasks.map { task =>
+                    <tr>
+                        <td width="200" style="font-weight:bold;">@task.name</td>
+                        <td width="200">
+                        @if(task.attempts == 0) {
+                            Idle
+                        } else {
+                            @if(task.endedAt.isEmpty) {
+                                Running
+                            } else {
+                                @if(task.success) {
+                                    Suceeded
+                                } else {
+                                    Failed for reason @task.reason.getOrElse("Unknown")
+                                }
+                                after @task.attempts
+                                @if(task.attempts == 1) {
+                                    attempt
+                                } else {
+                                    attempts
+                                }
+                            }
+                        }
+                        </td>
+                        <td>
+                        @Html(task.durationStr.map(dur => s"Total time: $dur").getOrElse("&nbsp;"))
+                        </td>
+                    </tr>
+                    @if(task.attempts > 0) {
+                        <tr style="background-color:#f8f8f8">
+                            <td colspan="3" style="padding-left:20px">
+                                <table>
+                                    @task.tasks.map { taskAttempt =>
+                                        <tr>
+                                            <td style="padding:5px" width="182">@{util.DateUtils.basicDateTimeFormat.format(taskAttempt.startedAt)}</td>
+                                            <td style="padding:5px" width="400">
+                                                @if(taskAttempt.status.isComplete) {
+                                                    @taskAttempt.status after
+                                                } else {
+                                                    Running for
+                                                }
+                                                @{util.DateUtils.prettyDuration(taskAttempt.startedAt, taskAttempt.endedAt.getOrElse(new java.util.Date()))}
+                                            </td>
+                                            <td style="padding:5px" width="130">
+                                                <a href="@routes.LiveLogs.logs(process.id.toString)#@taskAttempt.taskDefinitionName" target="_blank">View Live Logs</a>
+                                            </td>
+                                            <td style="padding:5px" width="130">
+                                                @if(taskAttempt.status.isComplete) {
+                                                    <a href="@routes.Application.taskLogs(taskAttempt.id.toString)" target="_blank">View Saved Logs</a>
+                                                }
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td></td>
+                                            <td colspan="3" style="color:#444; padding-top:5px; padding-bottom:5px;">
+                                                <table>
+                                                    @taskMetadata.getOrElse(taskAttempt.id, Map.empty).map { case (key, value) =>
+                                                        @if(key != "last_updated") {
+                                                            <tr style="font-size:8pt;">
+                                                                <td style="padding-left:5px; padding-right:5px; text-align:right;">@key.substring(key.indexOf('.')+1) =</td>
+                                                                @if(key.endsWith("maxMemoryUsedBytes")) {
+                                                                    <td>@{Math.round(value.toDouble/(1024*1024))} MB</td>
+                                                                } else {
+                                                                    <td>@value</td>
+                                                                }
+                                                            </tr>
+                                                        }
+                                                    }
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    }
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                }
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+}

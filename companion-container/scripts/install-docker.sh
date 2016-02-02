@@ -1,0 +1,37 @@
+#!/bin/sh -x
+
+# SINCE we don't necessarily know what version of Docker is running on the server,
+# we have to adaptively install the correct version.
+
+SERVER_DOCKER_VERSION=$(./server-docker-version.py)
+
+# Check to see if we already have this version cached in S3
+# Check to see if we already have this version cached in S3
+n=0
+until [ $n -ge 5 ]
+do
+        aws s3 cp s3://$RESOURCE_S3Bucket/docker/docker-$SERVER_DOCKER_VERSION /tmp/docker && break
+        n=$((n + 1))
+        sleep 10
+done
+
+if ! [[ -s /tmp/docker ]]; then
+    echo "Docker client version $SERVER_DOCKER_VERSION was not cached in S3 - downloading..."
+        n=0
+        until [ $n -ge 5 ]
+        do
+                wget -O /tmp/docker https://get.docker.com/builds/Linux/x86_64/docker-$SERVER_DOCKER_VERSION && break
+                n=$((n + 1))
+                sleep 10
+        done
+        n=0
+        until [ $n -ge 5 ]
+        do
+            aws s3 cp /tmp/docker s3://$RESOURCE_S3Bucket/docker/docker-$SERVER_DOCKER_VERSION && break
+                n=$((n + 1))
+                sleep 10
+        done
+fi
+
+chmod +x /tmp/docker
+mv /tmp/docker /usr/local/bin/docker

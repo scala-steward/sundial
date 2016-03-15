@@ -6,6 +6,8 @@ Sundial is a batch job scheduler for running Dockerized batch jobs on Amazon ECS
 
 Think of Sundial as an alternative to Chronos that uses Amazon ECS instead of Mesos and has some nice extra features.
 
+Authors: [CONTRIBUTORS.md](CONTRIBUTORS.md)
+
 Features:
 
 Dependency tracking between jobs
@@ -15,7 +17,7 @@ Graphite metadata.
 
 # Getting started.
 
-Set up service and job instances using Cloudformation template. See DEPLOY.md for details.
+Set up service and job instances using Cloudformation template. See [DEPLOY.md](docs/DEPLOY.md) for details.
 
-Submit your jobs using REST API. See description of job JSON format under JOBS.md
+Submit your jobs using REST API. See description of job JSON format under [JOBS.md](docs/JOBS.md)
 

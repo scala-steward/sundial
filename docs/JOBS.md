@@ -1,5 +1,6 @@
 # Sample job template
 
+```json
 {
   "process_definition_name": "SampleProcessName",
   "process_description": "Sample process description",
@@ -56,6 +57,6 @@
   ],
   "paused": false
 }
-
+```
 
 POST this job template to http://<sundialurl>/api/process_definitions/SampleProcessName_

@@ -60,3 +60,5 @@
 ```
 
 POST this job template to http://sundialurl/api/process_definitions/SampleProcessName
+
+More descriptions of the options and client generators for Scala, Ruby, Java, NodeJs are available at http://apidoc.me/gilt/svc-sundial/latest

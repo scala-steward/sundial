@@ -59,4 +59,4 @@
 }
 ```
 
-POST this job template to http://sundialurl/api/process_definitions/SampleProcessName_
+POST this job template to http://sundialurl/api/process_definitions/SampleProcessName

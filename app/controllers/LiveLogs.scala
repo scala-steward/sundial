@@ -3,12 +3,15 @@ package controllers
 import java.util.concurrent.TimeUnit
 import java.util.{Date, UUID}
 
+import com.amazonaws.regions.Regions
 import com.amazonaws.services.logs.AWSLogsClient
-import com.amazonaws.services.logs.model.{OutputLogEvent, GetLogEventsRequest}
+import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
+import common.SundialGlobal
 import model.ContainerServiceExecutable
-import util.{DateUtils, Json}
-import scala.collection.JavaConversions._
 import play.api.mvc.{Action, Controller}
+import util.{DateUtils, Json}
+
+import scala.collection.JavaConversions._
 
 case class TaskLogsResponse(taskId: UUID, taskDefName: String, logPath: String, nextToken: String, events: Seq[OutputLogEvent])
 
@@ -18,7 +21,7 @@ object LiveLogs extends Controller {
 
   private val TaskLogToken = "task_([^_]+)_(.*)".r
 
-  private val logsClient = new AWSLogsClient()
+  private val logsClient: AWSLogsClient = new AWSLogsClient().withRegion(Regions.valueOf(SundialGlobal.awsRegion))
 
   def logs(processId: String) = Action {
     Ok(views.html.liveLogs(UUID.fromString(processId)))

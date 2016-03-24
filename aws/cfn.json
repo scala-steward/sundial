@@ -116,18 +116,18 @@
 
   "Mappings" : {
     "AWSRegionToECSAMI" : {
-      "us-east-1"      : { "AMIID" : "ami-43043329" },
-      "us-west-2"      : { "AMIID" : "ami-02a24162" },
-      "eu-west-1"      : { "AMIID" : "ami-76e95b05" },
-      "ap-northeast-1" : { "AMIID" : "ami-18d8de76" },
-      "ap-southeast-2" : { "AMIID" : "ami-75a38416" }
+      "us-east-1"      : { "AMIID" : "ami-33b48a59" },
+      "us-west-2"      : { "AMIID" : "ami-26f78746" },
+      "eu-west-1"      : { "AMIID" : "ami-77ab1504" },
+      "ap-northeast-1" : { "AMIID" : "ami-b3afa2dd" },
+      "ap-southeast-2" : { "AMIID" : "ami-cf6342ac" }
     },
     "AWSRegionToLinuxAMI": {
-      "us-east-1"      : { "AMIID" : "ami-60b6c60a" },
-      "us-west-2"      : { "AMIID" : "ami-e7527ed7" },
-      "eu-west-1"      : { "AMIID" : "ami-d114f295" },
-      "ap-northeast-1" : { "AMIID" : "ami-68d8e93a" },
-      "ap-southeast-2" : { "AMIID" : "ami-cbf90ecb" }
+      "us-east-1"      : { "AMIID" : "ami-08111162" },
+      "us-west-2"      : { "AMIID" : "ami-c229c0a2" },
+      "eu-west-1"      : { "AMIID" : "ami-31328842" },
+      "ap-northeast-1" : { "AMIID" : "ami-f80e0596" },
+      "ap-southeast-2" : { "AMIID" : "ami-f2210191" }
     }
   },
 
@@ -446,7 +446,7 @@
           "Setup": {
             "packages": {
               "yum": {
-                "docker": ["1.7.1"]
+                "docker": []
               }
             },
 
@@ -483,7 +483,7 @@
           "AWSLogs": {
             "packages": {
               "yum": {
-                "awslogs": ["1.1.0"]
+                "awslogs": []
               }
             },
 

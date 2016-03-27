@@ -2,13 +2,15 @@ package service.notifications
 
 import java.util.UUID
 
+import com.amazonaws.regions.Regions
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceAsyncClient
 import com.amazonaws.services.simpleemail.model._
+import common.SundialGlobal
 import dao._
-import dto.{ProcessDTO, DisplayModels}
-import model.ProcessStatus.{Failed, Succeeded}
+import dto.{DisplayModels, ProcessDTO}
 import model._
 import play.api.Logger
+
 import scala.collection.JavaConversions._
 
 
@@ -36,7 +38,7 @@ class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) ext
     }
   }
 
-  protected val sesClient = new AmazonSimpleEmailServiceAsyncClient()
+  protected val sesClient: AmazonSimpleEmailServiceAsyncClient = new AmazonSimpleEmailServiceAsyncClient().withRegion(Regions.valueOf(SundialGlobal.awsRegion))
 
   protected def sendEmail(teams: Seq[Team], subject: String, body: String): Unit = {
     val toAddresses = teams.map(team => s"${team.name} <${team.email}>").toList

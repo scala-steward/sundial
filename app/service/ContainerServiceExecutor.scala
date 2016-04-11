@@ -1,7 +1,8 @@
 package service
 
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
 
+import com.amazonaws.regions.Regions
 import com.amazonaws.services.ecs.AmazonECSClient
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.ObjectMetadata
@@ -9,30 +10,31 @@ import com.amazonaws.services.simpledb.AmazonSimpleDBClient
 import com.amazonaws.services.simpledb.model.GetAttributesRequest
 import com.amazonaws.util.StringInputStream
 import common.SundialGlobal
+import dao.SundialDao
+import model._
 import org.apache.commons.io.FilenameUtils
 import play.api.Logger
 import util._
-import scala.collection.JavaConverters._
-import scala.collection.JavaConversions._
-import dao.{SundialDao}
-import model._
 
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceExecutable, ContainerServiceState] {
 
   private lazy val config = play.Play.application.configuration
 
-  implicit val ecsClient = new AmazonECSClient()
-  implicit val s3Client = new AmazonS3Client()
-  implicit val sdbClient = new AmazonSimpleDBClient()
-
-  override def stateDao(implicit dao: SundialDao) = dao.containerServiceStateDao
-
+  val awsRegion = config.getString("aws.region")
   val companionImage = config.getString("companion.tag")
   val cluster = config.getString("ecs.cluster")
   val defaultCpu = config.getInt("ecs.defaultCpu")
   val defaultMemory = config.getInt("ecs.defaultMemory")
+
+  implicit val ecsClient: AmazonECSClient = new AmazonECSClient().withRegion(Regions.valueOf(awsRegion))
+  implicit val s3Client = new AmazonS3Client()
+  implicit val sdbClient: AmazonSimpleDBClient = new AmazonSimpleDBClient().withRegion(Regions.valueOf(awsRegion))
+
+  override def stateDao(implicit dao: SundialDao) = dao.containerServiceStateDao
 
   private def buildLogPaths(executable: ContainerServiceExecutable) = {
     val logDirectories = executable.logPaths.map(FilenameUtils.getFullPathNoEndSeparator).distinct.sorted

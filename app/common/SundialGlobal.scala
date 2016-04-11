@@ -3,14 +3,15 @@ package common
 import java.util.Arrays.asList
 import java.util.concurrent.TimeUnit
 
+import com.amazonaws.regions.Regions
 import com.amazonaws.services.cloudformation.AmazonCloudFormationClient
-import com.amazonaws.services.cloudformation.model.{DescribeStacksRequest, DescribeStackResourceRequest}
+import com.amazonaws.services.cloudformation.model.{DescribeStackResourceRequest, DescribeStacksRequest}
 import com.amazonaws.services.ec2.AmazonEC2Client
 import com.amazonaws.services.ec2.model.{DescribeTagsRequest, Filter}
 import com.amazonaws.util.EC2MetadataUtils
-import play.api.{Logger, Application, GlobalSettings}
-
+import play.api.{Application, GlobalSettings, Logger}
 import service.{Dependencies, Sundial}
+
 import scala.collection.JavaConverters._
 
 object SundialGlobal extends GlobalSettings {
@@ -19,11 +20,12 @@ object SundialGlobal extends GlobalSettings {
 
   lazy val sundial: Sundial = Bootstrap.bootstrapSundial(dependencies)
 
-  lazy val cfnClient = new AmazonCloudFormationClient()
+  lazy val awsRegion = play.Play.application.configuration.getString("aws.region")
+  lazy val cfnClient: AmazonCloudFormationClient = new AmazonCloudFormationClient().withRegion(Regions.valueOf(awsRegion))
+  lazy val ec2Client: AmazonEC2Client = new AmazonEC2Client().withRegion(Regions.valueOf(awsRegion))
 
   lazy val cfnStackName = {
     val instanceId = EC2MetadataUtils.getInstanceId
-    val ec2Client = new AmazonEC2Client
     val filter1 = new Filter("resource-type", asList("instance"))
     val filter2 = new Filter("resource-id", asList(instanceId))
     val filter3 = new Filter("key", asList("aws:cloudformation:stack-id"))

@@ -10,3 +10,7 @@
   * Emerson Loureiro
   * Giovanni Gargiulo
   * Zachary Cohn
+  
+# External contributors
+
+  * Włodzimierz Rożkow (https://github.com/rozhok) - Movedin.co

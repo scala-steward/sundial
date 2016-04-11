@@ -15,7 +15,7 @@ Go to Amazon AWS Console -> Cloudformation -> Create Stack. Choose "Upload a tem
 
 The Cloudformation template will create your RDS metadata instance, your ECS cluster, an S3 bucket for logs and a service instance for the Sundial Web UI.
 
-The last step is to deploy the Sundial service and UI. A deploy.sh script is provided to upload deploy scripts to S3, Dockerized version of service to your Docker registry and triggrer Amazon Codedeploy to pull the image and deploy it to your stack. Make sure you edit deploy.sh and give it details of your AWS region, Docker registry etc.
+The last step is to deploy the Sundial service and UI. A deploy.sh script is provided to upload deploy scripts to S3, Dockerized version of service to your Docker registry and triggrer Amazon Codedeploy to pull the image and deploy it to your stack. Make sure you edit deploy.sh and application.conf and give it details of your AWS region, Docker registry etc.
 
 # Deployment parameters
 

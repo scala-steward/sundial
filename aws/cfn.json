@@ -116,11 +116,11 @@
 
   "Mappings" : {
     "AWSRegionToECSAMI" : {
-      "us-east-1"      : { "AMIID" : "ami-43043329" },
-      "us-west-2"      : { "AMIID" : "ami-02a24162" },
-      "eu-west-1"      : { "AMIID" : "ami-76e95b05" },
-      "ap-northeast-1" : { "AMIID" : "ami-18d8de76" },
-      "ap-southeast-2" : { "AMIID" : "ami-75a38416" }
+      "us-east-1"      : { "AMIID" : "ami-67a3a90d" },
+      "us-west-2"      : { "AMIID" : "ami-c7a451a7" },
+      "eu-west-1"      : { "AMIID" : "ami-9c9819ef" },
+      "ap-northeast-1" : { "AMIID" : "ami-7e4a5b10" },
+      "ap-southeast-2" : { "AMIID" : "ami-b8cbe8db" }
     },
     "AWSRegionToLinuxAMI": {
       "us-east-1"      : { "AMIID" : "ami-60b6c60a" },
@@ -407,7 +407,7 @@
                   ]
                 },
                 {
-                  "Effect":"Allow",
+                  "Effect":"Allow", 
                   "Action":[
                     "cloudformation:DescribeStacks",
                     "cloudformation:DescribeStackEvents",
@@ -415,6 +415,13 @@
                     "cloudformation:DescribeStackResources"
                   ],
                   "Resource":"*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sts:AssumeRole"
+                  ],
+                  "Resource": "*"
                 }
 
               ]

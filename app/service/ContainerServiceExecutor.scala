@@ -59,8 +59,10 @@ class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceEx
                                                cpu = executable.cpu.getOrElse(defaultCpu),
                                                memory = executable.memory.getOrElse(defaultMemory),
                                                essential = false, // the companion will wait
-                                               environmentVariables = Map("graphite.address" -> "companion", "graphite.port" -> "13290",
-                                                 "sundial.url" -> ("http://" + SundialGlobal.sundialUrl +"/")),
+                                               environmentVariables = executable.environmentVariables ++ Map("graphite.address" -> "companion",
+                                                 "graphite.port" -> "13290",
+                                                 "sundial.url" -> ("http://" + SundialGlobal.sundialUrl +"/")
+                                               ),
                                                links = Seq(ECSContainerLink("sundialCompanion", "companion")),
                                                mountPoints = logPathsAndVolumes.map { case (path, volume) =>
                                                  ECSMountPoint(containerPath = path,

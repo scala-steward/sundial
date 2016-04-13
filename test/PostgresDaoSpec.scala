@@ -128,8 +128,8 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       val executables = Seq(
         ShellCommandExecutable("echo 'hello world'", Map.empty),
         ShellCommandExecutable("echo 'hello world'", Map("key" -> "value")),
-        ContainerServiceExecutable("ubuntu", "latest", Seq.empty, None, None, Seq.empty),
-        ContainerServiceExecutable("ubuntu", "latest", Seq("sleep", "1000"), Some(10), Some(1000), Seq("log/application.log"))
+        ContainerServiceExecutable("ubuntu", "latest", Seq.empty, None, None, Seq.empty, Map.empty),
+        ContainerServiceExecutable("ubuntu", "latest", Seq("sleep", "1000"), Some(10), Some(1000), Seq("log/application.log"), Map("test" -> "value"))
       )
       executables.map { executable =>
         val task = model.Task(UUID.randomUUID(), UUID.randomUUID(), "someProcess", "someTask",

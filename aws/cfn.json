@@ -422,6 +422,13 @@
                     "sts:AssumeRole"
                   ],
                   "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "iam:GetRole"
+                  ],
+                  "Resource": "*"
                 }
 
               ]

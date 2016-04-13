@@ -203,6 +203,12 @@
           "type": "[string]",
           "required": true,
           "default": []
+        },
+        {
+          "name": "environment_variables",
+          "type": "[environment_variable]",
+          "required": true,
+          "default": []
         }
       ]
     },

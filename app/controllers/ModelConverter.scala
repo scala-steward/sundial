@@ -3,6 +3,7 @@ package controllers
 import java.util.UUID
 
 import com.gilt.svc.sundial.v0
+import com.gilt.svc.sundial.v0.models.EnvironmentVariable
 import dao.SundialDao
 import model.{ContainerServiceExecutable, ShellCommandExecutable}
 import util.Conversions._
@@ -149,8 +150,8 @@ object ModelConverter {
         }
       }
       v0.models.ShellScriptCommand(script, envAsEntries)
-    case model.ContainerServiceExecutable(image, tag, command, memory, cpu, logPaths) =>
-      v0.models.DockerImageCommand(image, tag, command, memory, cpu, logPaths)
+    case model.ContainerServiceExecutable(image, tag, command, memory, cpu, logPaths, environmentVariables) =>
+      v0.models.DockerImageCommand(image, tag, command, memory, cpu, logPaths, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)))
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -174,14 +175,15 @@ object ModelConverter {
       }
       model.ShellCommandExecutable(script, envAsMap)
 
-    case v0.models.DockerImageCommand(image, tag, command, memory, cpu, logPaths) =>
-      //TODO Handle environment vars
+    case v0.models.DockerImageCommand(image, tag, command, memory, cpu, logPaths, environmentVariables) =>
       model.ContainerServiceExecutable(image,
                                        tag,
                                        command,
                                        memory,
                                        cpu,
-                                       logPaths)
+                                       logPaths,
+        environmentVariables.map(envVariable => envVariable.variableName -> envVariable.value).toMap
+      )
 
     case v0.models.TaskExecutableUndefinedType(description) =>
       throw new IllegalArgumentException(s"Unknown executable type with description [$description]")

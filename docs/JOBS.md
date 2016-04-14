@@ -20,7 +20,13 @@
           "command": ["jobstart.sh"],
           "log_paths": ["/opt/job/log/application.log"],
           "cpu": 1000,
-          "memory": 5000
+          "memory": 5000,
+          "environment_variables" : [
+            {
+              "variable_name": "EnvironmentType",
+              "value": "production"
+            }
+          ]
         }
       },
       "dependencies": [],
@@ -78,6 +84,7 @@ POST this job template to http://sundialurl/api/process_definitions/SampleProces
 * **log_paths**: Location of application logs within the Docker container. Sundial will stream these logs to Cloudwatch for live viewing and also collect the logs at end of task run and upload to S3.
 * **cpu**: How much CPU to allocate on ECS instace
 * **memory**: How much memory to allocate on ECS instance
+* **environment_variables**: These will be passed as environment variables to running container
 * **dependencies**: Tasks that need to run before this task runs
 * **max_attempts**: Maximum number of times this task can be run if task fails
 * **backoff_base_seconds**: How long to wait before retrying

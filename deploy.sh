@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #Change these to match your environment
-REGION=us-east-1 # do not change this since ECR is available only in us-east-1
+REGION=
 DOCKER_REGISTRY=
 DOCKER_REPO=svc-sundial
 # An s3 bucket for deployment assets

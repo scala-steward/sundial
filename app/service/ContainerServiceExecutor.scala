@@ -72,7 +72,7 @@ class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceEx
                                                     image = companionImage,
                                                     command = Seq.empty,
                                                     cpu = 100,
-                                                    memory = 100,
+                                                    memory = 150,
                                                     essential = true,
                                                     links = Seq.empty,
                                                     mountPoints = hostrunMountPoint +: logPathsAndVolumes.map { case (path, volume) =>

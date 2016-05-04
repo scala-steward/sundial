@@ -203,7 +203,13 @@
               "03_restart_docker": {
                 "command": "service docker restart"
               },
-              "04_restart_ecs_agent": {
+              "04_sleepworkaround": {
+                "command": "sleep 30"
+              },
+              "05_startagainworkaround": {
+                "command": "service docker start"
+              },
+              "06_restart_ecs_agent": {
                 "command": "start ecs"
               }
             }

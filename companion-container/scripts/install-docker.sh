@@ -10,28 +10,29 @@ SERVER_DOCKER_VERSION=$(./server-docker-version.py)
 n=0
 until [ $n -ge 5 ]
 do
-        aws s3 cp s3://$RESOURCE_S3Bucket/docker/docker-$SERVER_DOCKER_VERSION.tgz /tmp/docker && break
+        aws s3 cp s3://$RESOURCE_S3Bucket/docker/docker-$SERVER_DOCKER_VERSION.tgz /tmp/docker.tgz && break
         n=$((n + 1))
         sleep 10
 done
 
-if ! [[ -s /tmp/docker ]]; then
+if ! [[ -s /tmp/docker.tgz ]]; then
     echo "Docker client version $SERVER_DOCKER_VERSION.tgz was not cached in S3 - downloading..."
         n=0
         until [ $n -ge 5 ]
         do
-                wget -O /tmp/docker https://get.docker.com/builds/Linux/x86_64/docker-$SERVER_DOCKER_VERSION.tgz && break
+                wget -O /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-$SERVER_DOCKER_VERSION.tgz && break
                 n=$((n + 1))
                 sleep 10
         done
         n=0
         until [ $n -ge 5 ]
         do
-            aws s3 cp /tmp/docker s3://$RESOURCE_S3Bucket/docker/docker-$SERVER_DOCKER_VERSION.tgz && break
+            aws s3 cp /tmp/docker.tgz s3://$RESOURCE_S3Bucket/docker/docker-$SERVER_DOCKER_VERSION.tgz && break
                 n=$((n + 1))
                 sleep 10
         done
 fi
 
-chmod +x /tmp/docker
-mv /tmp/docker /usr/local/bin/docker
+tar xfzv /tmp/docker.tgz -C /tmp
+chmod +x /tmp/docker/*
+mv /tmp/docker/* /usr/local/bin

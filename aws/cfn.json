@@ -94,7 +94,7 @@
     "JobInstanceDiskSpace": {
       "Description": "Amount of disk space to give jobs instances in GB",
       "Type": "Number",
-      "Default": "8",
+      "Default": "22",
       "MinValue": "1",
       "MaxValue": "1024"
     },
@@ -214,7 +214,7 @@
         "ImageId" : { "Fn::FindInMap" : [ "AWSRegionToECSAMI", { "Ref" : "AWS::Region" }, "AMIID" ] },
         "BlockDeviceMappings" : [
           {
-            "DeviceName" : "/dev/xvda",
+            "DeviceName" : "/dev/xvdcz",
             "Ebs" : {
               "VolumeSize" : { "Ref": "JobInstanceDiskSpace" },
               "VolumeType": { "Ref": "JobInstanceDiskType" }

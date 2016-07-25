@@ -203,8 +203,25 @@
             }
           },
 
+          "DailyDockerCleanup": {
+            "files": {
+              "/etc/cron.daily/cleanupcontainers": {
+                "content": "/usr/bin/docker rm $(docker ps -a -q)",
+                "mode": "000755",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cron.daily/cleanupimages": {
+                "content": "/usr/bin/docker rmi $(docker images -q)",
+                "mode": "000755",
+                "owner": "root",
+                "group": "root"
+              }
+            }
+          },
+
           "configSets": {
-            "default": ["AddToCluster", "CfnHup", "UpdateMTU"]
+            "default": ["AddToCluster", "CfnHup", "UpdateMTU", "DailyDockerCleanup"]
           }
 
         }

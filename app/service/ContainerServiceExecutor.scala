@@ -81,7 +81,8 @@ class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceEx
                                                     })
     ECSTaskDefinition(family = family,
                       containers = Seq(taskContainer, companionContainer),
-                      volumes = hostrunVolume +: loggingVolumes)
+                      volumes = hostrunVolume +: loggingVolumes,
+                      taskRoleArn = executable.taskRoleArn)
   }
 
   private def buildCloudWatchConfig(family: String, executable: ContainerServiceExecutable, task: Task): String = {

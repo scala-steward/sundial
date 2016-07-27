@@ -8,7 +8,7 @@ import scala.collection.JavaConverters._
 
 // The AWS SDK doesn't provide proper model classes, so we make our own
 
-case class ECSTaskDefinition(containers: Seq[ECSContainerDefinition], volumes: Seq[ECSVolume], family: String)
+case class ECSTaskDefinition(containers: Seq[ECSContainerDefinition], volumes: Seq[ECSVolume], family: String, taskRoleArn: Option[String])
 case class ECSContainerLink(sourceContainer: String, internalName: String)
 case class ECSContainerDefinition(name: String, image: String, cpu: Int, memory: Int,
                                   command: Seq[String], essential: Boolean,
@@ -80,8 +80,10 @@ object ECSHelper {
       .withContainerDefinitions(containerDefinitions.asJava)
       .withVolumes(volumes.asJava)
 
+    val registerTaskDefinitionWithTaskRoleArn = taskDefinition.taskRoleArn.fold(registerTaskDefinitionRequest)(registerTaskDefinitionRequest.withTaskRoleArn(_))
+
     // Note: If you register the same TaskDefinition Name multiple times ECS with create a new 'revision'
-    ecsClient.registerTaskDefinition(registerTaskDefinitionRequest)
+    ecsClient.registerTaskDefinition(registerTaskDefinitionWithTaskRoleArn)
   }
 
 
@@ -135,7 +137,8 @@ object ECSHelper {
                       volumes = taskDefinition.getVolumes.asScala.map { volume =>
                         ECSVolume(name = volume.getName,
                                   hostSourcePath = Option(volume.getHost).flatMap(h => Option(h.getSourcePath)))
-                      }.toList)
+                      }.toList,
+                      taskRoleArn = Option(taskDefinition.getTaskRoleArn))
   }
 
   def matches(actual: TaskDefinition, expected: ECSTaskDefinition): Boolean = {

@@ -150,8 +150,8 @@ object ModelConverter {
         }
       }
       v0.models.ShellScriptCommand(script, envAsEntries)
-    case model.ContainerServiceExecutable(image, tag, command, memory, cpu, logPaths, environmentVariables) =>
-      v0.models.DockerImageCommand(image, tag, command, memory, cpu, logPaths, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)))
+    case model.ContainerServiceExecutable(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables) =>
+      v0.models.DockerImageCommand(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)))
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,12 +175,13 @@ object ModelConverter {
       }
       model.ShellCommandExecutable(script, envAsMap)
 
-    case v0.models.DockerImageCommand(image, tag, command, memory, cpu, logPaths, environmentVariables) =>
+    case v0.models.DockerImageCommand(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables) =>
       model.ContainerServiceExecutable(image,
                                        tag,
                                        command,
                                        memory,
                                        cpu,
+                                       taskRoleArn,
                                        logPaths,
         environmentVariables.map(envVariable => envVariable.variableName -> envVariable.value).toMap
       )

@@ -20,7 +20,7 @@ sealed trait ExecutableState {
   def status: TaskExecutorStatus
 }
 
-case class ContainerServiceExecutable(image: String, tag: String = "latest", command: Seq[String], memory: Option[Int], cpu: Option[Int], logPaths: Seq[String], environmentVariables: Map[String, String]) extends Executable
+case class ContainerServiceExecutable(image: String, tag: String = "latest", command: Seq[String], memory: Option[Int], cpu: Option[Int], taskRoleArn: Option[String], logPaths: Seq[String], environmentVariables: Map[String, String]) extends Executable
 case class ContainerServiceState(taskId: UUID, asOf: Date, ecsTaskArn: String, status: TaskExecutorStatus) extends ExecutableState
 
 case class ShellCommandExecutable(script: String, environmentVariables: Map[String, String]) extends Executable

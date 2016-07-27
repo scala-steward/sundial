@@ -199,6 +199,11 @@
           "required": false
         },
         {
+          "name": "taskRoleArn",
+          "type": "string",
+          "required": false
+        },
+        {
           "name": "log_paths",
           "type": "[string]",
           "required": true,

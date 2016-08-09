@@ -50,7 +50,7 @@ object ProcessDefinitions extends SundialController {
           val existing = dao.processDefinitionDao.loadProcessDefinition(processDefinitionName)
           val existingTaskDefinitions = dao.processDefinitionDao.loadTaskDefinitionTemplates(processDefinitionName)
           val teams = request.body.subscriptions.map { sub =>
-            Team(sub.name, sub.email)
+            Team(sub.name, sub.email, sub.notifyWhen)
           }
           val processDefinition = model.ProcessDefinition(processDefinitionName,
                                                           request.body.processDescription,

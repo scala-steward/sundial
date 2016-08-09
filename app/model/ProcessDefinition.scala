@@ -2,7 +2,9 @@ package model
 
 import java.util.Date
 
-case class Team(name: String, email: String)
+import com.gilt.svc.sundial.v0.models.NotificationOptions
+
+case class Team(name: String, email: String, notifyAction: NotificationOptions)
 
 case class ProcessDefinition(name: String,
                              description: Option[String],

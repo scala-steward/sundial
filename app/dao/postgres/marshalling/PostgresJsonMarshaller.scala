@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream
 import com.fasterxml.jackson.core.JsonEncoding
 import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
 import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode}
+import com.gilt.svc.sundial.v0.models.NotificationOptions
 import model._
 import util.Json
 
@@ -25,6 +26,7 @@ object PostgresJsonMarshaller {
 
   final val TEAM_NAME = "name"
   final val TEAM_EMAIL = "email"
+  final val TEAM_NOTIFY = "notify_options"
 
   private def mapper = {
     val mapper = Json.mapper()
@@ -82,7 +84,9 @@ object PostgresJsonMarshaller {
       mapper.readTree(json) match {
         case n: ArrayNode =>
           n.map { node =>
-            Team(name = node.get(TEAM_NAME).asText(), email = node.get(TEAM_EMAIL).asText())
+            val notificationOptions = Option(node.get(TEAM_NOTIFY)).map(_.asText("")).flatMap(NotificationOptions.fromString).getOrElse(NotificationOptions.OnStateChangeAndFailures)
+            Team(name = node.get(TEAM_NAME).asText(), email = node.get(TEAM_EMAIL).asText(),
+              notifyAction = notificationOptions)
           }.toList
         case _ => throw new IllegalStateException(s"Teams JSON is not an array: $json")
       }
@@ -95,6 +99,7 @@ object PostgresJsonMarshaller {
       val teamNode = mapper.getNodeFactory.objectNode()
       teamNode.put(TEAM_NAME, team.name)
       teamNode.put(TEAM_EMAIL, team.email)
+      teamNode.put(TEAM_NOTIFY, team.notifyAction.toString)
       tree.add(teamNode)
     }
     toJson(tree)

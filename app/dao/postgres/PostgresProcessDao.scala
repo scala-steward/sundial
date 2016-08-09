@@ -53,6 +53,13 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
     rs.map(ProcessMarshaller.unmarshalProcess).headOption
   }
 
+  override def loadPreviousProcess(processId: UUID, processDefinitionName: String): Option[Process] = {
+    import ProcessTable._
+    val stmt = conn.prepareStatement(s"SELECT * FROM $TABLE WHERE $COL_DEF_NAME = ? ORDER BY $COL_STARTED DESC LIMIT 2")
+    stmt.setString(1, processDefinitionName)
+    stmt.executeQuery().map(ProcessMarshaller.unmarshalProcess).toList.filterNot(_.id == processId).headOption
+  }
+
   override def loadRunningProcesses(): Seq[Process] = {
     import ProcessTable._
     val stmt = conn.prepareStatement(s"SELECT * FROM $TABLE WHERE $COL_STATUS = ?::process_status")

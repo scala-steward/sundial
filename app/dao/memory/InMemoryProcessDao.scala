@@ -60,6 +60,17 @@ class InMemoryProcessDao extends ProcessDao {
     processes.get(id)
   }
 
+  override def loadPreviousProcess(id: UUID, processDefinitionName: String): Option[Process] = lock.synchronized {
+    processes.values
+      .filter(_.processDefinitionName == processDefinitionName)
+      .filterNot(_.id == id)
+      .toSeq
+      .sortBy(_.startedAt)
+      .reverse
+      .headOption
+  }
+
+
   override def loadMostRecentProcess(processDefinitionName: String): Option[Process] = lock.synchronized {
     processes.values
       .filter(_.processDefinitionName == processDefinitionName)
@@ -107,4 +118,5 @@ class InMemoryProcessDao extends ProcessDao {
       .sortBy(-_.startedAt.getTime)
     limit.map(result.take).getOrElse(result)
   }
+
 }

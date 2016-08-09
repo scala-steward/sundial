@@ -39,6 +39,15 @@
         {"name": "wait", "description": "The process should wait until the currently running instance finishes"},
         {"name": "terminate", "description": "The currently running process should be killed"}
       ]
+    },
+    "notification_options": {
+      "values": [
+        {"name": "always", "description": "Always notify when a process commpletes"},
+        {"name": "on_failure", "description": "Notify when a process fails"},
+        {"name": "on_state_change", "description": "Notify when a process goes from succeeding to failing and vica versa"},
+        {"name": "on_state_change_and_failures", "description": "Notify when going from failing to succeeded and on each failure"},
+        {"name": "never", "description": "Never notify"}
+      ]
     }
   },
   "models": {
@@ -55,6 +64,11 @@
           "name": "email",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "notify_when",
+          "type": "notification_options",
+          "default": "on_state_change_and_failures"
         }
       ]
     },

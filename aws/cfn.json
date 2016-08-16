@@ -116,11 +116,11 @@
 
   "Mappings" : {
     "AWSRegionToECSAMI" : {
-      "us-east-1"      : { "AMIID" : "ami-55870742" },
-      "us-west-2"      : { "AMIID" : "ami-241bd844" },
-      "eu-west-1"      : { "AMIID" : "ami-c74127b4" },
-      "ap-northeast-1" : { "AMIID" : "ami-2b08f44a" },
-      "ap-southeast-2" : { "AMIID" : "ami-d5b59eb6" }
+      "us-east-1"      : { "AMIID" : "ami-52cd5445" },
+      "us-west-2"      : { "AMIID" : "ami-a426edc4" },
+      "eu-west-1"      : { "AMIID" : "ami-7b244e08" },
+      "ap-northeast-1" : { "AMIID" : "ami-058a4964" },
+      "ap-southeast-2" : { "AMIID" : "ami-7df2c61e" }
     },
     "AWSRegionToLinuxAMI": {
       "us-east-1"      : { "AMIID" : "ami-6869aa05" },
@@ -213,6 +213,12 @@
               },
               "/etc/cron.daily/cleanupimages": {
                 "content": "/usr/bin/docker rmi $(docker images -q)",
+                "mode": "000755",
+                "owner": "root",
+                "group": "root"
+              },
+              "/etc/cron.daily/cleanupvolumes": {
+                "content": "docker run -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker:/var/lib/docker --rm martin/docker-cleanup-volumes",
                 "mode": "000755",
                 "owner": "root",
                 "group": "root"

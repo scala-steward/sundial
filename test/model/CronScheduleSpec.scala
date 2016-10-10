@@ -1,5 +1,6 @@
 package model
 
+import java.text.ParseException
 import java.util.GregorianCalendar
 
 import org.junit.runner.RunWith
@@ -18,5 +19,11 @@ class CronScheduleSpec extends Specification {
       val nextDate = cronSchedule.nextRunAfter(date)
       nextDate must be equalTo(expectedNextDate)
     }
+
+    "Throw exception on creation if cron schedlue is invalid" in {
+      CronSchedule("0", "22", "*", "*", "*") must throwA[ParseException]
+
+    }
   }
+
 }

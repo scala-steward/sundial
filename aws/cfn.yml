@@ -174,18 +174,18 @@ Parameters:
 Mappings:
   AWSRegionToECSAMI:
     us-east-1:
-      AMIID: ami-6bb2d67c
+      AMIID: ami-1924770e
     us-west-2:
-      AMIID: ami-2d1bce4d
+      AMIID: ami-56ed4936
     eu-west-1:
-      AMIID: ami-078df974
+      AMIID: ami-c8337dbb
     ap-northeast-1:
-      AMIID: ami-2b6ba64a
+      AMIID: ami-c8b016a9
     ap-southeast-2:
-      AMIID: ami-0e20176d
+      AMIID: ami-73407d10
   AWSRegionToLinuxAMI:
     us-east-1:
-      AMIID: ami-6869aa05
+      AMIID: ami-b73b63a0
     us-west-2:
       AMIID: ami-c229c0a2
     eu-west-1:
@@ -280,60 +280,31 @@ Resources:
       IamInstanceProfile: !Ref JobInstanceEC2InstanceProfile
       KeyName: !Ref SSHKey
       UserData:
-        Fn::Base64:
-          Fn::Join:
-          - ''
-          - - 'Content-Type: multipart/mixed; boundary="=======6t461261365=="
+        Fn::Base64: !Sub |
+          Content-Type: multipart/mixed; boundary="=======6t461261365=="
+          MIME-Version: 1.0
 
-'
-            - 'MIME-Version: 1.0
+          --=======6t461261365==
+          Content-Type: text/cloud-config
 
-'
-            - "\n"
-            - "--=======6t461261365==\n"
-            - 'Content-Type: text/cloud-config
+          users:
+          - default
+          - name: sundial
+            gecos: Sundial User
+            sudo: ALL=(ALL) NOPASSWD:ALL
 
-'
-            - "\n"
-            - 'users:
+          --=======6t461261365==
+          Content-Type: text/x-shellscript; charset="us-ascii"
+          Content-Disposition: attachment; filename="cfn-setup.sh"
 
-'
-            - "- default\n"
-            - "- name: sundial\n"
-            - "  gecos: Sundial User\n"
-            - "  sudo: ALL=(ALL) NOPASSWD:ALL\n"
-            - "\n"
-            - "--=======6t461261365==\n"
-            - 'Content-Type: text/x-shellscript; charset="us-ascii"
+          #!/bin/bash -xe
+          yum install -y aws-cfn-bootstrap ruby
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource JobInstanceConfiguration --region us-east-1
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource JobInstanceAutoScalingGroup --region us-east-1
 
-'
-            - 'Content-Disposition: attachment; filename="cfn-setup.sh"
+          reboot
+          =======6t461261365==--
 
-'
-            - "\n"
-            - "#!/bin/bash -xe\n"
-            - 'yum install -y aws-cfn-bootstrap ruby
-
-'
-            - "/opt/aws/bin/cfn-init -v "
-            - "         --stack "
-            - Ref: AWS::StackName
-            - "         --resource JobInstanceConfiguration"
-            - "         --region "
-            - Ref: AWS::Region
-            - "\n"
-            - "/opt/aws/bin/cfn-signal -e $? "
-            - "         --stack "
-            - Ref: AWS::StackName
-            - "         --resource JobInstanceAutoScalingGroup"
-            - "         --region "
-            - Ref: AWS::Region
-            - "\n"
-            - "\n"
-            - 'reboot
-
-'
-            - "--=======6t461261365==--\n"
   JobInstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:

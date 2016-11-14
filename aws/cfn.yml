@@ -1,0 +1,782 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VpcId:
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    Type: AWS::EC2::VPC::Id
+  SubnetID:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of an existing subnet IDs to use for the service instance auto
+      scaling group
+  JobClusterSize:
+    Description: Number of instances in the job cluster
+    Type: Number
+    Default: '2'
+  JobInstanceType:
+    Description: The EC2 job instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+    - t2.micro
+    - t2.small
+    - t2.medium
+    - m3.medium
+    - m3.large
+    - m3.xlarge
+    - m4.xlarge
+    - m4.2xlarge
+    - m4.4xlarge
+    - m3.2xlarge
+    - c3.large
+    - c3.xlarge
+    - c3.2xlarge
+    - c3.4xlarge
+    - c3.8xlarge
+    - c4.large
+    - c4.xlarge
+    - c4.2xlarge
+    - c4.4xlarge
+    - c4.8xlarge
+    - r3.large
+    - r3.xlarge
+    - r3.2xlarge
+    - r3.4xlarge
+    - r3.8xlarge
+    - i2.xlarge
+    - i2.2xlarge
+    - i2.4xlarge
+    - i2.8xlarge
+    - d2.xlarge
+    - d2.2xlarge
+    - d2.4xlarge
+    - d2.8xlarge
+    - hi1.4xlarge
+    - hs1.8xlarge
+    - cr1.8xlarge
+    - cc2.8xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  ServiceInstanceType:
+    Description: The EC2 job instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+    - t2.micro
+    - t2.small
+    - t2.medium
+    - m3.medium
+    - m3.large
+    - m3.xlarge
+    - m3.2xlarge
+    - c3.large
+    - c3.xlarge
+    - c3.2xlarge
+    - c3.4xlarge
+    - c3.8xlarge
+    - c4.large
+    - c4.xlarge
+    - c4.2xlarge
+    - c4.4xlarge
+    - c4.8xlarge
+    - r3.large
+    - r3.xlarge
+    - r3.2xlarge
+    - r3.4xlarge
+    - r3.8xlarge
+    - i2.xlarge
+    - i2.2xlarge
+    - i2.4xlarge
+    - i2.8xlarge
+    - d2.xlarge
+    - d2.2xlarge
+    - d2.4xlarge
+    - d2.8xlarge
+    - hi1.4xlarge
+    - hs1.8xlarge
+    - cr1.8xlarge
+    - cc2.8xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  DBName:
+    Description: DB Name
+    Type: String
+    Default: sundial
+  DBUsername:
+    Description: DB Admin Username
+    Type: String
+    Default: sundial
+  DBPassword:
+    Description: DB Admin Password
+    Type: String
+  DBSubnetGroup:
+    Description: DB VPC subnet group
+    Type: String
+  DBInstanceClass:
+    Description: Database instance class
+    Type: String
+    Default: db.t2.small
+    AllowedValues:
+    - db.t2.micro
+    - db.t2.small
+    - db.t2.medium
+    - db.t2.large
+    - db.m4.large
+    - db.m4.xlarge
+    - db.m4.2xlarge
+    - db.m4.4xlarge
+    - db.m4.10xlarge
+    - db.r3.large
+    - db.r3.xlarge
+    - db.r3.2xlarge
+    - db.r3.4xlarge
+    - db.r4.8xlarge
+    ConstraintDescription: must select a valid database instance type.
+  DBAllocatedStorage:
+    Default: '15'
+    Description: The size of the database (Gb)
+    Type: Number
+    MinValue: '5'
+    MaxValue: '1024'
+    ConstraintDescription: must be between 5 and 1024Gb.
+  SSHKey:
+    Description: SSH key pair to associate with instances
+    Type: AWS::EC2::KeyPair::KeyName
+  HostedZoneName:
+    Description: The DNS hosted zone name for Sundial web alias
+    Type: String
+  ELBScheme:
+    Description: Have Sundial web interface web facing or only accessible from within
+      VPC. Internet-facing recommended
+    Type: String
+    AllowedValues: ['internet-facing', 'internal']
+  ELBSubnets:
+    Description: Choose public subnets if internet facing, private subnets if internal
+      only.
+    Type: List<AWS::EC2::Subnet::Id>
+  JobInstanceDiskSpace:
+    Description: Amount of disk space to give jobs instances in GB
+    Type: Number
+    Default: '22'
+    MinValue: '1'
+    MaxValue: '1024'
+  JobInstanceDiskType:
+    Description: Type of disk to allocate to job instance. SSD(gp2), high-throughput(io1)
+      or Magnetic(standard)
+    Type: String
+    Default: gp2
+    AllowedValues: ['gp2', 'io1', 'standard']
+  SSHAllowedCIDR:
+    Description: IP address range from which SSHing into intances is allowed defined
+      in CIDR format
+    Type: String
+    Default: 0.0.0.0/0
+    AllowedPattern: "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(/([0-9]|[1-2][0-9]|3[0-2]))"
+    ConstraintDescription: Value must be valid CIDR notation
+Mappings:
+  AWSRegionToECSAMI:
+    us-east-1:
+      AMIID: ami-1924770e
+    us-west-2:
+      AMIID: ami-56ed4936
+    eu-west-1:
+      AMIID: ami-c8337dbb
+    ap-northeast-1:
+      AMIID: ami-c8b016a9
+    ap-southeast-2:
+      AMIID: ami-73407d10
+  AWSRegionToLinuxAMI:
+    us-east-1:
+      AMIID: ami-b73b63a0
+    us-west-2:
+      AMIID: ami-c229c0a2
+    eu-west-1:
+      AMIID: ami-31328842
+    ap-northeast-1:
+      AMIID: ami-f80e0596
+    ap-southeast-2:
+      AMIID: ami-f2210191
+Resources:
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+  JobInstanceConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        AddToCluster:
+          commands:
+            01_add_instance_to_cluster:
+              command: !Sub |
+                #!/bin/bash
+                echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+        CfnHup:
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+              mode: '000400'
+              owner: root
+              group: root
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.JobInstanceConfiguration.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource JobInstanceConfiguration --region ${AWS::Region}
+                runas=root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        UpdateMTU:
+          files:
+            "/etc/dhcp/dhclient-eth0.conf":
+              content: |
+                interface "eth0" {
+                supersede interface-mtu 1500;
+                }
+              mode: '000644'
+              owner: root
+              group: root
+          commands:
+            01_update_mtu:
+              command: ip link set dev eth0 mtu 1500
+            02_update_docker:
+              command: |-
+                sed 's/OPTIONS="/OPTIONS="--mtu=1500 /' /etc/sysconfig/docker>docker.new
+                cp docker.new /etc/sysconfig/docker
+        DailyDockerCleanup:
+          files:
+            "/etc/cron.daily/cleanupcontainers":
+              content: "/usr/bin/docker rm $(docker ps -a -q)"
+              mode: '000755'
+              owner: root
+              group: root
+            "/etc/cron.daily/cleanupimages":
+              content: "/usr/bin/docker rmi $(docker images -q)"
+              mode: '000755'
+              owner: root
+              group: root
+            "/etc/cron.daily/cleanupvolumes":
+              content: docker run -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/docker:/var/lib/docker --rm martin/docker-cleanup-volumes
+              mode: '000755'
+              owner: root
+              group: root
+        configSets:
+          default: ['AddToCluster', 'CfnHup', 'UpdateMTU', 'DailyDockerCleanup']
+    Properties:
+      ImageId: !FindInMap ['AWSRegionToECSAMI', !Ref 'AWS::Region', 'AMIID']
+      BlockDeviceMappings:
+      - DeviceName: "/dev/xvdcz"
+        Ebs:
+          VolumeSize: !Ref JobInstanceDiskSpace
+          VolumeType: !Ref JobInstanceDiskType
+      SecurityGroups: [!Ref JobInstanceSecurityGroup]
+      InstanceType: !Ref JobInstanceType
+      IamInstanceProfile: !Ref JobInstanceEC2InstanceProfile
+      KeyName: !Ref SSHKey
+      UserData:
+        Fn::Base64: !Sub |
+          Content-Type: multipart/mixed; boundary="=======6t461261365=="
+          MIME-Version: 1.0
+
+          --=======6t461261365==
+          Content-Type: text/cloud-config
+
+          users:
+          - default
+          - name: sundial
+            gecos: Sundial User
+            sudo: ALL=(ALL) NOPASSWD:ALL
+
+          --=======6t461261365==
+          Content-Type: text/x-shellscript; charset="us-ascii"
+          Content-Disposition: attachment; filename="cfn-setup.sh"
+
+          #!/bin/bash -xe
+          yum install -y aws-cfn-bootstrap ruby
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource JobInstanceConfiguration --region us-east-1
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource JobInstanceAutoScalingGroup --region us-east-1
+
+          reboot
+          =======6t461261365==--
+
+  JobInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: allow SSH from anywhere
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp:
+          Ref: SSHAllowedCIDR
+      VpcId:
+        Ref: VpcId
+  JobInstanceAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref SubnetID
+      LaunchConfigurationName: !Ref JobInstanceConfiguration
+      MinSize: 2
+      MaxSize: 6
+      DesiredCapacity: !Ref JobClusterSize
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '0'
+        MaxBatchSize: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'false'
+  JobInstanceEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: job-ecs
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ecs:CreateCluster
+            - ecs:RegisterContainerInstance
+            - ecs:DeregisterContainerInstance
+            - ecs:DiscoverPollEndpoint
+            - ecs:Submit*
+            - ecs:Poll
+            - ec2:AuthorizeSecurityGroupIngress
+            - ec2:Describe*
+            - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+            - elasticloadbalancing:Describe*
+            - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+            Resource: "*"
+      - PolicyName: job-sundial
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource:
+            - arn:aws:logs:*:*:*
+          - Sid: Stmt1431384914000
+            Effect: Allow
+            Action:
+            - s3:*
+            Resource: !Sub arn:aws:s3:::${S3Bucket}/*
+          - Effect: Allow
+            Action:
+            - sdb:*
+            Resource:
+            - "*"
+          - Sid: Stmt1434081804000
+            Effect: Allow
+            Action:
+            - sdb:*
+            Resource:
+            - "*"
+          - Effect: Allow
+            Action:
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetAuthorizationToken
+            Resource:
+            - "*"
+          - Effect: Allow
+            Action:
+            - cloudformation:DescribeStacks
+            - cloudformation:DescribeStackEvents
+            - cloudformation:DescribeStackResource
+            - cloudformation:DescribeStackResources
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - sts:AssumeRole
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - iam:GetRole
+            Resource: "*"
+  JobInstanceEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles: [!Ref JobInstanceEC2Role]
+  ServiceInstanceConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        Setup:
+          packages:
+            yum:
+              docker: []
+          services:
+            sysvinit:
+              docker:
+                enabled: 'true'
+                ensureRunning: 'true'
+        CodeDeploy:
+          commands:
+            01_fetch_install_script:
+              command: aws s3 cp s3://aws-codedeploy-us-east-1/latest/install /tmp/codedeploy_install --region us-east-1
+            02_install_codedeploy:
+              command: chmod +x /tmp/codedeploy_install && /tmp/codedeploy_install auto
+          services:
+            sysvinit:
+              codedeploy-agent:
+                enabled: 'true'
+                ensureRunning: 'true'
+        AWSLogs:
+          packages:
+            yum:
+              awslogs: []
+          files:
+            "/etc/awslogs/awslogs.conf":
+              content: !Sub |
+                #
+                # ------------------------------------------
+                # CLOUDWATCH LOGS AGENT CONFIGURATION FILE
+                # ------------------------------------------
+                #
+                # You can find logs for the agent in /var/log/awslogs.log
+                #
+                # ------------------------------------------
+                # CONFIGURATION DETAILS
+                # ------------------------------------------
+                #
+                # http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide/AgentReference.html
+                #
+
+                [general]
+                # Path to the CloudWatch Logs agent's state file. The agent uses this file to maintain
+                # client side state across its executions.
+                state_file = /var/lib/awslogs/agent-state
+
+                # A batch is buffered for buffer-duration amount of time or 32KB of log events.
+                # Defaults to 5000 ms and its minimum value is 5000 ms.
+                buffer_duration = 5000
+
+                # Use 'end_of_file' to start reading from the end of the file.
+                # Use 'start_of_file' to start reading from the beginning of the file.
+                initial_position = start_of_file
+
+                # Encoding of file
+                encoding = utf-8 # Other supported encodings include: ascii, latin-1
+
+                # Supported DateTime formats:
+                #   https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior
+
+                [messages]
+                datetime_format = %b %d %H:%M:%S
+                file = /var/log/messages
+                log_stream_name = {instance_id}
+                log_group_name = sundial-messages
+
+                #2015-01-07 17:05:10,713 - [INFO]
+
+                [application]
+                datetime_format = %Y-%m-%d %H:%M:%S
+                file = /var/log/sundial/application.log
+                log_stream_name = {instance_id}
+                log_group_name = sundial-application
+
+          services:
+            sysvinit:
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+        AWSCliUpgrade:
+          commands:
+            01_upgrade_aws_cli:
+              command: pip install --upgrade awscli
+        CfnHup:
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+              mode: '000400'
+              owner: root
+              group: root
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.ServiceInstanceConfiguration.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}} --resource ServiceInstanceConfiguration --region ${AWS::Region}
+                runas=root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files:
+                - "/etc/cfn/cfn-hup.conf"
+                - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        configSets:
+          default: ['Setup', 'CfnHup', 'AWSCliUpgrade', 'CodeDeploy', 'AWSLogs']
+    Properties:
+      ImageId: !FindInMap ['AWSRegionToLinuxAMI', !Ref 'AWS::Region', 'AMIID']
+      SecurityGroups: [!Ref ServiceInstanceSecurityGroup]
+      InstanceType: !Ref ServiceInstanceType
+      IamInstanceProfile: !Ref ServiceInstanceEC2InstanceProfile
+      KeyName: !Ref SSHKey
+      UserData:
+        Fn::Base64:
+          !Sub |
+            Content-Type: multipart/mixed; boundary="=======6t461261365=="
+            MIME-Version: 1.0
+
+            --=======6t461261365==
+            Content-Type: text/cloud-config
+
+            users:
+            - default
+            - name: sundial
+              gecos: Sundial User
+              sudo: ALL=(ALL) NOPASSWD:ALL
+
+            --=======6t461261365==
+            Content-Type: text/x-shellscript; charset="us-ascii"
+            Content-Disposition: attachment; filename="cfn-setup.sh"
+
+            #!/bin/bash -xe
+            yum update -y aws-cfn-bootstrap
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ServiceInstanceConfiguration --region us-east-1
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ServiceInstanceAutoScalingGroup --region us-east-1
+
+            --=======6t461261365==--
+  ServiceInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: for service instances
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: !Ref SSHAllowedCIDR
+      - IpProtocol: tcp
+        FromPort: '9000'
+        ToPort: '9000'
+        SourceSecurityGroupId: !GetAtt ['ServiceInstanceELBSecurityGroup', 'GroupId']
+      VpcId: !Ref VpcId
+  ServiceInstanceELBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: for the service ELB
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '80'
+        ToPort: '80'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: '80'
+        ToPort: '80'
+        SourceSecurityGroupId: !GetAtt ['JobInstanceSecurityGroup', 'GroupId']
+      VpcId: !Ref VpcId
+  ServiceInstanceELB:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets: !Ref ELBSubnets
+      SecurityGroups: [!Ref ServiceInstanceELBSecurityGroup]
+      Scheme: !Ref ELBScheme
+      HealthCheck:
+        HealthyThreshold: 2
+        Interval: 10
+        Target: TCP:9000
+        Timeout: 5
+        UnhealthyThreshold: 2
+      Listeners:
+      - LoadBalancerPort: 80
+        InstancePort: '9000'
+        Protocol: HTTP
+  ServiceInstanceAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref SubnetID
+      LaunchConfigurationName: !Ref ServiceInstanceConfiguration
+      MinSize: 1
+      MaxSize: 1
+      DesiredCapacity: 1
+      LoadBalancerNames: [!Ref ServiceInstanceELB]
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: '0'
+        MaxBatchSize: '1'
+        PauseTime: PT15M
+        WaitOnResourceSignals: 'false'
+  ServiceInstanceEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: ['ec2.amazonaws.com']
+          Action: ['sts:AssumeRole']
+      Path: "/"
+      Policies:
+      - PolicyName: sundial-policy
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: ['ecs:*']
+            Resource: ["*"]
+          - Effect: Allow
+            Action: ['s3:*']
+            Resource: ["*"]
+          - Effect: Allow
+            Action: ['ec2:*']
+            Resource: ["*"]
+          - Effect: Allow
+            Action:
+            - autoscaling:DescribeAutoScalingInstances
+            - autoscaling:DescribeTags
+            Resource: ["*"]
+          - Effect: Allow
+            Action:
+            - cloudformation:DescribeStacks
+            - cloudformation:DescribeStackEvents
+            - cloudformation:DescribeStackResource
+            - cloudformation:DescribeStackResources
+            Resource: "*"
+          - Effect: Allow
+            Action: ['logs:*']
+            Resource: ["*"]
+          - Effect: Allow
+            Action: ['ses:*']
+            Resource: ['*']
+          - Effect: Allow
+            Action: ['sdb:*']
+            Resource: ["*"]
+          - Effect: Allow
+            Action:
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetAuthorizationToken
+            Resource: ["*"]
+  ServiceInstanceEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles: [!Ref ServiceInstanceEC2Role]
+  CodeDeployServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: ''
+          Effect: Allow
+          Principal:
+            Service:
+            - codedeploy.us-east-1.amazonaws.com
+            - codedeploy.us-west-2.amazonaws.com
+            - codedeploy.eu-west-1.amazonaws.com
+            - codedeploy.ap-southeast-2.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: codedeploy-service-role-policy
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - autoscaling:CompleteLifecycleAction
+            - autoscaling:DeleteLifecycleHook
+            - autoscaling:DescribeAutoScalingGroups
+            - autoscaling:DescribeLifecycleHooks
+            - autoscaling:PutLifecycleHook
+            - autoscaling:RecordLifecycleActionHeartbeat
+            - ec2:DescribeInstances
+            - ec2:DescribeInstanceStatus
+            - tag:GetTags
+            - tag:GetResources
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetAuthorizationToken
+            Resource: "*"
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: !Ref DBName
+      Engine: postgres
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBInstanceClass: !Ref DBInstanceClass
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: [!GetAtt ['DBSecurityGroup', 'GroupId']]
+      AllocatedStorage: !Ref DBAllocatedStorage
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      SecurityGroupIngress:
+        IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+        SourceSecurityGroupId: !GetAtt ['ServiceInstanceSecurityGroup', 'GroupId']
+      GroupDescription: for database instances
+      VpcId: !Ref VpcId
+  DNSEntry:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Ref HostedZoneName
+      Name: !Sub sundial.${HostedZoneName}
+      Type: A
+      AliasTarget:
+        HostedZoneId: !GetAtt ['ServiceInstanceELB', 'CanonicalHostedZoneNameID']
+        DNSName: !GetAtt ['ServiceInstanceELB', 'DNSName']
+  CodedeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: Sundial
+  CodedeployDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: Sundial
+      AutoScalingGroups:
+      - Ref: ServiceInstanceAutoScalingGroup
+      DeploymentGroupName: SundialProd
+      ServiceRoleArn: !GetAtt ['CodeDeployServiceRole', 'Arn']
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+        - ExpirationInDays: 30
+          Status: Enabled
+          Prefix: logs/
+        - ExpirationInDays: 30
+          Status: Enabled
+          Prefix: email-images/
+        - ExpirationInDays: 30
+          Status: Enabled
+          Prefix: agent-config/
+  SimpleDBDomain:
+    Type: AWS::SDB::Domain
+    Properties:
+      Description: Store metadata information
+Outputs:
+  DBInstanceEndpoint:
+    Value: !GetAtt ['DBInstance', 'Endpoint.Address']
+  WebAddress:
+    Value: !Ref DNSEntry

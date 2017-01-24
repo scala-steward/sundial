@@ -1,11 +1,14 @@
 package dao.postgres.marshalling
 
 import java.sql.{Connection, PreparedStatement, ResultSet}
+
 import dao.postgres.common.ProcessDefinitionTable
-import model.{ProcessDefinition, ProcessOverlapAction}
+import model.{EmailNotification, Notification, ProcessDefinition, ProcessOverlapAction}
 import util.JdbcUtil._
 
 object ProcessDefinitionMarshaller {
+
+  private val postgresJsonMarshaller = new PostgresJsonMarshaller
 
   def marshal(definition: ProcessDefinition, stmt: PreparedStatement, columns: Seq[String], startIndex: Int = 1)
              (implicit conn: Connection) = {
@@ -20,7 +23,9 @@ object ProcessDefinitionMarshaller {
           case ProcessOverlapAction.Wait => OVERLAP_WAIT
           case ProcessOverlapAction.Terminate => OVERLAP_TERMINATE
         })
-        case COL_TEAMS => stmt.setString(index, PostgresJsonMarshaller.toJson(definition.teams))
+        case COL_TEAMS => stmt.setString(index,
+          null //  PostgresJsonMarshaller.toJson(definition.teams)
+        )
         case COL_DISABLED => stmt.setBoolean(index, definition.isPaused)
         case COL_CREATED_AT => stmt.setTimestamp(index, definition.createdAt)
       }
@@ -38,10 +43,17 @@ object ProcessDefinitionMarshaller {
         case OVERLAP_WAIT => ProcessOverlapAction.Wait
         case OVERLAP_TERMINATE => ProcessOverlapAction.Terminate
       },
-      teams = PostgresJsonMarshaller.toTeams(rs.getString(COL_TEAMS)),
+      notifications = this.getNotifications(rs),
       isPaused = rs.getBoolean(COL_DISABLED),
       createdAt = javaDate(rs.getTimestamp(COL_CREATED_AT))
     )
+  }
+
+  private def getNotifications(rs: ResultSet): Seq[Notification] = {
+    import ProcessDefinitionTable._
+    val teams = PostgresJsonMarshaller.toTeams(rs.getString(COL_TEAMS)).map(team => EmailNotification(team.name, team.email, team.notifyAction))
+    val notifications = postgresJsonMarshaller.toNotifications(rs.getString(COL_NOTIFICATIONS))
+    notifications ++ teams
   }
 
 }

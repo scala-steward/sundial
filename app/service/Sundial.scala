@@ -1,13 +1,11 @@
 package service
 
-import java.util.concurrent.atomic.{AtomicLong, AtomicBoolean}
-import java.util.{Date, UUID}
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
+import java.util.{Date, UUID}
 
 import dao._
 import model._
-import play.api.Logger
-import service.notifications.Notifications
 
 import scala.util.control.NonFatal
 

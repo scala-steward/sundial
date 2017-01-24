@@ -24,9 +24,9 @@ class ConfigDependencies extends Dependencies {
     case "postgres" => new PostgresGlobalLock(new JdbcConnectionPool(), UUID.randomUUID())
   }
 
-  lazy override val notifications = config.getString("notifications.mode", "email") match {
+  lazy override val notifications = Vector(config.getString("notifications.mode", "email") match {
     case "browser" => new DevelopmentEmailNotifications(this)
     case "email" => new EmailNotifications(daoFactory, config.getString("notifications.from"))
-  }
+  })
 
 }

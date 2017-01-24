@@ -12,6 +12,7 @@ object ProcessDefinitionTable {
   final val OVERLAP_WAIT = "wait"
   final val OVERLAP_TERMINATE = "terminate"
   final val OVERLAP_OVERLAP = "overlap"
+  final val COL_NOTIFICATIONS = "notifications"
 }
 
 object TaskDefinitionTable {

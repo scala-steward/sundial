@@ -8,52 +8,108 @@
     "process_schedule": {
       "description": "A specification for when a process should be run",
       "types": [
-        {"type": "cron_schedule"},
-        {"type": "continuous_schedule"}
+        {
+          "type": "cron_schedule"
+        },
+        {
+          "type": "continuous_schedule"
+        }
       ]
     },
     "task_executable": {
       "types": [
-        {"type": "docker_image_command"},
-        {"type": "shell_script_command"}
+        {
+          "type": "docker_image_command"
+        },
+        {
+          "type": "shell_script_command"
+        }
+      ]
+    },
+    "notification": {
+      "types": [
+        {
+          "type": "email"
+        },
+        {
+          "type": "pagerduty"
+        }
       ]
     }
   },
   "enums": {
     "task_status": {
       "values": [
-        {"name": "running", "description": "The task is currently executing or awaiting backoff"},
-        {"name": "failed", "description": "The task has irrevocably failed"},
-        {"name": "succeeded", "description": "The task has succeeded without serious errors"}
+        {
+          "name": "running",
+          "description": "The task is currently executing or awaiting backoff"
+        },
+        {
+          "name": "failed",
+          "description": "The task has irrevocably failed"
+        },
+        {
+          "name": "succeeded",
+          "description": "The task has succeeded without serious errors"
+        }
       ]
     },
     "process_status": {
       "values": [
-        {"name": "running", "description": "The process has tasks currently executing"},
-        {"name": "succeeded", "description": "All of the process's tasks succeeded on its last run"},
-        {"name": "failed", "description": "At least one of the process's tasks failed on its last run"}
+        {
+          "name": "running",
+          "description": "The process has tasks currently executing"
+        },
+        {
+          "name": "succeeded",
+          "description": "All of the process's tasks succeeded on its last run"
+        },
+        {
+          "name": "failed",
+          "description": "At least one of the process's tasks failed on its last run"
+        }
       ]
     },
     "process_overlap_action": {
       "values": [
-        {"name": "wait", "description": "The process should wait until the currently running instance finishes"},
-        {"name": "terminate", "description": "The currently running process should be killed"}
+        {
+          "name": "wait",
+          "description": "The process should wait until the currently running instance finishes"
+        },
+        {
+          "name": "terminate",
+          "description": "The currently running process should be killed"
+        }
       ]
     },
     "notification_options": {
       "values": [
-        {"name": "always", "description": "Always notify when a process commpletes"},
-        {"name": "on_failure", "description": "Notify when a process fails"},
-        {"name": "on_state_change", "description": "Notify when a process goes from succeeding to failing and vica versa"},
-        {"name": "on_state_change_and_failures", "description": "Notify when going from failing to succeeded and on each failure"},
-        {"name": "never", "description": "Never notify"}
+        {
+          "name": "always",
+          "description": "Always notify when a process completes"
+        },
+        {
+          "name": "on_failure",
+          "description": "Notify when a process fails"
+        },
+        {
+          "name": "on_state_change",
+          "description": "Notify when a process goes from succeeding to failing and vica versa"
+        },
+        {
+          "name": "on_state_change_and_failures",
+          "description": "Notify when going from failing to succeeded and on each failure"
+        },
+        {
+          "name": "never",
+          "description": "Never notify"
+        }
       ]
     }
   },
   "models": {
-
-    "subscription": {
-      "description": "A subscription for process notifications",
+    "email": {
+      "description": "An email to send notifications to",
       "fields": [
         {
           "name": "name",
@@ -72,7 +128,28 @@
         }
       ]
     },
-
+    "pagerduty": {
+      "description": "Pager Duty integration",
+      "fields": [
+        {
+          "name": "service_key",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "send_resolved",
+          "type": "boolean",
+          "required": true,
+          "default": false
+        },
+        {
+          "name": "api_url",
+          "type": "string",
+          "required": true,
+          "default": "https://events.pagerduty.com/generic/2010-04-15/create_event.json"
+        }
+      ]
+    },
     "process_definition": {
       "description": "A grouping of related tasks that are run as a single unit on the same schedule",
       "fields": [
@@ -110,13 +187,12 @@
           "default": "wait"
         },
         {
-          "name": "subscriptions",
-          "type": "[subscription]",
-          "required": true
+          "name": "notifications",
+          "type": "[notification]",
+          "required": false
         }
       ]
     },
-
     "task_definition": {
       "description": "An individual task that runs as part of a process",
       "fields": [
@@ -167,7 +243,6 @@
         }
       ]
     },
-
     "task_dependency": {
       "fields": [
         {
@@ -183,7 +258,6 @@
         }
       ]
     },
-
     "docker_image_command": {
       "fields": [
         {
@@ -231,7 +305,6 @@
         }
       ]
     },
-
     "shell_script_command": {
       "fields": [
         {
@@ -246,7 +319,6 @@
         }
       ]
     },
-
     "environment_variable": {
       "fields": [
         {
@@ -261,7 +333,6 @@
         }
       ]
     },
-
     "cron_schedule": {
       "description": "See http://quartz-scheduler.org/api/2.2.0/org/quartz/CronExpression.html",
       "fields": [
@@ -292,7 +363,6 @@
         }
       ]
     },
-
     "continuous_schedule": {
       "fields": [
         {
@@ -303,7 +373,6 @@
         }
       ]
     },
-
     "process": {
       "fields": [
         {
@@ -333,7 +402,6 @@
         }
       ]
     },
-
     "task": {
       "fields": [
         {
@@ -394,7 +462,6 @@
         }
       ]
     },
-
     "log_entry": {
       "fields": [
         {
@@ -420,7 +487,6 @@
         }
       ]
     },
-
     "metadata_entry": {
       "fields": [
         {
@@ -447,7 +513,6 @@
       ]
     }
   },
-
   "resources": {
     "process_definition": {
       "operations": [
@@ -511,7 +576,9 @@
           "path": "/:process_definition_name",
           "description": "Deletes a registered process definition",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         },
         {
@@ -532,7 +599,9 @@
           "path": "/:process_definition_name/trigger",
           "description": "Triggers a new instance of the process",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         },
         {
@@ -569,7 +638,6 @@
             }
           }
         }
-
       ]
     },
     "process": {
@@ -640,7 +708,9 @@
           "path": "/:process_id/retry",
           "description": "Retries a failed process run by restarting failed tasks; tasks will be given a single additional attempt",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         },
         {
@@ -655,7 +725,9 @@
           "path": "/:process_id/kill",
           "description": "Terminates an active process",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         }
       ]
@@ -719,7 +791,9 @@
           "path": "/:task_id/log_entries",
           "description": "Appends log entries for a task; intended for use within the task executable",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         },
         {
@@ -737,7 +811,9 @@
           "path": "/:task_id/metadata",
           "description": "Appends metadata entries for a task; intended for use within the task executable",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         },
         {
@@ -752,7 +828,9 @@
           "path": "/:task_id/succeed",
           "description": "Marks the task as having succeeded",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         },
         {
@@ -767,7 +845,9 @@
           "path": "/:task_id/fail",
           "description": "Marks the task as having failed",
           "responses": {
-            "204": {"type": "unit"}
+            "204": {
+              "type": "unit"
+            }
           }
         }
       ]

@@ -1,8 +1,8 @@
 package common
 
 import dao.memory.InMemorySundialDaoFactory
+import service.notifications.{NoOpNotifications, Notification}
 import service.{Dependencies, GlobalLock}
-import service.notifications.{NoOpNotifications, Notifications}
 
 class TestDependencies extends Dependencies {
 
@@ -10,9 +10,10 @@ class TestDependencies extends Dependencies {
 
   override val globalLock: GlobalLock = new GlobalLock {
     val lock = new Object()
+
     override def executeGuarded[T]()(f: => T): T = lock.synchronized(f)
   }
 
-  override lazy val notifications: Notifications = NoOpNotifications
+  override lazy val notifications = Vector(NoOpNotifications)
 
 }

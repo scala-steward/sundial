@@ -6,33 +6,35 @@ import java.util.{Date, UUID}
 import dao.SundialDao
 import model._
 import play.api.Logger
-import service.notifications.Notifications
+import service.notifications.Notification
 
 import scala.collection.immutable.SortedMap
 
 sealed trait TaskExecutionCondition
 
 object TaskExecutionCondition {
+
   case object Allowed extends TaskExecutionCondition
+
   case object Pending extends TaskExecutionCondition
+
   case object CompletedOrProhibited extends TaskExecutionCondition
 
   def reduce(lhs: TaskExecutionCondition, rhs: TaskExecutionCondition) = {
     val seq = Seq(lhs, rhs)
-    if(seq.contains(CompletedOrProhibited))
+    if (seq.contains(CompletedOrProhibited)) {
       CompletedOrProhibited
-    else if(seq.contains(Pending))
+    } else if (seq.contains(Pending)) {
       Pending
-    else
+    } else {
       Allowed
+    }
   }
 
 }
 
-class ProcessStepper(
-  taskExecutor: TaskExecutor,
-  notifications: Notifications
-) {
+class ProcessStepper(taskExecutor: TaskExecutor,
+                     notifications: Seq[Notification]) {
 
   val EVENT_SOURCE_KEY = "scheduler"
 
@@ -66,10 +68,11 @@ class ProcessStepper(
         case (task, Some(taskDef)) => task -> taskDef
       }
       .map { case (task, taskDef) =>
-        if (task.status.isComplete)
+        if (task.status.isComplete) {
           task -> taskDef
-        else
+        } else {
           refreshTaskStatus(task, taskDef, dao) -> taskDef
+        }
       }
       .map { case (task, taskDef) =>
         killIfNecessary(task, taskDef, dao)
@@ -104,13 +107,13 @@ class ProcessStepper(
     }
 
     // If there are no tasks running, and no tasks left to run, we are done.
-    if(allowedToRun.isEmpty && notYet.isEmpty && currentlyRunning.isEmpty) {
+    if (allowedToRun.isEmpty && notYet.isEmpty && currentlyRunning.isEmpty) {
       val anyFailed = taskDefinitions.map(taskContext.mostRecentStatusForTaskDefinition).exists {
         case Some(TaskStatus.Failure(_, _)) => true
         case _ => false
       }
       val processStatus =
-        if(anyFailed) {
+        if (anyFailed) {
           ProcessStatus.Failed(new Date())
         } else {
           ProcessStatus.Succeeded(new Date())
@@ -124,7 +127,7 @@ class ProcessStepper(
 
       val updated = dao.processDao.saveProcess(process.copy(status = processStatus))
       dao.ensureCommitted()
-      notifications.notifyProcessFinished(process.id)
+      notifications.foreach(_.notifyProcessFinished(process.id))
       updated
     } else {
       process
@@ -145,9 +148,9 @@ class ProcessStepper(
         }
         val hasKillRequest = !dao.triggerDao.loadKillProcessRequests(task.processId).isEmpty
 
-        if(isOverTime || hasKillRequest) {
+        if (isOverTime || hasKillRequest) {
           val reason = {
-            if(hasKillRequest) {
+            if (hasKillRequest) {
               s"The task's process was requested to be killed; killing the task and marking as failed."
             } else {
               s"The underlying executable been running for $elapsedMillis ms; killing the task and marking as failed."
@@ -172,6 +175,7 @@ class ProcessStepper(
     }
   }
 
+  // This is a good point where to start from
   private def refreshTaskStatus(task: Task, taskDefinition: TaskDefinition, dao: SundialDao): Task = {
     task.status match {
       case s: CompletedTaskStatus => task
@@ -301,7 +305,7 @@ class ProcessStepper(
     override def taskMaxAttemptsExecutionCondition(taskDefinition: TaskDefinition): TaskExecutionCondition = {
       val attempts = tasksForTaskDefinition(taskDefinition).size
       val maxAttempts = taskDefinition.limits.maxAttempts
-      if(attempts >= maxAttempts) {
+      if (attempts >= maxAttempts) {
         TaskExecutionCondition.CompletedOrProhibited
       } else {
         TaskExecutionCondition.Allowed
@@ -313,9 +317,11 @@ class ProcessStepper(
     // If a required dependency has completed as failed, this task will never be able to run.
     override def taskDependenciesExecutionCondition(taskDefinition: TaskDefinition): TaskExecutionCondition = {
       val dependencies = taskDefinition.dependencies
+
       // If there's no filter, include the dependency.  If there is a filter, only include if it's in the filter.
       def shouldIncludeTask(name: String) =
         process.taskFilter.map(_ contains name).getOrElse(true)
+
       val required = dependencies.required.filter(shouldIncludeTask)
       val optional = dependencies.optional.filter(shouldIncludeTask)
       val requiredConditions = required.flatMap(taskDefinitionForName).map { requiredDefinition =>
@@ -370,7 +376,7 @@ class ProcessStepper(
     }
 
     override def processNotKilledExecutionCondition(): TaskExecutionCondition = {
-      if(killed) {
+      if (killed) {
         TaskExecutionCondition.CompletedOrProhibited
       } else {
         TaskExecutionCondition.Allowed

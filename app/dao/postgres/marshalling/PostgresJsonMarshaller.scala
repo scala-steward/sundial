@@ -4,12 +4,36 @@ import java.io.ByteArrayOutputStream
 
 import com.fasterxml.jackson.core.JsonEncoding
 import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
-import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode}
+import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode, PropertyNamingStrategy}
 import com.gilt.svc.sundial.v0.models.NotificationOptions
 import model._
 import util.Json
 
 import scala.collection.JavaConversions._
+
+class PostgresJsonMarshaller {
+
+  private def mapper = {
+    val mapper = Json.mapper()
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
+    //    mapper.setVisibility(PropertyAccessor.FIELD,Visibility.ANY)
+    mapper
+  }
+
+  def toTeams(json: String): Seq[Team] = {
+    mapper.readValue(json, classOf[Array[Team]])
+  }
+
+  def toJson[T](values: Seq[T]): String = {
+    mapper.writeValueAsString(values)
+  }
+
+  def toNotifications(json: String): Seq[Notification] = {
+    mapper.readValue(json, classOf[Array[Notification]])
+  }
+
+}
 
 object PostgresJsonMarshaller {
 
@@ -77,22 +101,23 @@ object PostgresJsonMarshaller {
     toJson(tree)
   }
 
+  @deprecated(message = "deprecated in favour of Notifications", since = "0.0.10")
   def toTeams(json: String): Seq[Team] = {
-    if(json == null || json.isEmpty) {
+    if (json == null || json.isEmpty) {
       Seq.empty
     } else {
       mapper.readTree(json) match {
         case n: ArrayNode =>
           n.map { node =>
             val notificationOptions = Option(node.get(TEAM_NOTIFY)).map(_.asText("")).flatMap(NotificationOptions.fromString).getOrElse(NotificationOptions.OnStateChangeAndFailures)
-            Team(name = node.get(TEAM_NAME).asText(), email = node.get(TEAM_EMAIL).asText(),
-              notifyAction = notificationOptions)
+            Team(name = node.get(TEAM_NAME).asText(), email = node.get(TEAM_EMAIL).asText(), notifyAction = notificationOptions.toString)
           }.toList
         case _ => throw new IllegalStateException(s"Teams JSON is not an array: $json")
       }
     }
   }
 
+  @deprecated(message = "deprecated in favour of Notifications", since = "0.0.10")
   def toJson(teams: Seq[Team]): String = {
     val tree = mapper.getNodeFactory.arrayNode()
     teams.foreach { team =>

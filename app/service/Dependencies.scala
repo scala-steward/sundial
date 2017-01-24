@@ -1,10 +1,14 @@
 package service
 
 import dao._
-import service.notifications.Notifications
+import service.notifications.Notification
 
 trait Dependencies {
+
   def globalLock: GlobalLock
+
   def daoFactory: SundialDaoFactory
-  def notifications: Notifications
+
+  def notifications: Seq[Notification]
+
 }

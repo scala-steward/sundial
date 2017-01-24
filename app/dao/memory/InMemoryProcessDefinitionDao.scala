@@ -51,7 +51,6 @@ class InMemoryProcessDefinitionDao extends ProcessDefinitionDao {
   }
 
   override def loadProcessDefinition(processDefinitionName: String): Option[ProcessDefinition] = lock.synchronized {
-    // FIXME: ehre!
     processDefinitions.get(processDefinitionName)
   }
 

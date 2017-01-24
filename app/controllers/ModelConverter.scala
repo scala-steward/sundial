@@ -3,9 +3,9 @@ package controllers
 import java.util.UUID
 
 import com.gilt.svc.sundial.v0
-import com.gilt.svc.sundial.v0.models.{Email, EnvironmentVariable, NotificationOptions, Pagerduty}
+import com.gilt.svc.sundial.v0.models._
 import dao.SundialDao
-import model.{ContainerServiceExecutable, EmailNotification, PagerdutyNotification, ShellCommandExecutable}
+import model._
 import util.Conversions._
 
 object ModelConverter {
@@ -227,6 +227,12 @@ object ModelConverter {
 
   def toInternalMetadataEntry(taskId: UUID, entry: v0.models.MetadataEntry): model.TaskMetadataEntry = {
     model.TaskMetadataEntry(entry.metadataEntryId, taskId, entry.when, entry.key, entry.value)
+  }
+
+  def toInternalNotification: PartialFunction[v0.models.Notification, model.Notification] = {
+    case email: Email => EmailNotification(email.name, email.email, email.notifyWhen.toString)
+    case pagerduty: Pagerduty => PagerdutyNotification(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.apiUrl)
+    case NotificationUndefinedType(notificationTypeName) => throw new IllegalArgumentException(s"Unknown notification type [$notificationTypeName]")
   }
 
 }

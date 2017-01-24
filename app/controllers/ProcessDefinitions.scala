@@ -5,6 +5,7 @@ import java.util.{Date, UUID}
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
 import com.gilt.svc.sundial.v0.models.{Email, NotificationUndefinedType, Pagerduty, ProcessDefinition}
+import controllers.ModelConverter.toInternalNotification
 import model._
 import play.api.libs.json.Json
 import play.api.mvc.{Action, Request}
@@ -33,16 +34,8 @@ object ProcessDefinitions extends SundialController {
     }
   }
 
-  def putByProcessDefinitionName(processDefinitionName: String) = Action(parse.json[v0.models.ProcessDefinition]) {
+  def putByProcessDefinitionName(processDefinitionName: String) = Action(parse.json[v0.models.ProcessDefinition]) { request =>
 
-    def getNotifications(request: Request[ProcessDefinition]): Seq[Notification] = {
-      request.body.notifications.fold(Seq.empty[Notification])(_.collect {
-        case email: Email => EmailNotification(email.name, email.email, email.notifyWhen.toString)
-        case pagerduty: Pagerduty => PagerdutyNotification(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.apiUrl)
-      })
-    }
-
-    request =>
     if(processDefinitionName != request.body.processDefinitionName) {
       BadRequest(s"URL process definition name ($processDefinitionName) does not match body process definitiion name (${request.body.processDefinitionName})")
     } else {
@@ -60,7 +53,10 @@ object ProcessDefinitions extends SundialController {
           val existing = dao.processDefinitionDao.loadProcessDefinition(processDefinitionName)
           val existingTaskDefinitions = dao.processDefinitionDao.loadTaskDefinitionTemplates(processDefinitionName)
 
-          val processNotifications = getNotifications(request)
+          val processNotifications = request
+            .body
+            .notifications
+            .fold(Seq.empty[model.Notification])(_.map(toInternalNotification))
 
           val processDefinition = model.ProcessDefinition(processDefinitionName,
                                                           request.body.processDescription,

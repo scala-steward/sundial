@@ -17,7 +17,6 @@ class PostgresJsonMarshaller {
     val mapper = Json.mapper()
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     mapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
-    //    mapper.setVisibility(PropertyAccessor.FIELD,Visibility.ANY)
     mapper
   }
 

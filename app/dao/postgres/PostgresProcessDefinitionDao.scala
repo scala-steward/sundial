@@ -21,12 +21,13 @@ class PostgresProcessDefinitionDao(implicit conn: Connection) extends ProcessDef
            |    $COL_SCHEDULE = ?::jsonb,
            |    $COL_OVERLAP_ACTION = ?::process_overlap_action,
            |    $COL_TEAMS = ?::jsonb,
+           |    $COL_NOTIFICATIONS = ?::jsonb,
            |    $COL_DISABLED = ?,
            |    $COL_CREATED_AT = ?
            |WHERE $COL_NAME = ?
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_DESCRIPTION, COL_SCHEDULE, COL_OVERLAP_ACTION, COL_TEAMS, COL_DISABLED, COL_CREATED_AT, COL_NAME)
+      val cols = Seq(COL_DESCRIPTION, COL_SCHEDULE, COL_OVERLAP_ACTION, COL_TEAMS, COL_NOTIFICATIONS, COL_DISABLED, COL_CREATED_AT, COL_NAME)
       ProcessDefinitionMarshaller.marshal(definition, stmt, cols)
       stmt.executeUpdate() > 0
     }
@@ -34,12 +35,12 @@ class PostgresProcessDefinitionDao(implicit conn: Connection) extends ProcessDef
       val sql =
         s"""
            |INSERT INTO $TABLE
-           |($COL_NAME, $COL_DESCRIPTION, $COL_SCHEDULE, $COL_OVERLAP_ACTION, $COL_TEAMS, $COL_DISABLED, $COL_CREATED_AT)
+           |($COL_NAME, $COL_DESCRIPTION, $COL_SCHEDULE, $COL_OVERLAP_ACTION, $COL_TEAMS, $COL_NOTIFICATIONS, $COL_DISABLED, $COL_CREATED_AT)
            |VALUES
            |(?, ?, ?::jsonb, ?::process_overlap_action, ?::jsonb, ?, ?)
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_NAME, COL_DESCRIPTION, COL_SCHEDULE, COL_OVERLAP_ACTION, COL_TEAMS, COL_DISABLED, COL_CREATED_AT)
+      val cols = Seq(COL_NAME, COL_DESCRIPTION, COL_SCHEDULE, COL_OVERLAP_ACTION, COL_TEAMS, COL_NOTIFICATIONS, COL_DISABLED, COL_CREATED_AT)
       ProcessDefinitionMarshaller.marshal(definition, stmt, cols)
       stmt.execute()
     }

@@ -23,9 +23,8 @@ object ProcessDefinitionMarshaller {
           case ProcessOverlapAction.Wait => OVERLAP_WAIT
           case ProcessOverlapAction.Terminate => OVERLAP_TERMINATE
         })
-        case COL_TEAMS => stmt.setString(index,
-          null //  PostgresJsonMarshaller.toJson(definition.teams)
-        )
+        case COL_TEAMS => stmt.setString(index, "[]")
+        case COL_NOTIFICATIONS => stmt.setString(index, postgresJsonMarshaller.toJson(definition.notifications))
         case COL_DISABLED => stmt.setBoolean(index, definition.isPaused)
         case COL_CREATED_AT => stmt.setTimestamp(index, definition.createdAt)
       }

@@ -231,7 +231,7 @@ object ModelConverter {
 
   def toInternalNotification: PartialFunction[v0.models.Notification, model.Notification] = {
     case email: Email => EmailNotification(email.name, email.email, email.notifyWhen.toString)
-    case pagerduty: Pagerduty => PagerdutyNotification(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.apiUrl)
+    case pagerduty: Pagerduty => PagerdutyNotification(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.apiUrl, pagerduty.numConsecutiveFailures)
     case NotificationUndefinedType(notificationTypeName) => throw new IllegalArgumentException(s"Unknown notification type [$notificationTypeName]")
   }
 

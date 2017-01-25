@@ -143,6 +143,12 @@
           "default": false
         },
         {
+          "name": "num_consecutive_failures",
+          "type": "integer",
+          "required": true,
+          "default": 1
+        },
+        {
           "name": "api_url",
           "type": "string",
           "required": true,

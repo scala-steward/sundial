@@ -4,11 +4,10 @@ import java.util.{Date, UUID}
 
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
-import com.gilt.svc.sundial.v0.models.{Email, NotificationUndefinedType, Pagerduty, ProcessDefinition}
 import controllers.ModelConverter.toInternalNotification
 import model._
 import play.api.libs.json.Json
-import play.api.mvc.{Action, Request}
+import play.api.mvc.Action
 import util.CycleDetector
 
 object ProcessDefinitions extends SundialController {

@@ -39,6 +39,7 @@ class PagerdutyNotifications(daoFactory: SundialDaoFactory) extends Notification
   }
 
   private def processPagerdutyNotifications(process: Process, pagerdutyNotifications: Seq[PagerdutyNotification], numConsecutiveFailedProcesses: Int) = {
+    import scala.concurrent.ExecutionContext.Implicits.global
     pagerdutyNotifications.foreach(pagerdutyNotification => {
       if (numConsecutiveFailedProcesses >= pagerdutyNotification.numConsecutiveFailures) {
         val createEvent = CreateEvent(

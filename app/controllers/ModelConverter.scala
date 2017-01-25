@@ -106,7 +106,7 @@ object ModelConverter {
 
     def toExternalNotification: PartialFunction[model.Notification, v0.models.Notification] = {
       case email: EmailNotification => Email(email.name, email.email, NotificationOptions.fromString(email.notifyAction).getOrElse(NotificationOptions.OnStateChangeAndFailures))
-      case pagerduty: PagerdutyNotification => Pagerduty(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.apiUrl)
+      case pagerduty: PagerdutyNotification => Pagerduty(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.numConsecutiveFailures, pagerduty.apiUrl)
     }
 
     if (notifications.isEmpty) {

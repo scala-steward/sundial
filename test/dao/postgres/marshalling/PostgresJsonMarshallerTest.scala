@@ -52,12 +52,12 @@ class PostgresJsonMarshallerTest extends Specification {
 
       val json =
         """
-          |[{"name":"name","email":"email","notify_action":"on_state_change_and_failures", "type": "email"},{"service_key":"service-key","send_resolved":true,"api_url":"http://google.com", "type": "pagerduty"}]
+          |[{"name":"name","email":"email","notify_action":"on_state_change_and_failures", "type": "email"},{"service_key":"service-key","send_resolved":true,"api_url":"http://google.com", "type": "pagerduty","num_consecutive_failures":1}]
         """.stripMargin
 
       val notifications = Vector(
         EmailNotification("name", "email", NotificationOptions.OnStateChangeAndFailures.toString),
-        PagerdutyNotification("service-key", true, "http://google.com")
+        PagerdutyNotification("service-key", true, "http://google.com", 1)
       )
 
       val actualNotifications = postgresJsonMarshaller.toNotifications(json)
@@ -70,12 +70,12 @@ class PostgresJsonMarshallerTest extends Specification {
 
       val json =
         """
-          |[{"name":"name","email":"email","notify_action":"on_state_change_and_failures", "type": "email"},{"service_key":"service-key","send_resolved":true,"api_url":"http://google.com", "type": "pagerduty"}]
+          |[{"name":"name","email":"email","notify_action":"on_state_change_and_failures", "type": "email"},{"service_key":"service-key","send_resolved":true,"api_url":"http://google.com", "type": "pagerduty","num_consecutive_failures":1}]
         """.stripMargin
 
       val notifications = Vector(
         EmailNotification("name", "email", NotificationOptions.OnStateChangeAndFailures.toString),
-        PagerdutyNotification("service-key", true, "http://google.com")
+        PagerdutyNotification("service-key", true, "http://google.com", 1)
       )
 
       println(s"bla1: ${postgresJsonMarshaller.toJson(notifications)}")

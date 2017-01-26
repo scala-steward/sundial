@@ -53,7 +53,7 @@ class PagerdutyNotifications(daoFactory: SundialDaoFactory) extends Notification
         val pagerdutyRequest = pagerdutyClient.createEvents.post(createEvent)
 
         pagerdutyRequest.onComplete {
-          case Success(pageId) => Logger.info(s"Successfully submitted Pagerduty request with Id [$pageId]")
+          case Success(pageId) => Logger.info(s"Successfully submitted Pagerduty request with Id [${pageId.incidentKey}]")
           case Failure(e) => Logger.error(s"Failed to submit Pagerduty request", e)
         }
       }

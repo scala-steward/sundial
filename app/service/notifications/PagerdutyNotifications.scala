@@ -60,12 +60,7 @@ class PagerdutyNotifications(daoFactory: SundialDaoFactory) extends Notification
     })
   }
 
-  private def getNumberConsecutiveFailures(recentProcesses: Seq[Process]): Int = {
-    if (recentProcesses.nonEmpty) {
-      recentProcesses.takeWhile(_.status.statusType == ProcessStatusType.Failed).size
-    } else {
-      0
-    }
-  }
+  private def getNumberConsecutiveFailures(recentProcesses: Seq[Process]): Int =
+    recentProcesses.takeWhile(_.status.statusType == ProcessStatusType.Failed).size
 
 }

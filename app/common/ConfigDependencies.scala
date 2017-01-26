@@ -4,8 +4,8 @@ import java.util.UUID
 
 import dao.memory.InMemorySundialDaoFactory
 import dao.postgres.{PostgresGlobalLock, PostgresSundialDaoFactory}
-import service.notifications.{EmailNotifications, DevelopmentEmailNotifications}
-import service.{GlobalLock, Dependencies}
+import service.notifications.{DevelopmentEmailNotifications, EmailNotifications, PagerdutyNotifications}
+import service.{Dependencies, GlobalLock}
 
 class ConfigDependencies extends Dependencies {
 
@@ -25,8 +25,12 @@ class ConfigDependencies extends Dependencies {
   }
 
   lazy override val notifications = config.getString("notifications.mode", "email") match {
-    case "browser" => new DevelopmentEmailNotifications(this)
-    case "email" => new EmailNotifications(daoFactory, config.getString("notifications.from"))
+    case "browser" => Vector(new DevelopmentEmailNotifications(this))
+    case "email" => Vector(new EmailNotifications(daoFactory, config.getString("notifications.from")))
+    case "all" => Vector(
+      new EmailNotifications(daoFactory, config.getString("notifications.from")),
+      new PagerdutyNotifications(daoFactory)
+    )
   }
 
 }

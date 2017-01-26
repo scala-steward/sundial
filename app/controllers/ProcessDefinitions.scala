@@ -1,9 +1,10 @@
 package controllers
 
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
 
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
+import controllers.ModelConverter.toInternalNotification
 import model._
 import play.api.libs.json.Json
 import play.api.mvc.Action
@@ -33,6 +34,7 @@ object ProcessDefinitions extends SundialController {
   }
 
   def putByProcessDefinitionName(processDefinitionName: String) = Action(parse.json[v0.models.ProcessDefinition]) { request =>
+
     if(processDefinitionName != request.body.processDefinitionName) {
       BadRequest(s"URL process definition name ($processDefinitionName) does not match body process definitiion name (${request.body.processDefinitionName})")
     } else {
@@ -49,14 +51,17 @@ object ProcessDefinitions extends SundialController {
         } else {
           val existing = dao.processDefinitionDao.loadProcessDefinition(processDefinitionName)
           val existingTaskDefinitions = dao.processDefinitionDao.loadTaskDefinitionTemplates(processDefinitionName)
-          val teams = request.body.subscriptions.map { sub =>
-            Team(sub.name, sub.email, sub.notifyWhen)
-          }
+
+          val processNotifications = request
+            .body
+            .notifications
+            .fold(Seq.empty[model.Notification])(_.map(toInternalNotification))
+
           val processDefinition = model.ProcessDefinition(processDefinitionName,
                                                           request.body.processDescription,
                                                           request.body.schedule.map(ModelConverter.toInternalSchedule),
                                                           ModelConverter.toInternalOverlapAction(request.body.overlapAction),
-                                                          teams,
+                                                          processNotifications,
                                                           existing.map(_.createdAt).getOrElse(new Date()),
                                                           request.body.paused.getOrElse(false))
           val taskDefinitions = request.body.taskDefinitions.map { externalTaskDefinition =>

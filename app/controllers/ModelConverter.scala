@@ -3,9 +3,9 @@ package controllers
 import java.util.UUID
 
 import com.gilt.svc.sundial.v0
-import com.gilt.svc.sundial.v0.models.EnvironmentVariable
+import com.gilt.svc.sundial.v0.models._
 import dao.SundialDao
-import model.{ContainerServiceExecutable, ShellCommandExecutable}
+import model._
 import util.Conversions._
 
 object ModelConverter {
@@ -88,7 +88,8 @@ object ModelConverter {
                                 processDefinition.schedule.map(toExternalSchedule),
                                 taskDefinitions.map(toExternalTaskDefinitionTemplate),
                                 toExternalOverlapAction(processDefinition.overlapAction),
-                                processDefinition.teams.map(toExternalSubscription))
+                                toExternalNotifications(processDefinition.notifications)
+    )
   }
 
   def toExternalSchedule(schedule: model.ProcessSchedule): v0.models.ProcessSchedule = schedule match {
@@ -101,8 +102,18 @@ object ModelConverter {
     case model.ProcessOverlapAction.Terminate => v0.models.ProcessOverlapAction.Terminate
   }
 
-  def toExternalSubscription(team: model.Team): v0.models.Subscription = {
-    v0.models.Subscription(team.name, team.email)
+  def toExternalNotifications(notifications: Seq[model.Notification]): Option[Seq[v0.models.Notification]] = {
+
+    def toExternalNotification: PartialFunction[model.Notification, v0.models.Notification] = {
+      case email: EmailNotification => Email(email.name, email.email, NotificationOptions.fromString(email.notifyAction).getOrElse(NotificationOptions.OnStateChangeAndFailures))
+      case pagerduty: PagerdutyNotification => Pagerduty(pagerduty.serviceKey, pagerduty.numConsecutiveFailures, pagerduty.apiUrl)
+    }
+
+    if (notifications.isEmpty) {
+      None
+    } else {
+      Some(notifications.map(toExternalNotification))
+    }
   }
 
   def toExternalTaskDefinition(taskDefinition: model.TaskDefinition): v0.models.TaskDefinition = {
@@ -216,6 +227,12 @@ object ModelConverter {
 
   def toInternalMetadataEntry(taskId: UUID, entry: v0.models.MetadataEntry): model.TaskMetadataEntry = {
     model.TaskMetadataEntry(entry.metadataEntryId, taskId, entry.when, entry.key, entry.value)
+  }
+
+  def toInternalNotification: PartialFunction[v0.models.Notification, model.Notification] = {
+    case email: Email => EmailNotification(email.name, email.email, email.notifyWhen.toString)
+    case pagerduty: Pagerduty => PagerdutyNotification(pagerduty.serviceKey, pagerduty.apiUrl, pagerduty.numConsecutiveFailures)
+    case NotificationUndefinedType(notificationTypeName) => throw new IllegalArgumentException(s"Unknown notification type [$notificationTypeName]")
   }
 
 }

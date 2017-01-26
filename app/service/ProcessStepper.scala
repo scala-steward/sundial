@@ -6,7 +6,7 @@ import java.util.{Date, UUID}
 import dao.SundialDao
 import model._
 import play.api.Logger
-import service.notifications.Notifications
+import service.notifications.Notification
 
 import scala.collection.immutable.SortedMap
 
@@ -31,7 +31,7 @@ object TaskExecutionCondition {
 
 class ProcessStepper(
   taskExecutor: TaskExecutor,
-  notifications: Notifications
+  notifications: Seq[Notification]
 ) {
 
   val EVENT_SOURCE_KEY = "scheduler"
@@ -124,7 +124,7 @@ class ProcessStepper(
 
       val updated = dao.processDao.saveProcess(process.copy(status = processStatus))
       dao.ensureCommitted()
-      notifications.notifyProcessFinished(process.id)
+      notifications.foreach(_.notifyProcessFinished(process.id))
       updated
     } else {
       process

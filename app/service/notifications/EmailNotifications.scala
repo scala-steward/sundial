@@ -15,7 +15,7 @@ import play.api.Logger
 import scala.collection.JavaConverters._
 
 
-class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) extends Notifications {
+class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) extends Notification {
 
   private def getSubject(processDTO: ProcessDTO): String = {
     val prefix = if (processDTO.success) {
@@ -35,14 +35,17 @@ class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) ext
         previousProcess = dao.processDao.loadPreviousProcess(processId, process.processDefinitionName)
         processDef <- dao.processDefinitionDao.loadProcessDefinition(process.processDefinitionName)
       } yield {
-        sendEmail(process.status, previousProcess.map(_.status), processDef.teams, subject, body)
+        val emailNotifications = processDef.notifications.collect {
+          case emailNotification: EmailNotification => emailNotification
+        }
+        sendEmail(process.status, previousProcess.map(_.status), emailNotifications, subject, body)
       }
     }
   }
 
   protected val sesClient: AmazonSimpleEmailServiceAsyncClient = new AmazonSimpleEmailServiceAsyncClient().withRegion(Regions.valueOf(SundialGlobal.awsRegion))
 
-  protected def sendEmail(processStatus: ProcessStatus, previousProcessStatus: Option[ProcessStatus], teams: Seq[Team], subject: String, body: String): Unit = {
+  protected def sendEmail(processStatus: ProcessStatus, previousProcessStatus: Option[ProcessStatus], teams: Seq[EmailNotification], subject: String, body: String): Unit = {
     val filteredTeams = filterNotificationTeams(teams, processStatus, previousProcessStatus)
     if (filteredTeams.nonEmpty) {
       val toAddresses = filteredTeams.map(team => s"${team.name} <${team.email}>")
@@ -57,7 +60,7 @@ class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) ext
     }
   }
 
-  private[notifications] def filterNotificationTeams(teams: Seq[Team], processStatus: ProcessStatus, previousProcessStatus: Option[ProcessStatus]): Seq[Team] = {
+  private[notifications] def filterNotificationTeams(teams: Seq[EmailNotification], processStatus: ProcessStatus, previousProcessStatus: Option[ProcessStatus]): Seq[EmailNotification] = {
     if (previousProcessStatus.exists(_.isInstanceOf[ProcessStatus.Succeeded]) && processStatus.isInstanceOf[ProcessStatus.Succeeded]) {
       teams.filter(_.notifyAction == NotificationOptions.Always)
     } else if (previousProcessStatus.exists(_.isInstanceOf[ProcessStatus.Failed]) && processStatus.isInstanceOf[ProcessStatus.Failed]) {

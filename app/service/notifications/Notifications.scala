@@ -2,8 +2,6 @@ package service.notifications
 
 import java.util.UUID
 
-import model.{Task}
-
-trait Notifications {
+trait Notification {
   def notifyProcessFinished(processId: UUID)
 }

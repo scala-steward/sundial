@@ -106,7 +106,7 @@ object ModelConverter {
 
     def toExternalNotification: PartialFunction[model.Notification, v0.models.Notification] = {
       case email: EmailNotification => Email(email.name, email.email, NotificationOptions.fromString(email.notifyAction).getOrElse(NotificationOptions.OnStateChangeAndFailures))
-      case pagerduty: PagerdutyNotification => Pagerduty(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.numConsecutiveFailures, pagerduty.apiUrl)
+      case pagerduty: PagerdutyNotification => Pagerduty(pagerduty.serviceKey, pagerduty.numConsecutiveFailures, pagerduty.apiUrl)
     }
 
     if (notifications.isEmpty) {
@@ -231,7 +231,7 @@ object ModelConverter {
 
   def toInternalNotification: PartialFunction[v0.models.Notification, model.Notification] = {
     case email: Email => EmailNotification(email.name, email.email, email.notifyWhen.toString)
-    case pagerduty: Pagerduty => PagerdutyNotification(pagerduty.serviceKey, pagerduty.sendResolved, pagerduty.apiUrl, pagerduty.numConsecutiveFailures)
+    case pagerduty: Pagerduty => PagerdutyNotification(pagerduty.serviceKey, pagerduty.apiUrl, pagerduty.numConsecutiveFailures)
     case NotificationUndefinedType(notificationTypeName) => throw new IllegalArgumentException(s"Unknown notification type [$notificationTypeName]")
   }
 

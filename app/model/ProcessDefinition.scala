@@ -24,7 +24,7 @@ case class EmailNotification(name: String, email: String, notifyAction: String) 
   override val `type` = Constants.Email
 }
 
-case class PagerdutyNotification(serviceKey: String, sendResolved: Boolean, apiUrl: String, numConsecutiveFailures: Int) extends Notification {
+case class PagerdutyNotification(serviceKey: String, apiUrl: String, numConsecutiveFailures: Int) extends Notification {
   override val `type` = Constants.Pagerduty
 }
 

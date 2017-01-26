@@ -73,9 +73,8 @@ package com.gilt.svc.sundial.v0.models {
    */
   case class Pagerduty(
     serviceKey: String,
-    sendResolved: Boolean = false,
     numConsecutiveFailures: Int = 1,
-    apiUrl: String = "https://events.pagerduty.com/generic/2010-04-15/create_event.json"
+    apiUrl: String = "https://events.pagerduty.com"
   ) extends Notification
 
   case class Process(
@@ -653,7 +652,6 @@ package com.gilt.svc.sundial.v0.models {
     implicit def jsonReadsSvcSundialPagerduty: play.api.libs.json.Reads[Pagerduty] = {
       (
         (__ \ "service_key").read[String] and
-        (__ \ "send_resolved").read[Boolean] and
         (__ \ "num_consecutive_failures").read[Int] and
         (__ \ "api_url").read[String]
       )(Pagerduty.apply _)
@@ -662,7 +660,6 @@ package com.gilt.svc.sundial.v0.models {
     def jsObjectPagerduty(obj: com.gilt.svc.sundial.v0.models.Pagerduty) = {
       play.api.libs.json.Json.obj(
         "service_key" -> play.api.libs.json.JsString(obj.serviceKey),
-        "send_resolved" -> play.api.libs.json.JsBoolean(obj.sendResolved),
         "num_consecutive_failures" -> play.api.libs.json.JsNumber(obj.numConsecutiveFailures),
         "api_url" -> play.api.libs.json.JsString(obj.apiUrl)
       )

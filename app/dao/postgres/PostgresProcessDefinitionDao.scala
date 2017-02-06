@@ -37,7 +37,7 @@ class PostgresProcessDefinitionDao(implicit conn: Connection) extends ProcessDef
            |INSERT INTO $TABLE
            |($COL_NAME, $COL_DESCRIPTION, $COL_SCHEDULE, $COL_OVERLAP_ACTION, $COL_TEAMS, $COL_NOTIFICATIONS, $COL_DISABLED, $COL_CREATED_AT)
            |VALUES
-           |(?, ?, ?::jsonb, ?::process_overlap_action, ?::jsonb, ?, ?)
+           |(?, ?, ?::jsonb, ?::process_overlap_action, ?::jsonb, ?::jsonb, ?, ?)
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
       val cols = Seq(COL_NAME, COL_DESCRIPTION, COL_SCHEDULE, COL_OVERLAP_ACTION, COL_TEAMS, COL_NOTIFICATIONS, COL_DISABLED, COL_CREATED_AT)

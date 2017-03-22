@@ -56,7 +56,7 @@
       "backoff_exponent": 1,
       "require_explicit_success": false,
       "max_runtime_seconds": 1200
-    },
+    }
   ],
   "subscriptions": [
     {"name": "Dev Team", "email": "dev-team@organization.com"}

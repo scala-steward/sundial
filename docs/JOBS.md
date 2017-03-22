@@ -59,13 +59,13 @@
     }
   ],
   "subscriptions": [
-    {"name": "Dev Team", "email": "dev-team@organization.com"}
+    {"name": "Dev Team", "email": "dev-team@organization.com", "notify_when": "on_state_change_and_failures"}
   ],
   "paused": false
 }
 ```
 
-POST this job template to http://sundialurl/api/process_definitions/SampleProcessName
+PUT this job template to http://sundialurl/api/process_definitions/SampleProcessName
 
 # Explanation of parameters
 

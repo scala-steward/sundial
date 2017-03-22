@@ -2,6 +2,7 @@ package util
 
 import com.amazonaws.services.ecs.AmazonECSClient
 import com.amazonaws.services.ecs.model._
+import common.SundialGlobal
 import play.api.Logger
 
 import scala.collection.JavaConverters._
@@ -42,9 +43,7 @@ object ECSHelper {
       .withOverrides(new TaskOverride().withContainerOverrides(
         overrides.map(o => new ContainerOverride().withName(o.name).withCommand(o.command.asJavaCollection)).asJavaCollection)
       )
-    // TODO: would this stuff be useful?
-//      .withGeneralProgressListener(null)
-//      .withRequestMetricCollector(null)
+      .withPlacementStrategy(SundialGlobal.taskPlacementStrategy)
 
     ecsClient.runTask(runTaskRequest)
   }

@@ -6,7 +6,7 @@ import Keys._
 object SundialBuild extends Build {
 
   val dependencies = Seq(
-    "com.amazonaws"                % "aws-java-sdk"              % "1.11.20",
+    "com.amazonaws"                % "aws-java-sdk"              % "1.11.105",
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
     "org.postgresql"               % "postgresql"                % "9.4-1201-jdbc41",

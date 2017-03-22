@@ -8,6 +8,7 @@ import com.amazonaws.services.cloudformation.AmazonCloudFormationClient
 import com.amazonaws.services.cloudformation.model.{DescribeStackResourceRequest, DescribeStacksRequest}
 import com.amazonaws.services.ec2.AmazonEC2Client
 import com.amazonaws.services.ec2.model.{DescribeTagsRequest, Filter}
+import com.amazonaws.services.ecs.model.{PlacementStrategy, PlacementStrategyType}
 import com.amazonaws.util.EC2MetadataUtils
 import play.api.{Application, GlobalSettings, Logger}
 import service.{Dependencies, Sundial}
@@ -48,6 +49,20 @@ object SundialGlobal extends GlobalSettings {
     val describeStackRequest = new DescribeStacksRequest().withStackName(cfnStackName)
     val stack = cfnClient.describeStacks(describeStackRequest).getStacks.get(0)
     stack.getOutputs.asScala.find(_.getOutputKey == "WebAddress").get.getOutputValue
+  }
+
+  lazy val taskPlacementStrategy = {
+    val conf = play.Play.application.configuration
+    val taskPlacementString = conf.getString("ecs.defaultTaskPlacement", "random").toLowerCase
+    val binpackPlacement = conf.getString("ecs.binpackPlacement", "memory").toLowerCase
+    val spreadPlacement = conf.getString("ecs.spreadPlacement", "host").toLowerCase
+    val placementStrategyType = PlacementStrategyType.fromValue(taskPlacementString)
+    val placementStrategy = new PlacementStrategy().withType(placementStrategyType)
+    placementStrategyType match {
+      case PlacementStrategyType.Binpack => placementStrategy.withField(binpackPlacement)
+      case PlacementStrategyType.Random => placementStrategy
+      case PlacementStrategyType.Spread => placementStrategy.withField(spreadPlacement)
+    }
   }
 
   override def onStart(application: Application): Unit = {

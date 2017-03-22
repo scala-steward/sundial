@@ -168,10 +168,6 @@ class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceEx
     val failures = runTaskResult.getFailures.asScala
     if(failures.length > 0) {
       val reasons = failures.map(x => s"(${x.getArn},${x.getReason})")
-      // TODO: Sometimes RunTask will fail with reason 'AGENT'
-      // Im not yet sure what this means but the github issues page provides some pointers
-      // https://github.com/aws/amazon-ecs-agent/issues/24#issuecomment-94081006
-      //throw new RuntimeException("Failed to RunTask. Got the following failures: " + reasons.mkString(","))
       Logger.error(s"Failures initializing task ${task.id} : ${reasons.mkString(",")}")
       dao.taskLogsDao.saveEvents(Seq(TaskEventLog(UUID.randomUUID(),
                                                   task.id,

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #Change these to match your environment
-REGION=
+REGION=us-east-1
 DOCKER_REGISTRY=
 DOCKER_REPO=svc-sundial
 # An s3 bucket for deployment assets

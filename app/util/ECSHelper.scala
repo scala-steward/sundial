@@ -102,7 +102,7 @@ object ECSHelper {
 
 
   def listTaskDefinitionFamilies(family: String = "")(implicit ecsClient: AmazonECSClient): Set[String] = {
-    val request = new ListTaskDefinitionFamiliesRequest().withFamilyPrefix(family)
+    val request = new ListTaskDefinitionFamiliesRequest().withFamilyPrefix(family).withStatus(TaskDefinitionFamilyStatus.ACTIVE)
     ecsClient.listTaskDefinitionFamilies(request).getFamilies.asScala.toSet
   }
 

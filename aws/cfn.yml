@@ -202,11 +202,16 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         AddToCluster:
-          commands:
-            01_add_instance_to_cluster:
-              command: !Sub |
-                #!/bin/bash
-                echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+          files:
+            "/etc/ecs/ecs.config":
+              content: !Sub |
+                ECS_CLUSTER=${ECSCluster}
+                ECS_DISABLE_IMAGE_CLEANUP=false
+                ECS_ENABLE_TASK_IAM_ROLE=true
+                ECS_ENABLE_TASK_IAM_ROLE_NETWORK_HOST=true
+              mode: '000644'
+              owner: root
+              group: root
         CfnHup:
           files:
             "/etc/cfn/cfn-hup.conf":

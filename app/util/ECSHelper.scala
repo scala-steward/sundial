@@ -1,5 +1,7 @@
 package util
 
+import javax.inject.{Inject, Singleton}
+
 import com.amazonaws.services.ecs.AmazonECS
 import com.amazonaws.services.ecs.model._
 import play.api.Logger
@@ -18,10 +20,8 @@ case class ECSMountPoint(containerPath: String, sourceVolume: String)
 case class ECSVolume(name: String, hostSourcePath: Option[String])
 case class ECSContainerOverride(name: String, command: Seq[String])
 
-object ECSHelper {
-
-  // startedBy
-  //
+@Singleton
+class ECSHelper @Inject() (taskPlacementStrategy: PlacementStrategy) {
 
 
   /**
@@ -42,7 +42,7 @@ object ECSHelper {
       .withOverrides(new TaskOverride().withContainerOverrides(
         overrides.map(o => new ContainerOverride().withName(o.name).withCommand(o.command.asJavaCollection)).asJavaCollection)
       )
-      .withPlacementStrategy(SundialGlobal.taskPlacementStrategy)
+      .withPlacementStrategy(taskPlacementStrategy)
 
     ecsClient.runTask(runTaskRequest)
   }

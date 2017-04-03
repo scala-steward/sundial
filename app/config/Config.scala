@@ -7,6 +7,7 @@ import com.amazonaws.services.cloudformation.{AmazonCloudFormation, AmazonCloudF
 import com.amazonaws.services.cloudformation.model.{DescribeStackResourceRequest, DescribeStacksRequest}
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
 import com.amazonaws.services.ec2.model.{DescribeTagsRequest, Filter}
+import com.amazonaws.services.ecs.model.{PlacementStrategy, PlacementStrategyType}
 import com.amazonaws.services.ecs.{AmazonECS, AmazonECSClientBuilder}
 import com.amazonaws.services.logs.{AWSLogs, AWSLogsClientBuilder}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
@@ -138,6 +139,21 @@ class Config(environment: Environment, configuration: Configuration) extends Abs
         new PagerdutyNotifications(wsClient, daoFactory)
       )
       case _ => Seq.empty
+    }
+  }
+
+  @Provides
+  @Singleton
+  def taskPlacementStrategy(): PlacementStrategy = {
+    val taskPlacementString = configuration.getString("ecs.defaultTaskPlacement").getOrElse("random").toLowerCase
+    val binpackPlacement = configuration.getString("ecs.binpackPlacement").getOrElse("memory").toLowerCase
+    val spreadPlacement = configuration.getString("ecs.spreadPlacement").getOrElse("host").toLowerCase
+    val placementStrategyType = PlacementStrategyType.fromValue(taskPlacementString)
+    val placementStrategy = new PlacementStrategy().withType(placementStrategyType)
+    placementStrategyType match {
+      case PlacementStrategyType.Binpack => placementStrategy.withField(binpackPlacement)
+      case PlacementStrategyType.Random => placementStrategy
+      case PlacementStrategyType.Spread => placementStrategy.withField(spreadPlacement)
     }
   }
 

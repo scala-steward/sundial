@@ -21,6 +21,7 @@ import scala.util.control.NonFatal
 
 class ContainerServiceExecutor @Inject() (config: Configuration,
                                           injectedEcsClient: AmazonECS,
+                                          ecsHelper: ECSHelper,
                                           s3Client: AmazonS3,
                                           sdbClient: AmazonSimpleDB,
                                           @Named("sundialUrl") sundialUrl :String,
@@ -124,15 +125,15 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
     val desiredTaskDefinition = buildTaskDefinition(family, executable, task)
     val taskDefArnOpt = {
       Logger.debug("About to query ECS to list task definition families")
-      val families = ECSHelper.listTaskDefinitionFamilies(family)
+      val families = ecsHelper.listTaskDefinitionFamilies(family)
       if(!families.contains(family)){
         // don't need to query ECS for task definitions if we already know the family doesn't exist
         None
       } else {
         // get the latest revision and see if it matches what we want to run
-        val latest = ECSHelper.describeTaskDefinition(family, revision = None)
+        val latest = ecsHelper.describeTaskDefinition(family, revision = None)
         Logger.debug(s"Result of ECS describe task definition: $latest")
-        if(ECSHelper.matches(latest, desiredTaskDefinition)) {
+        if(ecsHelper.matches(latest, desiredTaskDefinition)) {
           Logger.debug("ECS task definition matched desired")
           Some(latest.getTaskDefinitionArn)
         } else {
@@ -146,7 +147,7 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
       case Some(arn) => arn
       case _ =>
         Logger.debug("Registering ECS task definition")
-        val registerTaskResult = ECSHelper.registerTaskDefinition(desiredTaskDefinition)
+        val registerTaskResult = ecsHelper.registerTaskDefinition(desiredTaskDefinition)
         Logger.debug(s"Register result: $registerTaskResult")
         registerTaskResult.getTaskDefinition.getTaskDefinitionArn
     }
@@ -160,7 +161,7 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
     val companionOverride = ECSContainerOverride(name = "sundialCompanion",
                                                  command = Seq("bash", "-c", s"TASK_ID=${task.id} /opt/gilt/sundial-companion/sundial-logs.sh"))
     Logger.debug("Starting task")
-    val runTaskResult = ECSHelper.runTask(taskDefArn,
+    val runTaskResult = ecsHelper.runTask(taskDefArn,
                                           cluster = cluster,
                                           startedBy = task.id.toString,
                                           overrides = Seq(companionOverride))
@@ -214,7 +215,7 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
       refreshMetadata(state)
       Logger.debug("Refreshed metadata")
       // See what's the latest from the ECS task
-      val ecsTaskOpt = ECSHelper.describeTask(cluster, state.ecsTaskArn)
+      val ecsTaskOpt = ecsHelper.describeTask(cluster, state.ecsTaskArn)
       Logger.debug(s"Describe task result from ECS: $ecsTaskOpt")
       ecsTaskOpt match {
         case Some(ecsTask) =>
@@ -237,7 +238,7 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
   override protected def actuallyKillExecutable(state: ContainerServiceState, task: Task)
                                                (implicit dao: SundialDao): Unit = {
     Logger.info(s"Sundial requesting ECS to kill task ${task.taskDefinitionName} with Sundial ID ${task.id.toString} and ECS ID ${state.ecsTaskArn}")
-    ECSHelper.stopTask(cluster, state.ecsTaskArn)
+    ecsHelper.stopTask(cluster, state.ecsTaskArn)
   }
 
   private def getFamilyName(processDefinitionName: String, taskDefinitionName: String): String = {

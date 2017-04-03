@@ -1,6 +1,8 @@
 package service
 
-import dao.{SundialDao, ExecutableStateDao}
+import javax.inject.Inject
+
+import dao.{ExecutableStateDao, SundialDao}
 import model._
 import play.api.Logger
 
@@ -34,7 +36,7 @@ trait SpecificTaskExecutor[ExecutableType <: Executable, StateType <: Executable
 
 }
 
-class TaskExecutor(
+class TaskExecutor @Inject() (
   containerServiceExecutor: ContainerServiceExecutor,
   shellCommandExecutor: ShellCommandExecutor
 ) {

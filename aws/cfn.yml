@@ -578,7 +578,7 @@ Resources:
       - IpProtocol: tcp
         FromPort: '9000'
         ToPort: '9000'
-        SourceSecurityGroupId: !GetAtt ['ServiceInstanceELBSecurityGroup', 'GroupId']
+        CidrIp: SourceSecurityGroupId: !GetAtt ['ServiceInstanceELBSecurityGroup', 'GroupId']
       VpcId: !Ref VpcId
   ServiceInstanceELBSecurityGroup:
     Type: AWS::EC2::SecurityGroup

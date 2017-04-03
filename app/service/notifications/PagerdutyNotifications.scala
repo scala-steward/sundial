@@ -5,12 +5,13 @@ import java.util.UUID
 import dao.SundialDaoFactory
 import model.{PagerdutyNotification, Process, ProcessStatusType}
 import play.api.Logger
+import play.api.libs.ws.WSClient
 import speedwing.pagerduty.api.v0.Client
 import speedwing.pagerduty.api.v0.models.{CreateEvent, EventType}
 
 import scala.util.{Failure, Success}
 
-class PagerdutyNotifications(daoFactory: SundialDaoFactory) extends Notification {
+class PagerdutyNotifications(wsClient: WSClient, daoFactory: SundialDaoFactory) extends Notification {
 
   private final val Log = Logger(classOf[PagerdutyNotifications])
 
@@ -48,7 +49,7 @@ class PagerdutyNotifications(daoFactory: SundialDaoFactory) extends Notification
           None,
           Some("Sundial"),
           None)
-        val pagerdutyClient = new Client(pagerdutyNotification.apiUrl)
+        val pagerdutyClient = new Client(wsClient, pagerdutyNotification.apiUrl)
 
         val pagerdutyRequest = pagerdutyClient.createEvents.post(createEvent)
 

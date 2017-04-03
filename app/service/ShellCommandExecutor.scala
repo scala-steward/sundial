@@ -4,6 +4,7 @@ import java.io._
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.{Date, UUID}
 import java.util.concurrent.Executors
+import javax.inject.Inject
 
 import dao._
 import model._
@@ -32,8 +33,7 @@ object ShellCommandRegistry {
 
 }
 
-// not for production use!
-class ShellCommandExecutor(daoFactory: SundialDaoFactory) extends SpecificTaskExecutor[ShellCommandExecutable, ShellCommandState] {
+class ShellCommandExecutor @Inject() (daoFactory: SundialDaoFactory) extends SpecificTaskExecutor[ShellCommandExecutable, ShellCommandState] {
 
   private val threadPool = Executors.newCachedThreadPool()
 

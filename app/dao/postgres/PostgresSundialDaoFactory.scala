@@ -1,14 +1,17 @@
 package dao.postgres
 
-import dao.postgres.common.ConnectionPool
-import dao.{SundialDao, SundialDaoFactory}
+import javax.inject.Inject
 
-class PostgresSundialDaoFactory(connectionPool: ConnectionPool) extends SundialDaoFactory {
+import dao.{SundialDao, SundialDaoFactory}
+import play.api.db.DBApi
+
+class PostgresSundialDaoFactory @Inject() (dbApi: DBApi) extends SundialDaoFactory {
+
+  private val database = dbApi.database("default")
 
   override def buildSundialDao(): SundialDao = {
-    implicit val conn = connectionPool.fetchConnection()
-    conn.setAutoCommit(false)
-    new PostgresSundialDao()
+    implicit val connection = database.getConnection(false)
+    new PostgresSundialDao
   }
 
 }

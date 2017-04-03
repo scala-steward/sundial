@@ -2,6 +2,7 @@ package service
 
 import java.util.concurrent.TimeUnit
 import java.util.{Date, UUID}
+import javax.inject.Inject
 
 import dao.SundialDao
 import model._
@@ -29,7 +30,7 @@ object TaskExecutionCondition {
 
 }
 
-class ProcessStepper(
+class ProcessStepper @Inject() (
   taskExecutor: TaskExecutor,
   notifications: Seq[Notification]
 ) {

@@ -511,6 +511,14 @@
           "required": true
         }
       ]
+    },
+    "healthcheck": {
+      "fields": [
+        {
+          "name": "status",
+          "type": "string"
+        }
+      ]
     }
   },
   "resources": {
@@ -847,6 +855,20 @@
           "responses": {
             "204": {
               "type": "unit"
+            }
+          }
+        }
+      ]
+    },
+    "healthcheck": {
+      "path": "/_internal_",
+      "operations": [
+        {
+          "method": "GET",
+          "path": "/metrics",
+          "responses": {
+            "200": {
+              "type": "string"
             }
           }
         }

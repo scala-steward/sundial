@@ -2,13 +2,14 @@ package dao.postgres
 
 import java.lang.management.ManagementFactory
 import java.net.InetAddress
-import java.util.concurrent.{TimeUnit, Semaphore}
+import java.util.concurrent.{Semaphore, TimeUnit}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
+import javax.inject.{Inject, Singleton}
 
-import dao.postgres.common.{GlobalLockTable, ConnectionPool}
+import dao.postgres.common.GlobalLockTable
 import service.GlobalLock
-
+import play.api.db.DBApi
 import util.JdbcUtil._
 
 case class GlobalLockMetricValues(executions: Int, failedExecutions: Int, acquires: Int, failedAcquires: Int, interrupts: Int, completions: Int)
@@ -32,9 +33,14 @@ class GlobalLockMetrics {
 }
 case class Lease(leaseId: UUID, start: Date, end: Date)
 
-class PostgresGlobalLock(pool: ConnectionPool, clientId: UUID) extends GlobalLock {
+@Singleton
+class PostgresGlobalLock @Inject() (dbApi: DBApi) extends GlobalLock {
 
   val metrics = new GlobalLockMetrics()
+
+  val clientId = UUID.randomUUID()
+
+  val database = dbApi.database("default")
 
   protected val LEASE_LENGTH_MS = 30000
   protected val RENEW_BUFFER_MS = 5000
@@ -104,7 +110,8 @@ class PostgresGlobalLock(pool: ConnectionPool, clientId: UUID) extends GlobalLoc
 
   private def acquireLease(lease: Lease): Boolean = {
     import GlobalLockTable._
-    pool.withConnection { conn =>
+    database.withConnection { conn =>
+      conn.setAutoCommit(false)
       // we have an exclusion constraint, but we should still be
       // nice and check if there is a conflicting lease before
       // trying to insert

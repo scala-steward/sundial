@@ -2,19 +2,17 @@ package dto
 
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
+import javax.inject.{Inject, Named, Singleton}
 
-import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.{CannedAccessControlList, PutObjectRequest}
-import common.SundialGlobal
 import dao.SundialDao
 import model.TaskStatus.Failure
 import model._
 import util.{DateUtils, Graphify}
 
-object DisplayModels {
-
-  private val gv = new Graphify()
-  private val s3Client = new AmazonS3Client()
+@Singleton
+class DisplayModels @Inject() (graphify: Graphify, s3Client: AmazonS3, @Named("s3Bucket") s3Bucket: String) {
 
   def fetchProcessDto(processId: UUID, generateGraph: Boolean)(implicit dao: SundialDao): Option[ProcessDTO] = {
     for {
@@ -29,13 +27,13 @@ object DisplayModels {
         val imageId = UUID.randomUUID()
         val key = s"email-images/$imageId"
         val putObjectRequest =
-          new PutObjectRequest(SundialGlobal.s3Bucket,
+          new PutObjectRequest(s3Bucket,
                                key,
-                               gv.toGraphViz(processId))
+                               graphify.toGraphViz(processId))
             .withCannedAcl(CannedAccessControlList.PublicRead)
         s3Client.putObject(putObjectRequest)
 
-        Some(s3Client.getUrl(SundialGlobal.s3Bucket, key).toString())
+        Some(s3Client.getUrl(s3Bucket, key).toString())
       } else {
         None
       }

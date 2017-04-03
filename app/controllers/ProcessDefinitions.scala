@@ -1,19 +1,21 @@
 package controllers
 
 import java.util.{Date, UUID}
+import javax.inject.Inject
 
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
 import controllers.ModelConverter.toInternalNotification
+import dao.SundialDaoFactory
 import model._
 import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.mvc.{Action, Controller}
 import util.CycleDetector
 
-object ProcessDefinitions extends SundialController {
+class ProcessDefinitions @Inject() (daoFactory: SundialDaoFactory) extends Controller {
 
   def get() = Action {
-    val result: Seq[v0.models.ProcessDefinition] = withSundialDao { implicit dao =>
+    val result: Seq[v0.models.ProcessDefinition] = daoFactory.withSundialDao { implicit dao =>
       val definitions = dao.processDefinitionDao.loadProcessDefinitions()
       definitions.map(ModelConverter.toExternalProcessDefinition)
     }
@@ -22,7 +24,7 @@ object ProcessDefinitions extends SundialController {
   }
 
   def getByProcessDefinitionName(processDefinitionName: String) = Action {
-    val resultOpt: Option[v0.models.ProcessDefinition] = withSundialDao { implicit dao =>
+    val resultOpt: Option[v0.models.ProcessDefinition] = daoFactory.withSundialDao { implicit dao =>
       val definition = dao.processDefinitionDao.loadProcessDefinition(processDefinitionName)
       definition.map(ModelConverter.toExternalProcessDefinition)
     }
@@ -38,7 +40,7 @@ object ProcessDefinitions extends SundialController {
     if(processDefinitionName != request.body.processDefinitionName) {
       BadRequest(s"URL process definition name ($processDefinitionName) does not match body process definitiion name (${request.body.processDefinitionName})")
     } else {
-      withSundialDao { implicit dao =>
+      daoFactory.withSundialDao { implicit dao =>
         val taskDefinitionsByName = request.body.taskDefinitions.map(taskDef => taskDef.taskDefinitionName -> taskDef).toMap
         val hasCycle = request.body.taskDefinitions.exists { taskDef =>
           CycleDetector.hasCycle[v0.models.TaskDefinition](taskDef, current => {
@@ -96,7 +98,7 @@ object ProcessDefinitions extends SundialController {
 
   def deleteByProcessDefinitionName(processDefinitionName: String) = Action {
     //TODO Archive rather than delete so that we don't break old processes
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       dao.processDefinitionDao.deleteAllTaskDefinitionTemplates(processDefinitionName)
       dao.processDefinitionDao.deleteProcessDefinition(processDefinitionName)
     }
@@ -105,7 +107,7 @@ object ProcessDefinitions extends SundialController {
   }
 
   def postTriggerByProcessDefinitionName(processDefinitionName: String, taskDefinitionName: Option[String]) = Action {
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       val trigger = ProcessTriggerRequest(UUID.randomUUID(),
                                           processDefinitionName,
                                           new Date(),
@@ -118,7 +120,7 @@ object ProcessDefinitions extends SundialController {
   }
 
   def postPauseByProcessDefinitionName(processDefinitionName: String) = Action {
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       val definition = dao.processDefinitionDao.loadProcessDefinition(processDefinitionName).get
       val newDefinition = definition.copy(isPaused = true)
       dao.processDefinitionDao.saveProcessDefinition(newDefinition)
@@ -127,7 +129,7 @@ object ProcessDefinitions extends SundialController {
   }
 
   def postResumeByProcessDefinitionName(processDefinitionName: String) = Action {
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       val definition = dao.processDefinitionDao.loadProcessDefinition(processDefinitionName).get
       val newDefinition = definition.copy(isPaused= false)
       dao.processDefinitionDao.saveProcessDefinition(newDefinition)

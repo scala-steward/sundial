@@ -1,8 +1,7 @@
 package util
 
-import com.amazonaws.services.ecs.AmazonECSClient
+import com.amazonaws.services.ecs.AmazonECS
 import com.amazonaws.services.ecs.model._
-import common.SundialGlobal
 import play.api.Logger
 
 import scala.collection.JavaConverters._
@@ -33,7 +32,7 @@ object ECSHelper {
    * @param ecsClient
    * @return
    */
-  def runTask(taskDefinition: String, cluster: String, startedBy: String, overrides: Seq[ECSContainerOverride] = Seq.empty)(implicit ecsClient: AmazonECSClient): RunTaskResult ={
+  def runTask(taskDefinition: String, cluster: String, startedBy: String, overrides: Seq[ECSContainerOverride] = Seq.empty)(implicit ecsClient: AmazonECS): RunTaskResult ={
 
     val runTaskRequest = new RunTaskRequest()
       .withCluster(cluster)
@@ -50,7 +49,7 @@ object ECSHelper {
 
 
   def registerTaskDefinition(taskDefinition: ECSTaskDefinition)
-                            (implicit ecsClient: AmazonECSClient): RegisterTaskDefinitionResult ={
+                            (implicit ecsClient: AmazonECS): RegisterTaskDefinitionResult ={
     val containerDefinitions = taskDefinition.containers.map { definition =>
       new ContainerDefinition()
         .withCpu(definition.cpu)
@@ -93,7 +92,7 @@ object ECSHelper {
    * @param ecsClient
    * @return
    */
-  def stopTask(cluster: String, taskArn: String)(implicit ecsClient: AmazonECSClient): StopTaskResult ={
+  def stopTask(cluster: String, taskArn: String)(implicit ecsClient: AmazonECS): StopTaskResult ={
     val stopTaskRequest = new StopTaskRequest()
       .withCluster(cluster)
       .withTask(taskArn)
@@ -101,12 +100,12 @@ object ECSHelper {
   }
 
 
-  def listTaskDefinitionFamilies(family: String = "")(implicit ecsClient: AmazonECSClient): Set[String] = {
+  def listTaskDefinitionFamilies(family: String = "")(implicit ecsClient: AmazonECS): Set[String] = {
     val request = new ListTaskDefinitionFamiliesRequest().withFamilyPrefix(family).withStatus(TaskDefinitionFamilyStatus.ACTIVE)
     ecsClient.listTaskDefinitionFamilies(request).getFamilies.asScala.toSet
   }
 
-  def describeTaskDefinition(family: String, revision: Option[String])(implicit ecsClient: AmazonECSClient): TaskDefinition = {
+  def describeTaskDefinition(family: String, revision: Option[String])(implicit ecsClient: AmazonECS): TaskDefinition = {
     val query = revision.map(r => s"$family:$r").getOrElse(family)
     val request = new DescribeTaskDefinitionRequest().withTaskDefinition(query)
     ecsClient.describeTaskDefinition(request).getTaskDefinition
@@ -151,7 +150,7 @@ object ECSHelper {
     }
   }
 
-  def describeTask(cluster: String, arn: String)(implicit ecsClient: AmazonECSClient): Option[Task] ={
+  def describeTask(cluster: String, arn: String)(implicit ecsClient: AmazonECS): Option[Task] ={
     val describeTasksRequest = new DescribeTasksRequest()
       .withCluster(cluster)
       .withTasks(arn)

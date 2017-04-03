@@ -1,36 +1,25 @@
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
 import java.util.concurrent.TimeUnit
 
-import com.typesafe.config.ConfigFactory
-import common.{SundialGlobal, Bootstrap, TestDependencies}
-import dao.memory.InMemorySundialDao
+import dao.memory.{InMemorySundialDao, InMemorySundialDaoFactory}
 import model._
-import org.junit.runner.RunWith
-import org.scalatest.{ShouldMatchers, FlatSpec}
-import org.scalatestplus.play.{PlaySpec, OneAppPerSuite}
-import org.specs2.Specification
-import org.specs2.runner.JUnitRunner
-import play.api.{GlobalSettings, Configuration}
-import play.api.test.FakeApplication
-import service.MetricValues
+import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.PlaySpec
+import service._
+import play.api.inject.{ApplicationLifecycle, bind}
 
-class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
+class InMemoryGlobalLock extends GlobalLock {
+  val lock = new Object()
+  override def executeGuarded[T]()(f: => T): T = lock.synchronized(f)
+}
 
-  //
-  // UTILITY FUNCTIONS
-  //
+class SundialSchedulingSpec extends PlaySpec with MockitoSugar {
 
-  override implicit lazy val app: FakeApplication = new FakeApplication(
-      withGlobal = Some(new GlobalSettings() {
-        override def configuration: Configuration = {
-          val testConfig = ConfigFactory.load("application.test.conf")
-          Configuration(testConfig)
-        }
-      })) {
-    override def configuration: Configuration = {
-      val testConfig = ConfigFactory.load("application.test.conf")
-      Configuration(testConfig)
-    }
+
+  def mockSundial(daoFactory: InMemorySundialDaoFactory): Sundial = {
+    val mockTaskExecutor = new TaskExecutor(mock[ContainerServiceExecutor], new ShellCommandExecutor(daoFactory))
+    val mockProcessStepper = new ProcessStepper(mockTaskExecutor, Seq.empty)
+    new Sundial(new InMemoryGlobalLock, mockProcessStepper, daoFactory, mock[ApplicationLifecycle])
   }
 
   def ambiguousShellScript(delayMs: Int) = {
@@ -127,9 +116,10 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
 
   "Sundial" must {
     "run a single task that succeeds" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
+      sundial.stop()
       implicit val processDef = testProcessDef()
       val taskDef = testTaskDef(shellScript(500, true))
 
@@ -145,9 +135,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "wait for the current process to finish when overlap action is \"wait\"" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef(overlapAction = ProcessOverlapAction.Wait)
       val taskDef = testTaskDef(shellScript(500, true))
 
@@ -167,12 +157,12 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "terminate the current process and start a new one when overlap action is \"terminate\" and process definition is scheduled to run again" in {
-      val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
       implicit val processDefinition = testProcessDef(overlapAction = ProcessOverlapAction.Terminate)
       val taskDef = testTaskDef(shellScript(500, true))
 
-      val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val sundial = mockSundial(daoFactory)
       // First scheduling cycle...
       sundial.doWork()
       sundial.metrics.values mustBe (MetricValues(1, 1, 1, 1, 0, 0))
@@ -195,12 +185,12 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "terminate the current process and start a new one when overlap action is \"terminate\" and process definition has been manually triggered to run again" in {
-      val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
       implicit val processDefinition = testProcessDef(overlapAction = ProcessOverlapAction.Terminate, processSchedule = model.ContinuousSchedule(0))
       val taskDef = testTaskDef(shellScript(500, true))
 
-      val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val sundial = mockSundial(daoFactory)
       // First scheduling cycle...
       sundial.doWork()
       sundial.metrics.values mustBe (MetricValues(1, 1, 1, 1, 0, 0))
@@ -229,9 +219,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run a single task that fails" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef = testTaskDef(shellScript(500, false))
 
@@ -249,9 +239,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run a single task that fails and retries" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef = testTaskDef(retryableShellScript(500, 1), maxAttempts = 2)
 
@@ -272,9 +262,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run a sequence of successful tasks serially" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef1 = testTaskDef(shellScript(500, true))
       val taskDef2 = testTaskDef(shellScript(500, true), requires = Seq(taskDef1))
@@ -323,9 +313,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run a set of unrelated tasks in parallel" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef1 = testTaskDef(shellScript(500, true))
       val taskDef2 = testTaskDef(shellScript(500, true))
@@ -352,9 +342,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run a simple diamond hierarchy in the correct order" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef1 = testTaskDef(shellScript(500, true))
       val taskDef2 = testTaskDef(shellScript(500, true), requires = Seq(taskDef1))
@@ -420,9 +410,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run a simple diamond hierarchy in the correct order with a failure" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef1 = testTaskDef(shellScript(500, true))
       val taskDef2 = testTaskDef(shellScript(500, true), requires = Seq(taskDef1))
@@ -476,9 +466,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "fail a task that requires explicit success when no success is found" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef = testTaskDef(ambiguousShellScript(500), requireExplicitSuccess = true)
 
@@ -496,9 +486,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "succeed a task that does not require explicit success when no success is found" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef()
       val taskDef = testTaskDef(ambiguousShellScript(500), requireExplicitSuccess = false)
 
@@ -516,9 +506,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "not run a disabled process" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef(disabled = true)
       val taskDef = testTaskDef(shellScript(500, true))
 
@@ -532,9 +522,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run from a manual process trigger" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef(disabled = true) // to prevent the schedule from taking it
       val taskDef = testTaskDef(shellScript(500, true))
 
@@ -560,9 +550,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run a diamond hierarchy from a filtered process trigger" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef(disabled = true)
       val taskDef1 = testTaskDef(shellScript(500, true))
       val taskDef2 = testTaskDef(shellScript(500, true), requires = Seq(taskDef1))
@@ -632,9 +622,9 @@ class SundialSchedulingSpec extends PlaySpec with OneAppPerSuite {
     }
 
     "run from a manual task trigger" in {
-      implicit val dependencies = new TestDependencies()
-      implicit val dao = dependencies.daoFactory.buildSundialDao()
-      implicit val sundial = Bootstrap.bootstrapSundial(dependencies)
+      val daoFactory = new InMemorySundialDaoFactory
+      implicit val dao = daoFactory.buildSundialDao()
+      val sundial = mockSundial(daoFactory)
       implicit val processDef = testProcessDef(disabled = true) // to prevent the schedule from taking it
       val taskDef1 = testTaskDef(shellScript(500, true))
       val taskDef2 = testTaskDef(shellScript(500, true), requires = Seq(taskDef1))

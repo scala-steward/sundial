@@ -1,15 +1,17 @@
 package util
 
-import java.io.{FileWriter, BufferedWriter, File}
+import java.io.{BufferedWriter, File, FileWriter}
 import java.text.SimpleDateFormat
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
+
 import model.TaskStatus
 
 import scala.sys.process._
-
 import dao.SundialDao
 
+@Singleton
 class Graphify {
 
   def toGv(uuid: UUID) = "_" + uuid.toString.replace("-", "_")

@@ -4,12 +4,12 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy.SNAKE_CASE
 import com.gilt.svc.sundial.v0.models.NotificationOptions
 import model.{EmailNotification, PagerdutyNotification, Team}
 import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
+import org.scalatest.junit.JUnitRunner
+import org.scalatestplus.play.PlaySpec
 import util.Json
 
 @RunWith(classOf[JUnitRunner])
-class PostgresJsonMarshallerTest extends Specification {
+class PostgresJsonMarshallerTest extends PlaySpec {
 
   private val postgresJsonMarshaller = new PostgresJsonMarshaller()
 
@@ -31,7 +31,7 @@ class PostgresJsonMarshallerTest extends Specification {
 
       val expectedTeams: Seq[Team] = Vector(Team("teamName", "teamEmail", "on_state_change_and_failures"))
       val actualTeams = postgresJsonMarshaller.toTeams(json)
-      actualTeams must be equalTo expectedTeams
+      actualTeams must be (expectedTeams)
     }
 
     "correctly serialise a Seq[Team] in a json string" in {
@@ -45,7 +45,7 @@ class PostgresJsonMarshallerTest extends Specification {
         """.stripMargin
       val expectedTeams: Seq[Team] = Vector(Team("teamName", "teamEmail", "on_state_change_and_failures"))
       val actualJson = postgresJsonMarshaller.toJson(expectedTeams)
-      objectMapper.readTree(actualJson) must be equalTo objectMapper.readTree(expectedJson)
+      objectMapper.readTree(actualJson) must be (objectMapper.readTree(expectedJson))
     }
 
     "correctly deserialize a json string into Seq[Notification]" in {
@@ -62,7 +62,7 @@ class PostgresJsonMarshallerTest extends Specification {
 
       val actualNotifications = postgresJsonMarshaller.toNotifications(json)
 
-      actualNotifications must be equalTo notifications
+      actualNotifications must be (notifications)
 
     }
 
@@ -81,7 +81,7 @@ class PostgresJsonMarshallerTest extends Specification {
       println(s"bla1: ${postgresJsonMarshaller.toJson(notifications)}")
       println(s"bla2: ${objectMapper.writeValueAsString(notifications)}")
 
-      objectMapper.readTree(json) must be equalTo objectMapper.readTree(postgresJsonMarshaller.toJson(notifications))
+      objectMapper.readTree(json) must be (objectMapper.readTree(postgresJsonMarshaller.toJson(notifications)))
 
     }
 

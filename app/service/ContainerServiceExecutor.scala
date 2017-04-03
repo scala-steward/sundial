@@ -1,38 +1,39 @@
 package service
 
 import java.util.{Date, UUID}
+import javax.inject.{Inject, Named}
 
-import com.amazonaws.regions.Regions
-import com.amazonaws.services.ecs.AmazonECSClient
-import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.ecs.AmazonECS
+import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.ObjectMetadata
-import com.amazonaws.services.simpledb.AmazonSimpleDBClient
+import com.amazonaws.services.simpledb.AmazonSimpleDB
 import com.amazonaws.services.simpledb.model.GetAttributesRequest
 import com.amazonaws.util.StringInputStream
-import common.SundialGlobal
 import dao.SundialDao
 import model._
 import org.apache.commons.io.FilenameUtils
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import util._
 
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
-class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceExecutable, ContainerServiceState] {
-
-  private lazy val config = play.Play.application.configuration
+class ContainerServiceExecutor @Inject() (config: Configuration,
+                                          injectedEcsClient: AmazonECS,
+                                          s3Client: AmazonS3,
+                                          sdbClient: AmazonSimpleDB,
+                                          @Named("sundialUrl") sundialUrl :String,
+                                          @Named("s3Bucket") s3Bucket: String,
+                                          @Named("sdbDomain") sdbDomain: String) extends SpecificTaskExecutor[ContainerServiceExecutable, ContainerServiceState] {
 
   val awsRegion = config.getString("aws.region")
-  val companionImage = config.getString("companion.tag")
-  val cluster = config.getString("ecs.cluster")
-  val defaultCpu = config.getInt("ecs.defaultCpu")
-  val defaultMemory = config.getInt("ecs.defaultMemory")
+  val companionImage = config.getString("companion.tag").get
+  val cluster = config.getString("ecs.cluster").get
+  val defaultCpu = config.getInt("ecs.defaultCpu").get
+  val defaultMemory = config.getInt("ecs.defaultMemory").get
 
-  implicit val ecsClient: AmazonECSClient = new AmazonECSClient().withRegion(Regions.valueOf(awsRegion))
-  implicit val s3Client = new AmazonS3Client()
-  implicit val sdbClient: AmazonSimpleDBClient = new AmazonSimpleDBClient().withRegion(Regions.valueOf(awsRegion))
+  implicit val ecsClient = injectedEcsClient
 
   override def stateDao(implicit dao: SundialDao) = dao.containerServiceStateDao
 
@@ -61,7 +62,7 @@ class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceEx
                                                essential = false, // the companion will wait
                                                environmentVariables = executable.environmentVariables ++ Map("graphite.address" -> "companion",
                                                  "graphite.port" -> "13290",
-                                                 "sundial.url" -> ("http://" + SundialGlobal.sundialUrl +"/")
+                                                 "sundial.url" -> ("http://" + sundialUrl +"/")
                                                ),
                                                links = Seq(ECSContainerLink("sundialCompanion", "companion")),
                                                mountPoints = logPathsAndVolumes.map { case (path, volume) =>
@@ -153,7 +154,7 @@ class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceEx
     // Put the Cloudwatch config up in S3 so that the companion container has access to it
     val cloudwatchConfig = buildCloudWatchConfig(family, executable, task)
     Logger.debug("Uploading cloudwatch config to s3")
-    s3Client.putObject(SundialGlobal.s3Bucket, s"agent-config/${task.id}", new StringInputStream(cloudwatchConfig), new ObjectMetadata())
+    s3Client.putObject(s3Bucket, s"agent-config/${task.id}", new StringInputStream(cloudwatchConfig), new ObjectMetadata())
 
     // Start the task, sending the task ID to the companion container as an environment variable
     val companionOverride = ECSContainerOverride(name = "sundialCompanion",
@@ -188,7 +189,7 @@ class ContainerServiceExecutor() extends SpecificTaskExecutor[ContainerServiceEx
                              (implicit dao: SundialDao) {
     try {
       val attrs = sdbClient.getAttributes(new GetAttributesRequest()
-        .withDomainName(SundialGlobal.sdbDomain)
+        .withDomainName(sdbDomain)
         .withItemName(state.taskId.toString))
       val now = new Date()
       val entries = attrs.getAttributes.map { attr =>

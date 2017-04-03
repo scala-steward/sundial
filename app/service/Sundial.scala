@@ -3,10 +3,13 @@ package service
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import java.util.{Date, UUID}
+import javax.inject.{Inject, Singleton}
 
 import dao._
 import model._
+import play.api.inject.ApplicationLifecycle
 
+import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 case class MetricValues(wakes: Long, steps: Long, processStarts: Long, taskStarts: Long, processFinishes: Long, processTerminations: Long)
@@ -37,15 +40,19 @@ case class TaskTriggerRunReason(request: TaskTriggerRequest) extends RunReason
 // individual processes run in separate threads
 // those threads are joined before continuing
 // executions of doWork() should be very fast (a few seconds)
-class Sundial(
+@Singleton
+class Sundial @Inject() (
   globalLock: GlobalLock,
   processStepper: ProcessStepper,
-  daoFactory: SundialDaoFactory
+  daoFactory: SundialDaoFactory,
+  applicationLifecycle: ApplicationLifecycle
 ) {
 
   val metrics = new SundialMetrics()
 
   val stopped = new AtomicBoolean(true)
+
+  start(10, TimeUnit.SECONDS)
 
   def start(refreshTime: Int, refreshUnits: TimeUnit): Unit = {
     stopped.set(false)
@@ -67,6 +74,10 @@ class Sundial(
       }
 
     }.start()
+
+    applicationLifecycle.addStopHook { () =>
+      Future.successful(stop())
+    }
   }
 
   def stop(): Unit = {

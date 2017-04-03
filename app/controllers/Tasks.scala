@@ -1,17 +1,18 @@
 package controllers
 
 import java.util.{Date, UUID}
+import javax.inject.Inject
 
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
+import dao.SundialDaoFactory
 import model.ReportedTaskStatus
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import play.api.mvc.Action
-
+import play.api.mvc.{Action, Controller}
 import util.Conversions._
 
-object Tasks extends SundialController {
+class Tasks @Inject() (daoFactory: SundialDaoFactory) extends Controller {
 
   def get(processDefinitionName: String,
           taskDefinitionName: String,
@@ -27,7 +28,7 @@ object Tasks extends SundialController {
         Some(allowedStatuses.map(ModelConverter.toInternalTaskStatusType))
       }
     }
-    val result = withSundialDao { implicit dao =>
+    val result = daoFactory.withSundialDao { implicit dao =>
       val tasks = dao.processDao.findTasks(Some(processDefinitionName),
                                            Some(taskDefinitionName),
                                            startTime,
@@ -41,7 +42,7 @@ object Tasks extends SundialController {
   }
 
   def postLogEntriesByTaskId(taskId: UUID) = Action(parse.json[List[v0.models.LogEntry]]) { request =>
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       val events = request.body.map(ModelConverter.toInternalLogEntry(taskId, _))
       dao.taskLogsDao.saveEvents(events)
     }
@@ -50,7 +51,7 @@ object Tasks extends SundialController {
   }
 
   def postMetadataByTaskId(taskId: UUID) = Action(parse.json[List[v0.models.MetadataEntry]]) { request =>
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       val entries = request.body.map(ModelConverter.toInternalMetadataEntry(taskId, _))
       dao.taskMetadataDao.saveMetadataEntries(entries)
     }
@@ -59,7 +60,7 @@ object Tasks extends SundialController {
   }
 
   def postSucceedByTaskId(taskId: UUID) = Action {
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       dao.processDao.saveReportedTaskStatus(ReportedTaskStatus(taskId, model.TaskStatus.Success(new Date())))
     }
 
@@ -67,7 +68,7 @@ object Tasks extends SundialController {
   }
 
   def postFailByTaskId(taskId: UUID) = Action {
-    withSundialDao { implicit dao =>
+    daoFactory.withSundialDao { implicit dao =>
       dao.processDao.saveReportedTaskStatus(ReportedTaskStatus(taskId, model.TaskStatus.Failure(new Date(), Some("Marked as failed via API"))))
     }
 

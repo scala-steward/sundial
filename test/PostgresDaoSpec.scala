@@ -1,26 +1,28 @@
 import java.util.{Date, UUID}
+import javax.inject.Inject
 
 import dao.postgres._
-import dao.postgres.common.TestConnectionPool
 import model._
 import org.junit.runner.RunWith
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.play.{PlaySpec, OneAppPerSuite}
-import org.specs2.runner.JUnitRunner
+import org.scalatest.junit.JUnitRunner
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import org.scalatestplus.play.PlaySpec
+import play.api.db.DBApi
 
 @RunWith(classOf[JUnitRunner])
-class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEach {
+class PostgresDaoSpec @Inject() (dbApi: DBApi) extends PlaySpec with GuiceOneAppPerSuite with BeforeAndAfterEach {
 
-  def makeTestLock() = new PostgresGlobalLock(pool, UUID.randomUUID()) {
+  def makeTestLock() = new PostgresGlobalLock(dbApi) {
     override protected val LEASE_LENGTH_MS: Int = 1000
     override protected val CHECK_TIME_MS: Int = 100
     override protected val RENEW_BUFFER_MS: Int = 500
   }
 
-  def pool = new TestConnectionPool()
+  val database = dbApi.database("default")
 
   override def afterEach(): Unit = {
-    pool.withConnection { connection =>
+    database.withConnection { connection =>
       val statement = connection.createStatement()
       statement.execute("DELETE FROM process_definition")
       statement.execute("DELETE FROM task_trigger_request")
@@ -31,7 +33,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
   }
 
   "PostgresTaskLogsDao" must {
-    "save an event" in pool.withConnection { implicit conn =>
+    "save an event" in database.withConnection { implicit conn =>
       val dao = new PostgresTaskLogsDao()
       val event = TaskEventLog(UUID.randomUUID(), UUID.randomUUID(), new Date(), "lorem", "ipsum")
       dao.saveEvents(Seq(event))
@@ -41,7 +43,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
   }
 
   "PostgresProcessDao" must {
-    "save a process" in pool.withConnection { implicit conn =>
+    "save a process" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val process = model.Process(UUID.randomUUID(), "someProcess", new Date(), ProcessStatus.Running(), Option.empty)
       dao.saveProcess(process)
@@ -49,13 +51,13 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "load None when a process doesn't exist" in pool.withConnection { implicit conn =>
+    "load None when a process doesn't exist" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       dao.loadProcess(UUID.randomUUID()) mustBe(None)
       conn.commit()
     }
 
-    "save process status correctly" in pool.withConnection { implicit conn =>
+    "save process status correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val exemplars = Seq(
         model.Process(UUID.randomUUID(), "someProcess", new Date(), ProcessStatus.Running(), Option.empty),
@@ -69,7 +71,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "save task filter correctly" in pool.withConnection { implicit conn =>
+    "save task filter correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val exemplars = Seq(
         model.Process(UUID.randomUUID(), "someProcess", new Date(), ProcessStatus.Running(), Option.empty),
@@ -83,7 +85,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "update a process correctly" in pool.withConnection { implicit conn =>
+    "update a process correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val process = model.Process(UUID.randomUUID(), "someProcess", new Date(), ProcessStatus.Running(), Option.empty)
       dao.saveProcess(process)
@@ -94,7 +96,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "save a task" in pool.withConnection { implicit conn =>
+    "save a task" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val task = model.Task(UUID.randomUUID(), UUID.randomUUID(), "someProcess", "someTask",
                             ShellCommandExecutable("echo 'hello world'", Map.empty),
@@ -104,7 +106,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "save task status correctly" in pool.withConnection { implicit conn =>
+    "save task status correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val statuses = Seq(TaskStatus.Running(), TaskStatus.Success(new Date()), TaskStatus.Failure(new Date(), Some("test reason")))
       statuses.map { status =>
@@ -117,13 +119,13 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "load None when a task doesn't exist" in pool.withConnection { implicit conn =>
+    "load None when a task doesn't exist" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       dao.loadTask(UUID.randomUUID()) mustBe(None)
       conn.commit()
     }
 
-    "save task executables correctly" in pool.withConnection { implicit conn =>
+    "save task executables correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val executables = Seq(
         ShellCommandExecutable("echo 'hello world'", Map.empty),
@@ -141,7 +143,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "update a task correctly" in pool.withConnection { implicit conn =>
+    "update a task correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val task = model.Task(UUID.randomUUID(), UUID.randomUUID(), "someProcess", "someTask",
                             ShellCommandExecutable("echo 'hello world'", Map.empty),
@@ -154,7 +156,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "save a task status correctly" in pool.withConnection { implicit conn =>
+    "save a task status correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val reportedTaskStatus = ReportedTaskStatus(UUID.randomUUID(), TaskStatus.Success(new Date()))
       dao.saveReportedTaskStatus(reportedTaskStatus) mustBe(true)
@@ -162,7 +164,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "not save a task status more than once" in pool.withConnection { implicit conn =>
+    "not save a task status more than once" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDao()
       val reportedTaskStatus = ReportedTaskStatus(UUID.randomUUID(), TaskStatus.Success(new Date()))
       dao.saveReportedTaskStatus(reportedTaskStatus) mustBe(true)
@@ -175,7 +177,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
   }
 
   "PostgresProcessDefinitionDao" must {
-    "save a process definition correctly" in pool.withConnection { implicit conn =>
+    "save a process definition correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDefinitionDao()
       val definition = ProcessDefinition(
         "someDefinition",
@@ -191,13 +193,13 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "load None when a process definition doesn't exist" in pool.withConnection { implicit conn =>
+    "load None when a process definition doesn't exist" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDefinitionDao()
       dao.loadProcessDefinition("someDefinition") mustBe(None)
       conn.commit()
     }
 
-    "update a process definition correctly" in pool.withConnection { implicit conn =>
+    "update a process definition correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDefinitionDao()
       val definition = ProcessDefinition(
         "someDefinition",
@@ -220,7 +222,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "delete a process definition correctly" in pool.withConnection { implicit conn =>
+    "delete a process definition correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDefinitionDao()
       val definition = ProcessDefinition(
         "someDefinition",
@@ -239,7 +241,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "save a task definition correctly" in pool.withConnection { implicit conn =>
+    "save a task definition correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresProcessDefinitionDao()
       val processId = UUID.randomUUID()
       val definition = TaskDefinition(
@@ -258,7 +260,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
   }
 
   "PostgresTaskMetadataDao" must {
-    "save task metadata correctly" in pool.withConnection { implicit conn =>
+    "save task metadata correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresTaskMetadataDao()
       val taskId = UUID.randomUUID()
       val entries = Seq(
@@ -271,7 +273,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "load an empty Seq when there's no metadata" in pool.withConnection { implicit conn =>
+    "load an empty Seq when there's no metadata" in database.withConnection { implicit conn =>
       val dao = new PostgresTaskMetadataDao()
       dao.loadMetadataForTask(UUID.randomUUID()) mustBe(Seq.empty)
       conn.commit()
@@ -279,7 +281,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
   }
 
   "PostgresTriggerDao" must {
-    "save and load a task trigger request correctly" in pool.withConnection { implicit conn =>
+    "save and load a task trigger request correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresTriggerDao()
       val request = TaskTriggerRequest(UUID.randomUUID(), "someProcess", "someTask", new Date(), None)
       dao.saveTaskTriggerRequest(request)
@@ -288,7 +290,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "close a task trigger request correctly" in pool.withConnection { implicit conn =>
+    "close a task trigger request correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresTriggerDao()
       val request = TaskTriggerRequest(UUID.randomUUID(), "someProcess", "someTask", new Date(), None)
       dao.saveTaskTriggerRequest(request)
@@ -299,7 +301,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "save and load a process trigger request correctly" in pool.withConnection { implicit conn =>
+    "save and load a process trigger request correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresTriggerDao()
       val request = ProcessTriggerRequest(UUID.randomUUID(), "someProcess", new Date(), Some(Seq("someTask")), None)
       dao.saveProcessTriggerRequest(request)
@@ -308,7 +310,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "close a task process request correctly" in pool.withConnection { implicit conn =>
+    "close a task process request correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresTriggerDao()
       val request = ProcessTriggerRequest(UUID.randomUUID(), "someProcess", new Date(), None, None)
       dao.saveProcessTriggerRequest(request)
@@ -319,7 +321,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "save and load a kill request correctly" in pool.withConnection { implicit conn =>
+    "save and load a kill request correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresTriggerDao()
       val request = KillProcessRequest(UUID.randomUUID(), UUID.randomUUID(), new Date())
       dao.saveKillProcessRequest(request)
@@ -329,7 +331,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
   }
 
   "PostgresShellCommandStateDao" must {
-    "save and load a shell command state correctly" in pool.withConnection { implicit conn =>
+    "save and load a shell command state correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresShellCommandStateDao()
       val state = new ShellCommandState(UUID.randomUUID(), new Date(), TaskExecutorStatus.Initializing)
       dao.saveState(state)
@@ -337,7 +339,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "update a shell command state correctly" in pool.withConnection { implicit conn =>
+    "update a shell command state correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresShellCommandStateDao()
       val state = new ShellCommandState(UUID.randomUUID(), new Date(), TaskExecutorStatus.Initializing)
       dao.saveState(state)
@@ -350,7 +352,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
   }
 
   "PostgresContainerServiceStateDao" must {
-    "save and load a container service state correctly" in pool.withConnection { implicit conn =>
+    "save and load a container service state correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresContainerServiceStateDao()
       val state = new ContainerServiceState(UUID.randomUUID(), new Date(), "some::task::arn", TaskExecutorStatus.Initializing)
       dao.saveState(state)
@@ -358,7 +360,7 @@ class PostgresDaoSpec extends PlaySpec with OneAppPerSuite with BeforeAndAfterEa
       conn.commit()
     }
 
-    "update a container service state correctly" in pool.withConnection { implicit conn =>
+    "update a container service state correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresContainerServiceStateDao()
       val state = new ContainerServiceState(UUID.randomUUID(), new Date(), "some::task::arn", TaskExecutorStatus.Initializing)
       dao.saveState(state)

@@ -1,30 +1,31 @@
 package controllers
 
-import java.io.{BufferedInputStream, FileInputStream}
+import java.io.BufferedInputStream
 import java.util.UUID
+import javax.inject.{Inject, Named}
 
-import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.AmazonS3Exception
-import common.SundialGlobal
+import dao.SundialDaoFactory
 import dto.DisplayModels
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.io.IOUtils
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.mvc._
 import util.Graphify
 
-object Application extends Controller {
-
-  lazy val s3 = new AmazonS3Client()
-  lazy val graphify = new Graphify()
-  lazy val daoFactory = SundialGlobal.dependencies.daoFactory
-  private lazy val config = play.Play.application.configuration
+class Application @Inject() (config: Configuration,
+                             graphify: Graphify,
+                             daoFactory: SundialDaoFactory,
+                             s3Client: AmazonS3,
+                             displayModels: DisplayModels,
+                             @Named("s3Bucket") s3Bucket:String) extends Controller {
 
   def index = Action { implicit request =>
     daoFactory.withSundialDao { implicit dao =>
       // TODO Allow count to be passed in as a parameter
       val processes = dao.processDao.findProcesses(limit = Some(20)).map(_.id)
-      val processDtos = processes.flatMap(DisplayModels.fetchProcessDto(_, false))
+      val processDtos = processes.flatMap(displayModels.fetchProcessDto(_, false))
       val triggers = dao.triggerDao.loadOpenProcessTriggerRequests()
       Ok(views.html.index(processDtos, triggers))
     }
@@ -33,14 +34,14 @@ object Application extends Controller {
   def processDefinitions = Action { implicit request =>
     daoFactory.withSundialDao { implicit dao =>
       val processDefinitions = dao.processDefinitionDao.loadProcessDefinitions().sortBy(_.name)
-      val dtos = processDefinitions.map(DisplayModels.toProcessDefinitionDTO)
+      val dtos = processDefinitions.map(displayModels.toProcessDefinitionDTO)
       Ok(views.html.processDefinitions(dtos))
     }
   }
 
   def processDetail(processId: String) = Action { implicit request =>
     daoFactory.withSundialDao { implicit dao =>
-      DisplayModels.fetchProcessDto(UUID.fromString(processId), false) match {
+      displayModels.fetchProcessDto(UUID.fromString(processId), false) match {
         case Some(processDto) =>
           val taskMetadata = processDto.tasks.flatMap(_.tasks).map { task =>
             val metadata = dao.taskMetadataDao.loadMetadataForTask(task.id)
@@ -60,7 +61,7 @@ object Application extends Controller {
           // TODO Allow count to be passed in as a parameter
           val processes = dao.processDao.findProcesses(processDefinitionName = Some(processDefinitionName),
                                                        limit = Some(100))
-            .flatMap(proc => DisplayModels.fetchProcessDto(proc.id, false))
+            .flatMap(proc => displayModels.fetchProcessDto(proc.id, false))
           val taskDefs = dao.processDefinitionDao.loadTaskDefinitionTemplates(processDefinitionName)
           val triggers = dao.triggerDao.loadOpenProcessTriggerRequests().filter(_.processDefinitionName == processDefinitionName)
           Ok(views.html.processDefinition(processDefinition, taskDefs, processes, triggers))
@@ -96,7 +97,7 @@ object Application extends Controller {
         val taskId = UUID.fromString(taskIdStr)
 
         try {
-          val s3Object = s3.getObject(SundialGlobal.s3Bucket, s"logs/$taskId")
+          val s3Object = s3Client.getObject(s3Bucket, s"logs/$taskId")
           val tar = new TarArchiveInputStream(new BufferedInputStream(s3Object.getObjectContent))
 
           try {

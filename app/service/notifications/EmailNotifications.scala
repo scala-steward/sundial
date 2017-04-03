@@ -2,11 +2,9 @@ package service.notifications
 
 import java.util.UUID
 
-import com.amazonaws.regions.Regions
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceAsyncClient
+import com.amazonaws.services.simpleemail.{AmazonSimpleEmailServiceAsync, AmazonSimpleEmailServiceAsyncClientBuilder}
 import com.amazonaws.services.simpleemail.model._
 import com.gilt.svc.sundial.v0.models.NotificationOptions
-import common.SundialGlobal
 import dao._
 import dto.{DisplayModels, ProcessDTO}
 import model._
@@ -14,8 +12,10 @@ import play.api.Logger
 
 import scala.collection.JavaConverters._
 
-
-class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) extends Notification {
+class EmailNotifications(daoFactory: SundialDaoFactory,
+                         fromAddress: String,
+                         displayModels: DisplayModels,
+                         sesClient: AmazonSimpleEmailServiceAsync) extends Notification {
 
   private def getSubject(processDTO: ProcessDTO): String = {
     val prefix = if (processDTO.success) {
@@ -27,7 +27,7 @@ class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) ext
   }
 
   override def notifyProcessFinished(processId: UUID): Unit = daoFactory.withSundialDao { implicit dao =>
-    DisplayModels.fetchProcessDto(processId, generateGraph = true).foreach { dto =>
+    displayModels.fetchProcessDto(processId, generateGraph = true).foreach { dto =>
       val subject = getSubject(dto)
       val body = views.html.emails.process(dto).body
       for {
@@ -42,8 +42,6 @@ class EmailNotifications(daoFactory: SundialDaoFactory, fromAddress: String) ext
       }
     }
   }
-
-  protected val sesClient: AmazonSimpleEmailServiceAsyncClient = new AmazonSimpleEmailServiceAsyncClient().withRegion(Regions.valueOf(SundialGlobal.awsRegion))
 
   protected def sendEmail(processStatus: ProcessStatus, previousProcessStatus: Option[ProcessStatus], teams: Seq[EmailNotification], subject: String, body: String): Unit = {
     val filteredTeams = filterNotificationTeams(teams, processStatus, previousProcessStatus)

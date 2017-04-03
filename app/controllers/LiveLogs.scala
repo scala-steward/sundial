@@ -2,11 +2,11 @@ package controllers
 
 import java.util.concurrent.TimeUnit
 import java.util.{Date, UUID}
+import javax.inject.Inject
 
-import com.amazonaws.regions.Regions
-import com.amazonaws.services.logs.AWSLogsClient
+import com.amazonaws.services.logs.AWSLogs
 import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
-import common.SundialGlobal
+import dao.SundialDaoFactory
 import model.ContainerServiceExecutable
 import play.api.mvc.{Action, Controller}
 import util.{DateUtils, Json}
@@ -15,13 +15,12 @@ import scala.collection.JavaConversions._
 
 case class TaskLogsResponse(taskId: UUID, taskDefName: String, logPath: String, nextToken: String, events: Seq[OutputLogEvent])
 
-object LiveLogs extends Controller {
+class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
+                          logsClient: AWSLogs) extends Controller {
 
   private def taskIdForQuerystring(key: String) = UUID.fromString(key.replace("task_", ""))
 
   private val TaskLogToken = "task_([^_]+)_(.*)".r
-
-  private val logsClient: AWSLogsClient = new AWSLogsClient().withRegion(Regions.valueOf(SundialGlobal.awsRegion))
 
   def logs(processId: String) = Action {
     Ok(views.html.liveLogs(UUID.fromString(processId)))
@@ -30,7 +29,7 @@ object LiveLogs extends Controller {
   def logsData(processIdStr: String) = Action { request =>
     val processId = UUID.fromString(processIdStr)
     val body = request.body.asFormUrlEncoded.getOrElse(Map.empty)
-    Application.daoFactory.withSundialDao { dao =>
+    daoFactory.withSundialDao { dao =>
       // Take all of the tasks that ended on or after the live log start time (or have not ended),
       // pull all of their logs starting from the given token, or from now.
       // Then, combine the logs based on timestamp and send back the combined response.

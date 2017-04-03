@@ -1,15 +1,17 @@
 package controllers
 
 import java.util.{Date, UUID}
+import javax.inject.Inject
 
-import model.{ProcessStatusType, TaskBackoff, KillProcessRequest}
+import model.{KillProcessRequest, ProcessStatusType, TaskBackoff}
 import org.joda.time.DateTime
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
+import dao.SundialDaoFactory
 import play.api.libs.json.Json
 import play.api.mvc._
 
-object Processes extends SundialController {
+class Processes @Inject() (daoFactory: SundialDaoFactory) extends Controller {
 
   def get(processDefinitionName: Option[String],
           startTime: Option[DateTime],
@@ -24,7 +26,7 @@ object Processes extends SundialController {
         Some(validStatuses.map(ModelConverter.toInternalProcessStatusType))
       }
     }
-    val result: Seq[v0.models.Process] = withSundialDao { implicit dao =>
+    val result: Seq[v0.models.Process] = daoFactory.withSundialDao { implicit dao =>
       val processes = dao.processDao.findProcesses(processDefinitionName,
                                                    startTime.map(_.toDate()),
                                                    endTime.map(_.toDate()),
@@ -37,7 +39,7 @@ object Processes extends SundialController {
   }
 
   def getByProcessId(processId: UUID) = Action {
-    val resultOpt = withSundialDao { implicit dao =>
+    val resultOpt = daoFactory.withSundialDao { implicit dao =>
       dao.processDao.loadProcess(processId).map(ModelConverter.toExternalProcess)
     }
 
@@ -48,7 +50,7 @@ object Processes extends SundialController {
   }
 
   def postRetryByProcessId(processId: UUID) = Action {
-    withSundialDao { dao =>
+    daoFactory.withSundialDao { dao =>
       val processOpt = dao.processDao.loadProcess(processId)
       processOpt match {
         case None => NotFound
@@ -79,7 +81,7 @@ object Processes extends SundialController {
   }
 
   def postKillByProcessId(processId: UUID) = Action {
-    withSundialDao { dao =>
+    daoFactory.withSundialDao { dao =>
       dao.triggerDao.saveKillProcessRequest(KillProcessRequest(UUID.randomUUID(), processId, new Date()))
     }
 

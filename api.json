@@ -523,6 +523,7 @@
   },
   "resources": {
     "process_definition": {
+      "path": "/api/process_definitions",
       "operations": [
         {
           "method": "GET",
@@ -649,6 +650,7 @@
       ]
     },
     "process": {
+      "path": "/api/processes",
       "operations": [
         {
           "method": "GET",
@@ -741,6 +743,7 @@
       ]
     },
     "task": {
+      "path": "/api/tasks",
       "operations": [
         {
           "method": "GET",

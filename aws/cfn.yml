@@ -152,14 +152,26 @@ Parameters:
     Description: Choose public subnets if internet facing, private subnets if internal
       only.
     Type: List<AWS::EC2::Subnet::Id>
-  JobInstanceDiskSpace:
-    Description: Amount of disk space to give jobs instances in GB
+  JobInstanceFilesystemDiskSpace:
+    Description: Amount of disk space to give the job instances filesystem in GB
+    Type: Number
+    Default: '8'
+    MinValue: '1'
+    MaxValue: '1024'
+  JobInstanceFilesystemDiskType:
+    Description: Type of disk to allocate to job instances filesystem. SSD(gp2), high-throughput(io1)
+      or Magnetic(standard)
+    Type: String
+    Default: gp2
+    AllowedValues: ['gp2', 'io1', 'standard']
+  JobInstanceDockerDiskSpace:
+    Description: Amount of disk space to give job instances docker in GB
     Type: Number
     Default: '22'
     MinValue: '1'
     MaxValue: '1024'
-  JobInstanceDiskType:
-    Description: Type of disk to allocate to job instance. SSD(gp2), high-throughput(io1)
+  JobInstanceDockerDiskType:
+    Description: Type of disk to allocate to job instances docker. SSD(gp2), high-throughput(io1)
       or Magnetic(standard)
     Type: String
     Default: gp2
@@ -276,10 +288,14 @@ Resources:
     Properties:
       ImageId: !FindInMap ['AWSRegionToECSAMI', !Ref 'AWS::Region', 'AMIID']
       BlockDeviceMappings:
+      - DeviceName: "/dev/xvda"
+        Ebs:
+          VolumeSize: !Ref JobInstanceFilesystemDiskSpace
+          VolumeType: !Ref JobInstanceFilesystemDiskType
       - DeviceName: "/dev/xvdcz"
         Ebs:
-          VolumeSize: !Ref JobInstanceDiskSpace
-          VolumeType: !Ref JobInstanceDiskType
+          VolumeSize: !Ref JobInstanceDockerDiskSpace
+          VolumeType: !Ref JobInstanceDockerDiskType
       SecurityGroups: [!Ref JobInstanceSecurityGroup]
       InstanceType: !Ref JobInstanceType
       IamInstanceProfile: !Ref JobInstanceEC2InstanceProfile

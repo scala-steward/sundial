@@ -41,9 +41,12 @@ HostedZoneName: Name of hosted zone to set up DNS entry in. Look this up under R
 
 JobClusterSize: Number of job instances you want in your ECS cluster
 
-JobInstanceDiskSpace: Amount of EBS space to allocate to each job instance.
+JobInstanceFilesystemDiskSpace: Amount of EBS space to allocate to each job instance.
 
-JobInstanceDiskType:
- 
+JobInstanceFilesystemDiskType:
+
+JobInstanceDockerDiskSpace: Amount of EBS space to allocate to each job instance's docker containers.
+
+JobInstanceDockerDiskType:
+
 JobInstanceType:
- 

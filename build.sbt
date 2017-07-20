@@ -20,6 +20,7 @@ libraryDependencies ++= Seq(
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,
     "org.lyranthe.prometheus" %% "play25" % prometheusLibVersion,
     jdbc,
+    evolutions,
     "com.typesafe.play" %% "anorm" % "2.5.3",
     "com.typesafe.play" %% "play-ws" % "2.5.13",
     "com.typesafe.play" %% "play-cache" % "2.5.13",

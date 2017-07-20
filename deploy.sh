@@ -10,7 +10,7 @@ CODEDEPLOY_S3_BUCKET=
 sbt clean stage
 
 #Only needed if you're using EC2 Container Registry
-$(aws ecr get-login --region $REGION)
+$(aws ecr get-login --no-include-email --region $REGION)
 
 BUILD_ID=$(git describe --tags --dirty --always | sed "s/^v//")
 

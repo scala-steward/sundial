@@ -19,10 +19,16 @@
     "task_executable": {
       "types": [
         {
-          "type": "docker_image_command"
+          "type": "docker_image_command",
+          "description": "Docker image to run on ECS with Sundial companion container"
         },
         {
-          "type": "shell_script_command"
+          "type": "shell_script_command",
+          "description": "Shell command to run on Sundial service instance"
+        },
+        {
+          "type": "batch_image_command",
+          "description": "Docker image to run on AWS Batch"
         }
       ]
     },
@@ -40,6 +46,20 @@
   "enums": {
     "task_status": {
       "values": [
+        {
+          "name": "submitted",
+          "description": "The task has been submitted"
+        },
+        {
+          "name": "runnable"
+        },
+        {
+          "name": "starting"
+        },
+        {
+          "name": "pending",
+          "description": "The task is waiting on compute resources"
+        },
         {
           "name": "running",
           "description": "The task is currently executing or awaiting backoff"
@@ -255,6 +275,56 @@
           "type": "boolean",
           "required": true,
           "default": true
+        }
+      ]
+    },
+    "batch_image_command": {
+      "fields": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true,
+          "description": "Name of docker image including registry URL if needed"
+        },
+        {
+          "name": "tag",
+          "type": "string",
+          "required": true,
+          "default": "latest",
+          "description": "Tag on docker image"
+        },
+        {
+          "name": "command",
+          "type": "[string]",
+          "required": true,
+          "description": "Command to pass to Docker container"
+        },
+        {
+          "name": "memory",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "vCpus",
+          "type": "integer"
+        },
+        {
+          "name": "job_role_arn",
+          "type": "string",
+          "description": "ARN of an IAM role, see http://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html"
+        },
+        {
+          "name": "environment_variables",
+          "type": "[environment_variable]",
+          "required": true,
+          "default": [],
+          "description": "environment variables to be passed to container"
+        },
+        {
+          "name": "job_queue",
+          "type": "string",
+          "required": false,
+          "description": "Override default job queue, eg: for priority queue or GPU instances queue"
         }
       ]
     },

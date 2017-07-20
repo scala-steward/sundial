@@ -3,6 +3,7 @@ package config
 import java.util.Arrays.asList
 import javax.inject.{Inject, Named}
 
+import com.amazonaws.services.batch.{AWSBatch, AWSBatchClientBuilder}
 import com.amazonaws.services.cloudformation.{AmazonCloudFormation, AmazonCloudFormationClientBuilder}
 import com.amazonaws.services.cloudformation.model.{DescribeStackResourceRequest, DescribeStacksRequest}
 import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
@@ -38,6 +39,12 @@ class Config(environment: Environment, configuration: Configuration) extends Abs
       Logger.info(s"\t${entry._1} = [${entry._2.toString}]")
     }
 
+  }
+
+  @Provides
+  @Singleton
+  def batchClient(): AWSBatch = {
+    AWSBatchClientBuilder.defaultClient()
   }
 
   @Provides

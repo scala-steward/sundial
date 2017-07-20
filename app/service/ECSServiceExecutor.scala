@@ -19,14 +19,14 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
-class ContainerServiceExecutor @Inject() (config: Configuration,
-                                          injectedEcsClient: AmazonECS,
-                                          ecsHelper: ECSHelper,
-                                          s3Client: AmazonS3,
-                                          sdbClient: AmazonSimpleDB,
-                                          @Named("sundialUrl") sundialUrl :String,
-                                          @Named("s3Bucket") s3Bucket: String,
-                                          @Named("sdbDomain") sdbDomain: String) extends SpecificTaskExecutor[ContainerServiceExecutable, ContainerServiceState] {
+class ECSServiceExecutor @Inject()(config: Configuration,
+                                   injectedEcsClient: AmazonECS,
+                                   ecsHelper: ECSHelper,
+                                   s3Client: AmazonS3,
+                                   sdbClient: AmazonSimpleDB,
+                                   @Named("sundialUrl") sundialUrl :String,
+                                   @Named("s3Bucket") s3Bucket: String,
+                                   @Named("sdbDomain") sdbDomain: String) extends SpecificTaskExecutor[ECSExecutable, ECSContainerState] {
 
   val awsRegion = config.getString("aws.region")
   val companionImage = config.getString("companion.tag").get
@@ -36,16 +36,16 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
 
   implicit val ecsClient = injectedEcsClient
 
-  override def stateDao(implicit dao: SundialDao) = dao.containerServiceStateDao
+  override def stateDao(implicit dao: SundialDao) = dao.ecsContainerStateDao
 
-  private def buildLogPaths(executable: ContainerServiceExecutable) = {
+  private def buildLogPaths(executable: ECSExecutable) = {
     val logDirectories = executable.logPaths.map(FilenameUtils.getFullPathNoEndSeparator).distinct.sorted
     logDirectories.zipWithIndex.map { case (path, ix) =>
       path -> s"task-logs-$ix"
     }
   }
 
-  private def buildTaskDefinition(family: String, executable: ContainerServiceExecutable, task: Task): ECSTaskDefinition = {
+  private def buildTaskDefinition(family: String, executable: ECSExecutable, task: Task): ECSTaskDefinition = {
     // We need to create a logging mount point for each log directory
     // We sort so that this is in the same order each time we check for the task definition
     val logPathsAndVolumes = buildLogPaths(executable)
@@ -87,7 +87,7 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
                       taskRoleArn = executable.taskRoleArn)
   }
 
-  private def buildCloudWatchConfig(family: String, executable: ContainerServiceExecutable, task: Task): String = {
+  private def buildCloudWatchConfig(family: String, executable: ECSExecutable, task: Task): String = {
     val head =
       """
         |[general]
@@ -119,8 +119,8 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
     (head +: logParts).mkString("\n")
   }
 
-  override protected def actuallyStartExecutable(executable: ContainerServiceExecutable, task: Task)
-                                                (implicit dao: SundialDao): ContainerServiceState = {
+  override protected def actuallyStartExecutable(executable: ECSExecutable, task: Task)
+                                                (implicit dao: SundialDao): ECSContainerState = {
     val family = getFamilyName(task.processDefinitionName, task.taskDefinitionName)
     val desiredTaskDefinition = buildTaskDefinition(family, executable, task)
     val taskDefArnOpt = {
@@ -176,17 +176,17 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
                                                   new Date(),
                                                   "executor",
                                                   "Failed to RunTask. Got the following failures: " + reasons.mkString(","))))
-      ContainerServiceState(task.id, new Date(), null, TaskExecutorStatus.Fault(Some(reasons.mkString(","))))
+      ECSContainerState(task.id, new Date(), null, ExecutorStatus.Failed(Some(reasons.mkString(","))))
     } else {
       Logger.debug("No failures returned from ECS run task")
       val ecsTask = runTaskResult.getTasks.asScala.head
       val arn = ecsTask.getTaskArn
 
-      ContainerServiceState(task.id, new Date(), arn, TaskExecutorStatus.Initializing)
+      ECSContainerState(task.id, new Date(), arn, ExecutorStatus.Initializing)
     }
   }
 
-  private def refreshMetadata(state: ContainerServiceState)
+  private def refreshMetadata(state: ECSContainerState)
                              (implicit dao: SundialDao) {
     try {
       val attrs = sdbClient.getAttributes(new GetAttributesRequest()
@@ -202,8 +202,8 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
     }
   }
 
-  override protected def actuallyRefreshState(state: ContainerServiceState)
-                                             (implicit dao: SundialDao): ContainerServiceState = {
+  override protected def actuallyRefreshState(state: ECSContainerState)
+                                             (implicit dao: SundialDao): ECSContainerState = {
     Logger.debug(s"Refresh state for $state")
     // If the ARN is null, this never started so we can't update the state
     if(state.ecsTaskArn == null) {
@@ -226,8 +226,8 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
           val (exitCode, exitReason) = getTaskExitCodeAndReason(ecsTask)
           state.copy(status = ecsStatusToSundialStatus(ecsStatus, exitCode, exitReason))
         case _ =>
-          if(!state.status.isDone && !state.status.isInstanceOf[TaskExecutorStatus.Fault]) {
-            state.copy(status = TaskExecutorStatus.Fault(Some("Couldn't find running task in ECS")))
+          if(!state.status.isDone && !state.status.isInstanceOf[ExecutorStatus.Failed]) {
+            state.copy(status = ExecutorStatus.Failed(Some("Couldn't find running task in ECS")))
           } else {
             state
           }
@@ -235,37 +235,37 @@ class ContainerServiceExecutor @Inject() (config: Configuration,
     }
   }
 
-  override protected def actuallyKillExecutable(state: ContainerServiceState, task: Task)
+  override protected def actuallyKillExecutable(state: ECSContainerState, task: Task, reason: String)
                                                (implicit dao: SundialDao): Unit = {
     Logger.info(s"Sundial requesting ECS to kill task ${task.taskDefinitionName} with Sundial ID ${task.id.toString} and ECS ID ${state.ecsTaskArn}")
-    ecsHelper.stopTask(cluster, state.ecsTaskArn)
+    ecsHelper.stopTask(cluster, state.ecsTaskArn, reason)
   }
 
   private def getFamilyName(processDefinitionName: String, taskDefinitionName: String): String = {
     processDefinitionName + "_" + taskDefinitionName
   }
 
-  private def ecsStatusToSundialStatus(ecsStatus: String, exitCode: Option[Int], exitReason: Option[String]): TaskExecutorStatus = {
+  private def ecsStatusToSundialStatus(ecsStatus: String, exitCode: Option[Int], exitReason: Option[String]): ExecutorStatus = {
     (ecsStatus, exitCode, exitReason) match {
-      case ("RUNNING", None, _) => TaskExecutorStatus.Running
-      case ("RUNNING", _, _) => TaskExecutorStatus.Running // The companion container may still be running
-      case ("PENDING", None, _) => TaskExecutorStatus.Initializing
-      case ("PENDING", _, _) => TaskExecutorStatus.Running // The companion container may still be running
-      case ("STOPPED", Some(0), _) => TaskExecutorStatus.Completed
+      case ("RUNNING", None, _) => ExecutorStatus.Running
+      case ("RUNNING", _, _) => ExecutorStatus.Running // The companion container may still be running
+      case ("PENDING", None, _) => ExecutorStatus.Initializing
+      case ("PENDING", _, _) => ExecutorStatus.Running // The companion container may still be running
+      case ("STOPPED", Some(0), _) => ExecutorStatus.Succeeded
       case ("STOPPED", Some(exitCode), Some(exitReason)) => {
         // The task has stopped running and the application threw an exception
-        TaskExecutorStatus.Fault(Some(s"Exit code $exitCode, Exit reason $exitReason"))
+        ExecutorStatus.Failed(Some(s"Exit code $exitCode, Exit reason $exitReason"))
       }
       case ("STOPPED", Some(exitCode), None) => {
         // The task has stopped running and the application threw an exception
-        TaskExecutorStatus.Fault(Some(s"Exit code $exitCode"))
+        ExecutorStatus.Failed(Some(s"Exit code $exitCode"))
       }
       case ("STOPPED", None, Some(exitReason)) => {
         // The task has stopped running and the container failed for some unknown ECS related issue
-        TaskExecutorStatus.Fault(Some(s"Container stopped, no exit code, exit reason: $exitReason"))
+        ExecutorStatus.Failed(Some(s"Container stopped, no exit code, exit reason: $exitReason"))
       }
       case ("STOPPED", None, None) => {
-        TaskExecutorStatus.Fault(Some("Container stopped, no exit code"))
+        ExecutorStatus.Failed(Some("Container stopped, no exit code"))
       }
       case _ => throw new RuntimeException("Not sure how to parse ECS Status (" + ecsStatus + ") exitCode (" + exitCode + ")")
     }

@@ -92,10 +92,11 @@ class ECSHelper @Inject() (taskPlacementStrategy: PlacementStrategy) {
    * @param ecsClient
    * @return
    */
-  def stopTask(cluster: String, taskArn: String)(implicit ecsClient: AmazonECS): StopTaskResult ={
+  def stopTask(cluster: String, taskArn: String, reason: String)(implicit ecsClient: AmazonECS): StopTaskResult ={
     val stopTaskRequest = new StopTaskRequest()
       .withCluster(cluster)
       .withTask(taskArn)
+      .withReason(reason)
     ecsClient.stopTask(stopTaskRequest)
   }
 

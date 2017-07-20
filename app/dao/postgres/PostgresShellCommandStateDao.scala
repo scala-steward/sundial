@@ -5,7 +5,7 @@ import java.util.UUID
 
 import dao.ExecutableStateDao
 import dao.postgres.common.ShellCommandStateTable
-import dao.postgres.marshalling.PostgresTaskExecutorStatus
+import dao.postgres.marshalling.PostgresECSExecutorStatus
 import model.ShellCommandState
 import util.JdbcUtil._
 
@@ -21,7 +21,7 @@ class PostgresShellCommandStateDao(implicit conn: Connection) extends Executable
       ShellCommandState(
         taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
         asOf = javaDate(row.getTimestamp(COL_AS_OF)),
-        status = PostgresTaskExecutorStatus(rs.getString(COL_STATUS))
+        status = PostgresECSExecutorStatus(rs.getString(COL_STATUS))
       )
     }.toList.headOption
   }
@@ -37,7 +37,7 @@ class PostgresShellCommandStateDao(implicit conn: Connection) extends Executable
            |WHERE $COL_TASK_ID = ?
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      stmt.setString(1, PostgresTaskExecutorStatus(state.status))
+      stmt.setString(1, PostgresECSExecutorStatus(state.status))
       stmt.setTimestamp(2, state.asOf)
       stmt.setObject(3, state.taskId)
       stmt.executeUpdate() >0
@@ -53,7 +53,7 @@ class PostgresShellCommandStateDao(implicit conn: Connection) extends Executable
       val stmt = conn.prepareStatement(sql)
       stmt.setObject(1, state.taskId)
       stmt.setTimestamp(2, state.asOf)
-      stmt.setString(3, PostgresTaskExecutorStatus(state.status))
+      stmt.setString(3, PostgresECSExecutorStatus(state.status))
       stmt.execute()
     }
   }

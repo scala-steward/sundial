@@ -5,20 +5,18 @@ import java.util.{Date, UUID}
 import javax.inject.Inject
 
 import com.amazonaws.services.logs.AWSLogs
-import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
+import com.amazonaws.services.logs.model.{DescribeLogStreamsRequest, GetLogEventsRequest, OutputLogEvent}
 import dao.SundialDaoFactory
-import model.ContainerServiceExecutable
+import model.{BatchExecutable, ECSExecutable}
 import play.api.mvc.{Action, Controller}
 import util.{DateUtils, Json}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 case class TaskLogsResponse(taskId: UUID, taskDefName: String, logPath: String, nextToken: String, events: Seq[OutputLogEvent])
 
 class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                           logsClient: AWSLogs) extends Controller {
-
-  private def taskIdForQuerystring(key: String) = UUID.fromString(key.replace("task_", ""))
 
   private val TaskLogToken = "task_([^_]+)_(.*)".r
 
@@ -45,8 +43,8 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
           }
 
           val requestedTasks = taskLogTokens.map {
-            case ((taskUUID, logName), token) => taskUUID
-          }
+            case ((taskUUID, _), _) => taskUUID
+          }.toSeq
 
           // Filter to tasks that are present in the tokens, or hadn't ended by the asof time
           val tasks = dao.processDao.loadTasksForProcess(processId).filter { task =>
@@ -60,7 +58,7 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
           // For each task log, fetch logs and the new token
           val logResponses = tasks.flatMap { task =>
             taskDefinitions.get(task.taskDefinitionName).map(_.executable) match {
-              case Some(e: ContainerServiceExecutable) =>
+              case Some(e: ECSExecutable) =>
                 e.logPaths.flatMap { logPath =>
                   val token = taskLogTokens.get(task.id -> logPath)
                   try {
@@ -73,10 +71,31 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                     )
                     val nextToken = response.getNextForwardToken
                     val events = response.getEvents
-                    Some(TaskLogsResponse(task.id, task.taskDefinitionName, logPath, nextToken, events))
+                    Some(TaskLogsResponse(task.id, task.taskDefinitionName, logPath, nextToken, events.asScala))
                   } catch {
                     case e: com.amazonaws.services.logs.model.ResourceNotFoundException => None
                   }
+                }
+              case Some(e: BatchExecutable) =>
+                val containerStateOpt = dao.batchContainerStateDao.loadState(task.id)
+                containerStateOpt.flatMap { containerState =>
+                  val jobId = containerState.jobId
+                  val jobName = containerState.jobName
+                  val token = taskLogTokens.get(task.id -> jobId.toString)
+                  val logStream = logsClient.describeLogStreams(
+                    new DescribeLogStreamsRequest()
+                      .withLogGroupName("/aws/batch/job")
+                      .withLogStreamNamePrefix(s"$jobName/$jobId")
+                  ).getLogStreams.get(0).getLogStreamName
+                  val response = logsClient.getLogEvents(
+                    new GetLogEventsRequest()
+                      .withLogGroupName("/aws/batch/job")
+                      .withLogStreamName(logStream)
+                      .withNextToken(token.orNull)
+                  )
+                  val nextToken = response.getNextForwardToken
+                  val events = response.getEvents.asScala
+                  Some(TaskLogsResponse(task.id, task.taskDefinitionName, jobId.toString, nextToken, events))
                 }
               case _ =>
                 Seq.empty

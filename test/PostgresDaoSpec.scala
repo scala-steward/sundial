@@ -130,8 +130,8 @@ class PostgresDaoSpec @Inject() (dbApi: DBApi) extends PlaySpec with GuiceOneApp
       val executables = Seq(
         ShellCommandExecutable("echo 'hello world'", Map.empty),
         ShellCommandExecutable("echo 'hello world'", Map("key" -> "value")),
-        ContainerServiceExecutable("ubuntu", "latest", Seq.empty, None, None, None, Seq.empty, Map.empty),
-        ContainerServiceExecutable("ubuntu", "latest", Seq("sleep", "1000"), Some(10), Some(1000), None, Seq("log/application.log"), Map("test" -> "value"))
+        ECSExecutable("ubuntu", "latest", Seq.empty, None, None, None, Seq.empty, Map.empty),
+        ECSExecutable("ubuntu", "latest", Seq("sleep", "1000"), Some(10), Some(1000), None, Seq("log/application.log"), Map("test" -> "value"))
       )
       executables.map { executable =>
         val task = model.Task(UUID.randomUUID(), UUID.randomUUID(), "someProcess", "someTask",
@@ -333,7 +333,7 @@ class PostgresDaoSpec @Inject() (dbApi: DBApi) extends PlaySpec with GuiceOneApp
   "PostgresShellCommandStateDao" must {
     "save and load a shell command state correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresShellCommandStateDao()
-      val state = new ShellCommandState(UUID.randomUUID(), new Date(), TaskExecutorStatus.Initializing)
+      val state = new ShellCommandState(UUID.randomUUID(), new Date(), ExecutorStatus.Initializing)
       dao.saveState(state)
       dao.loadState(state.taskId) mustBe(Some(state))
       conn.commit()
@@ -341,10 +341,10 @@ class PostgresDaoSpec @Inject() (dbApi: DBApi) extends PlaySpec with GuiceOneApp
 
     "update a shell command state correctly" in database.withConnection { implicit conn =>
       val dao = new PostgresShellCommandStateDao()
-      val state = new ShellCommandState(UUID.randomUUID(), new Date(), TaskExecutorStatus.Initializing)
+      val state = new ShellCommandState(UUID.randomUUID(), new Date(), ExecutorStatus.Initializing)
       dao.saveState(state)
       dao.loadState(state.taskId) mustBe(Some(state))
-      val updated = state.copy(status = TaskExecutorStatus.Running)
+      val updated = state.copy(status = ExecutorStatus.Running)
       dao.saveState(updated)
       dao.loadState(state.taskId) mustBe(Some(updated))
       conn.commit()
@@ -353,19 +353,19 @@ class PostgresDaoSpec @Inject() (dbApi: DBApi) extends PlaySpec with GuiceOneApp
 
   "PostgresContainerServiceStateDao" must {
     "save and load a container service state correctly" in database.withConnection { implicit conn =>
-      val dao = new PostgresContainerServiceStateDao()
-      val state = new ContainerServiceState(UUID.randomUUID(), new Date(), "some::task::arn", TaskExecutorStatus.Initializing)
+      val dao = new PostgresECSServiceStateDao()
+      val state = new ECSContainerState(UUID.randomUUID(), new Date(), "some::task::arn", ExecutorStatus.Initializing)
       dao.saveState(state)
       dao.loadState(state.taskId) mustBe(Some(state))
       conn.commit()
     }
 
     "update a container service state correctly" in database.withConnection { implicit conn =>
-      val dao = new PostgresContainerServiceStateDao()
-      val state = new ContainerServiceState(UUID.randomUUID(), new Date(), "some::task::arn", TaskExecutorStatus.Initializing)
+      val dao = new PostgresECSServiceStateDao()
+      val state = new ECSContainerState(UUID.randomUUID(), new Date(), "some::task::arn", ExecutorStatus.Initializing)
       dao.saveState(state)
       dao.loadState(state.taskId) mustBe(Some(state))
-      val updated = state.copy(status = TaskExecutorStatus.Running)
+      val updated = state.copy(status = ExecutorStatus.Running)
       dao.saveState(updated)
       dao.loadState(state.taskId) mustBe(Some(updated))
       conn.commit()

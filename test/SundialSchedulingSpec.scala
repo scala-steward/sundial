@@ -17,7 +17,7 @@ class SundialSchedulingSpec extends PlaySpec with MockitoSugar {
 
 
   def mockSundial(daoFactory: InMemorySundialDaoFactory): Sundial = {
-    val mockTaskExecutor = new TaskExecutor(mock[ContainerServiceExecutor], new ShellCommandExecutor(daoFactory))
+    val mockTaskExecutor = new TaskExecutor(mock[ECSServiceExecutor], mock[BatchServiceExecutor], new ShellCommandExecutor(daoFactory))
     val mockProcessStepper = new ProcessStepper(mockTaskExecutor, Seq.empty)
     new Sundial(new InMemoryGlobalLock, mockProcessStepper, daoFactory, mock[ApplicationLifecycle])
   }

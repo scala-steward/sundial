@@ -4,31 +4,31 @@ import java.sql.Connection
 import java.util.UUID
 
 import dao.ExecutableStateDao
-import dao.postgres.common.ContainerServiceStateTable
-import dao.postgres.marshalling.PostgresTaskExecutorStatus
-import model.ContainerServiceState
+import dao.postgres.common.ECSStateTable
+import dao.postgres.marshalling.PostgresECSExecutorStatus
+import model.ECSContainerState
 import util.JdbcUtil._
 
-class PostgresContainerServiceStateDao(implicit conn: Connection) extends ExecutableStateDao[ContainerServiceState] {
+class PostgresECSServiceStateDao(implicit conn: Connection) extends ExecutableStateDao[ECSContainerState] {
 
   override def loadState(taskId: UUID) = {
-    import ContainerServiceStateTable._
+    import ECSStateTable._
     val sql = s"SELECT * FROM $TABLE WHERE $COL_TASK_ID = ?"
     val stmt = conn.prepareStatement(sql)
     stmt.setObject(1, taskId)
     val rs = stmt.executeQuery()
     rs.map { row =>
-      ContainerServiceState(
+      ECSContainerState(
         taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
         asOf = javaDate(row.getTimestamp(COL_AS_OF)),
-        status = PostgresTaskExecutorStatus(rs.getString(COL_STATUS)),
+        status = PostgresECSExecutorStatus(rs.getString(COL_STATUS)),
         ecsTaskArn = rs.getString(COL_TASK_ARN)
       )
     }.toList.headOption
   }
 
-  override def saveState(state: ContainerServiceState) = {
-    import ContainerServiceStateTable._
+  override def saveState(state: ECSContainerState) = {
+    import ECSStateTable._
     val didUpdate = {
       val sql =
         s"""
@@ -40,7 +40,7 @@ class PostgresContainerServiceStateDao(implicit conn: Connection) extends Execut
            |WHERE $COL_TASK_ID = ?
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      stmt.setString(1, PostgresTaskExecutorStatus(state.status))
+      stmt.setString(1, PostgresECSExecutorStatus(state.status))
       stmt.setTimestamp(2, state.asOf)
       stmt.setString(3, state.ecsTaskArn)
       stmt.setObject(4, state.taskId)
@@ -57,7 +57,7 @@ class PostgresContainerServiceStateDao(implicit conn: Connection) extends Execut
       val stmt = conn.prepareStatement(sql)
       stmt.setObject(1, state.taskId)
       stmt.setTimestamp(2, state.asOf)
-      stmt.setString(3, PostgresTaskExecutorStatus(state.status))
+      stmt.setString(3, PostgresECSExecutorStatus(state.status))
       stmt.setString(4, state.ecsTaskArn)
       stmt.execute()
     }

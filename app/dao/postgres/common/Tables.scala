@@ -124,12 +124,21 @@ object ShellCommandStateTable {
   final val COL_STATUS = "status"
 }
 
-object ContainerServiceStateTable {
+object ECSStateTable {
   final val TABLE = "container_service_state"
   final val COL_TASK_ID = "task_id"
   final val COL_AS_OF = "as_of"
   final val COL_STATUS = "status"
   final val COL_TASK_ARN = "task_arn"
+}
+
+object BatchStateTable {
+  final val TABLE = "batch_service_state"
+  final val COL_TASK_ID = "task_id"
+  final val COL_AS_OF = "as_of"
+  final val COL_STATUS = "status"
+  final val COL_JOB_ID = "job_id"
+  final val COL_JOB_NAME = "job_name"
 }
 
 object GlobalLockTable {

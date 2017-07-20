@@ -160,7 +160,7 @@ class ProcessStepper @Inject() (
           dao.taskLogsDao.saveEvents(Seq(event))
           dao.ensureCommitted()
 
-          taskExecutor.killExecutable(task)(dao)
+          taskExecutor.killExecutable(task, reason)(dao)
 
           val updated = dao.processDao.saveTask(task.copy(status = TaskStatus.Failure(new Date(), Some(reason))))
           dao.ensureCommitted()
@@ -178,7 +178,7 @@ class ProcessStepper @Inject() (
       case s: CompletedTaskStatus => task
       case _ =>
         val newStatus = taskExecutor.refreshStatus(task)(dao) match {
-          case Some(TaskExecutorStatus.Completed) =>
+          case Some(ExecutorStatus.Succeeded) =>
             if (taskDefinition.requireExplicitSuccess) {
               // check to see if the task reported itself as successful
               dao.processDao.findReportedTaskStatus(task.id) match {
@@ -201,7 +201,7 @@ class ProcessStepper @Inject() (
               TaskStatus.Success(new Date())
             }
 
-          case Some(TaskExecutorStatus.Fault(reason)) =>
+          case Some(ExecutorStatus.Failed(reason)) =>
             val message = s"The underlying executable encountered a fault; updating task as failed."
             dao.taskLogsDao.saveEvent(
               TaskEventLog(UUID.randomUUID(), task.id, new Date(), EVENT_SOURCE_KEY, message)
@@ -209,8 +209,13 @@ class ProcessStepper @Inject() (
             dao.ensureCommitted()
             TaskStatus.Failure(new Date(), reason)
 
-          case Some(TaskExecutorStatus.Initializing) => TaskStatus.Running()
-          case Some(TaskExecutorStatus.Running) => TaskStatus.Running()
+          case Some(ExecutorStatus.Initializing) => TaskStatus.Running()
+          case Some(ExecutorStatus.Running) => TaskStatus.Running()
+
+          case Some(BatchExecutorStatus.Starting) => TaskStatus.Running()
+          case Some(BatchExecutorStatus.Runnable) => TaskStatus.Running()
+          case Some(BatchExecutorStatus.Pending) => TaskStatus.Running()
+          case Some(BatchExecutorStatus.Submitted) => TaskStatus.Running()
 
           case None =>
             val message = s"The underlying executable was apparently never started; updating task as failed."

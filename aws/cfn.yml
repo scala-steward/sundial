@@ -659,6 +659,12 @@ Resources:
         PolicyDocument:
           Statement:
           - Effect: Allow
+            Action: ['batch:*']
+            Resource: ["*"]P
+          - Effect: Allow
+            Action: ['iam:passRole']
+            Resource: ["*"]
+          - Effect: Allow
             Action: ['ecs:*']
             Resource: ["*"]
           - Effect: Allow

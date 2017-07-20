@@ -11,5 +11,5 @@ RUN mkdir /opt/service/logs
 
 WORKDIR /opt/service
 EXPOSE 9000
-ENTRYPOINT ["bin/svc-sundial","-DapplyEvolutions.default=true"]
+ENTRYPOINT ["bin/svc-sundial","-Dplay.evolutions.db.default.autoApply=true"]
 CMD []

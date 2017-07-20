@@ -92,7 +92,7 @@ class ShellCommandExecutor @Inject() (daoFactory: SundialDaoFactory) extends Spe
     val stdoutFlag = redirectOutput(shellProcess.getInputStream(), "stdout", task)
     val stderrFlag = redirectOutput(shellProcess.getInputStream(), "stderr", task)
     ShellCommandRegistry.putCommand(task.id, shellProcess, () => stdoutFlag.get() && stderrFlag.get())
-    ShellCommandState(task.id, new Date(), TaskExecutorStatus.Running)
+    ShellCommandState(task.id, new Date(), ExecutorStatus.Running)
   }
 
   // we don't have Java 8 yet, so we have to implement this ourselves
@@ -109,19 +109,19 @@ class ShellCommandExecutor @Inject() (daoFactory: SundialDaoFactory) extends Spe
     ShellCommandRegistry.getCommand(state.taskId) match {
       case Some(shellProcess) =>
         if(isAlive(shellProcess) || !ShellCommandRegistry.checkDone(state.taskId)) {
-          state.copy(status = TaskExecutorStatus.Running)
+          state.copy(status = ExecutorStatus.Running)
         } else if(shellProcess.exitValue() == 0) {
-          state.copy(status = TaskExecutorStatus.Completed)
+          state.copy(status = ExecutorStatus.Succeeded)
         } else {
-          state.copy(status = TaskExecutorStatus.Fault(Some(s"Shell command exit value ${shellProcess.exitValue()}")))
+          state.copy(status = ExecutorStatus.Failed(Some(s"Shell command exit value ${shellProcess.exitValue()}")))
         }
       case _ =>
         // missing from registry – never started
-        state.copy(status = TaskExecutorStatus.Fault(Some("Shell command never started")))
+        state.copy(status = ExecutorStatus.Failed(Some("Shell command never started")))
     }
   }
 
-  override protected def actuallyKillExecutable(state: ShellCommandState, task: Task)
+  override protected def actuallyKillExecutable(state: ShellCommandState, task: Task, reason: String)
                                                (implicit dao: SundialDao): Unit = {
     ShellCommandRegistry.getCommand(state.taskId).foreach { shellProcess =>
       shellProcess.destroy()

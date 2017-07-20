@@ -68,11 +68,17 @@ object ModelConverter {
         // Use the task ID as the UUID for the metadata entry
         Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString))
       }
-    case e: ContainerServiceExecutable =>
-      val stateOpt = dao.containerServiceStateDao.loadState(task.id)
+    case e: ECSExecutable =>
+      val stateOpt = dao.ecsContainerStateDao.loadState(task.id)
       stateOpt.map { state =>
         Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString),
             v0.models.MetadataEntry(state.taskId, state.asOf, "taskArn", state.ecsTaskArn))
+      }
+    case e: BatchExecutable =>
+      val stateOpt = dao.batchContainerStateDao.loadState(task.id)
+      stateOpt.map { state =>
+        Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString),
+          v0.models.MetadataEntry(state.taskId, state.asOf, "jobId", state.jobId.toString))
       }
   }
 
@@ -161,8 +167,10 @@ object ModelConverter {
         }
       }
       v0.models.ShellScriptCommand(script, envAsEntries)
-    case model.ContainerServiceExecutable(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables) =>
+    case model.ECSExecutable(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables) =>
       v0.models.DockerImageCommand(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)))
+    case model.BatchExecutable(image, tag, command, memory, vCpus, taskRoleArn, environmentVariables, jobQueue) =>
+      v0.models.BatchImageCommand(image, tag, command, memory, vCpus, taskRoleArn, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)), jobQueue)
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -187,7 +195,7 @@ object ModelConverter {
       model.ShellCommandExecutable(script, envAsMap)
 
     case v0.models.DockerImageCommand(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables) =>
-      model.ContainerServiceExecutable(image,
+      model.ECSExecutable(image,
                                        tag,
                                        command,
                                        memory,
@@ -195,6 +203,18 @@ object ModelConverter {
                                        taskRoleArn,
                                        logPaths,
         environmentVariables.map(envVariable => envVariable.variableName -> envVariable.value).toMap
+      )
+
+    case v0.models.BatchImageCommand(image, tag, command, memory, vCpus, taskRoleArn, environmentVariables, jobQueue) =>
+      model.BatchExecutable(
+        image,
+        tag,
+        command,
+        memory,
+        vCpus,
+        taskRoleArn,
+        environmentVariables.map(envVariable => envVariable.variableName -> envVariable.value).toMap,
+        jobQueue
       )
 
     case v0.models.TaskExecutableUndefinedType(description) =>
@@ -208,6 +228,10 @@ object ModelConverter {
   }
 
   def toInternalTaskStatusType(status: v0.models.TaskStatus): model.TaskStatusType = status match {
+    case v0.models.TaskStatus.Starting => model.TaskStatusType.Running
+    case v0.models.TaskStatus.Pending => model.TaskStatusType.Running
+    case v0.models.TaskStatus.Submitted => model.TaskStatusType.Running
+    case v0.models.TaskStatus.Runnable => model.TaskStatusType.Running
     case v0.models.TaskStatus.Succeeded => model.TaskStatusType.Success
     case v0.models.TaskStatus.Failed => model.TaskStatusType.Failure
     case v0.models.TaskStatus.Running => model.TaskStatusType.Running

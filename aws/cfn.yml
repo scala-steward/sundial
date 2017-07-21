@@ -186,15 +186,15 @@ Parameters:
 Mappings:
   AWSRegionToECSAMI:
     us-east-1:
-      AMIID: ami-0e297018
+      AMIID: ami-04351e12
     us-west-2:
-      AMIID: ami-596d6520
+      AMIID: ami-57d9cd2e
     eu-west-1:
-      AMIID: ami-c8337dbb
+      AMIID: ami-809f84e6
     ap-northeast-1:
-      AMIID: ami-c8b016a9
+      AMIID: ami-e4657283
     ap-southeast-2:
-      AMIID: ami-73407d10
+      AMIID: ami-42e9f921
   AWSRegionToLinuxAMI:
     us-east-1:
       AMIID: ami-b73b63a0

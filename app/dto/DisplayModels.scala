@@ -79,6 +79,13 @@ class DisplayModels @Inject() (graphify: Graphify, s3Client: AmazonS3, @Named("s
         case _ => None
       }
     }
+
+    val backend = taskDef.executable match {
+      case e: BatchExecutable => TaskBackend.Batch
+      case e: ECSExecutable => TaskBackend.Ecs
+      case e: ShellCommandExecutable => TaskBackend.Shell
+    }
+
     TaskDTO(
       name = taskDef.name,
       finalId = finalIdOpt,
@@ -89,7 +96,8 @@ class DisplayModels @Inject() (graphify: Graphify, s3Client: AmazonS3, @Named("s
       durationStr = durationOpt,
       logs = logs,
       tasks = tasks,
-      reason = reason
+      reason = reason,
+      backend = backend
     )
   }
 

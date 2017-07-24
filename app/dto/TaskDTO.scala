@@ -4,4 +4,30 @@ import java.util.{Date, UUID}
 
 import model.{Task, TaskEventLog}
 
-case class TaskDTO(name: String, finalId: Option[UUID], success: Boolean, attempts: Int, startedAt: Option[Date], endedAt: Option[Date], durationStr: Option[String], logs: Seq[TaskEventLog], tasks: Seq[Task], reason: Option[String])
+sealed trait TaskBackend
+
+object TaskBackend {
+  case object Batch extends TaskBackend {
+    override val toString = "Batch"
+  }
+  case object Ecs extends TaskBackend {
+    override val toString = "ECS"
+  }
+  case object Shell extends TaskBackend {
+    override val toString = "Shell"
+  }
+}
+
+case class TaskDTO(
+                    name: String,
+                    finalId: Option[UUID],
+                    success: Boolean,
+                    attempts: Int,
+                    startedAt: Option[Date],
+                    endedAt: Option[Date],
+                    durationStr: Option[String],
+                    logs: Seq[TaskEventLog],
+                    tasks: Seq[Task],
+                    reason: Option[String],
+                    backend: TaskBackend
+                  )

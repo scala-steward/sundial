@@ -1,5 +1,6 @@
 @(process: dto.ProcessDTO, taskMetadata: Map[java.util.UUID, Map[String, String]])(implicit request: RequestHeader)
 @import model.TaskStatusType
+@import dto.TaskBackend
 
 @main("Process Detail") {
 
@@ -76,12 +77,12 @@
                             Idle
                         } else {
                             @if(task.endedAt.isEmpty) {
-                                Running
+                                Running on @task.backend.toString
                             } else {
                                 @if(task.success) {
-                                    Suceeded
+                                    Succeeded on @task.backend.toString
                                 } else {
-                                    Failed for reason @task.reason.getOrElse("Unknown")
+                                    Failed on @task.backend.toString for reason @task.reason.getOrElse("Unknown")
                                 }
                                 after @task.attempts
                                 @if(task.attempts == 1) {
@@ -105,9 +106,9 @@
                                             <td style="padding:5px" width="182">@{util.DateUtils.basicDateTimeFormat.format(taskAttempt.startedAt)}</td>
                                             <td style="padding:5px" width="400">
                                                 @if(taskAttempt.status.isComplete) {
-                                                    @taskAttempt.status after
+                                                    @taskAttempt.status on @task.backend.toString after
                                                 } else {
-                                                    Running for
+                                                    Running on @task.backend.toString for
                                                 }
                                                 @{util.DateUtils.prettyDuration(taskAttempt.startedAt, taskAttempt.endedAt.getOrElse(new java.util.Date()))}
                                             </td>
@@ -115,7 +116,7 @@
                                                 <a href="@routes.LiveLogs.logs(process.id.toString)#@taskAttempt.taskDefinitionName" target="_blank">View Live Logs</a>
                                             </td>
                                             <td style="padding:5px" width="130">
-                                                @if(taskAttempt.status.isComplete) {
+                                                @if(task.backend == TaskBackend.Ecs && taskAttempt.status.isComplete) {
                                                     <a href="@routes.Application.taskLogs(taskAttempt.id.toString)" target="_blank">View Saved Logs</a>
                                                 }
                                             </td>

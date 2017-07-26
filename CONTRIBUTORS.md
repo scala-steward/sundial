@@ -7,9 +7,8 @@
 # Current maintainers
 
   * Kevin O'Riordan (https://twitter.com/kevinoriordan)
-  * Emerson Loureiro
-  * Giovanni Gargiulo
-  * Zachary Cohn
+  * Giovanni Gargiulo (nemo83)
+  * Philippe Vinchon (Plippe)
   
 # External contributors
 

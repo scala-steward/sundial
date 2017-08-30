@@ -79,7 +79,7 @@ PUT this job template to http://sundialurl/api/process_definitions/SampleProcess
 * **task_definition_name**: Identifier for the task
 * **executable**: This can be a Docker container or a shell command
 * **image**: For Docker images path to registry and docker image. eg: docker-registry-url/imagename
-* **tag**: Tag of Docker image. Could use "latest" but better to be explicit and update the process definition at the same time as deploying new Docker image. 
+* **tag**: Tag of Docker image. Could use "latest" but better to be explicit and update the process definition at the same time as deploying new Docker image.
 * **command**: Array of commands to be passed as Docker CMD parameter
 * **log_paths**: Location of application logs within the Docker container. Sundial will stream these logs to Cloudwatch for live viewing and also collect the logs at end of task run and upload to S3.
 * **cpu**: How much CPU to allocate on ECS instace
@@ -92,4 +92,4 @@ PUT this job template to http://sundialurl/api/process_definitions/SampleProcess
 * **require_explicit_success**: If this is set to true, job will need to make a call to Sundial REST API to explicity signal that it has successfully completed. The URL of Sundial is exposed to the running job as an environment variable called sundial.url
 * **max_runtime_seconds**: Maximum number of seconds this task is allowed to run for before Sundial kill it.
 
-More descriptions of the options and client generators for Scala, Ruby, Java, NodeJs are available at http://apidoc.me/gilt/svc-sundial/latest
+More descriptions of the options and client generators for Scala, Ruby, Java, NodeJs are available at http://apidoc.me/gilt/svc-sundial/latest, or http://ui-www.apibuilder.io.s3-website-us-east-1.amazonaws.com/org/gilt/app/svc-sundial

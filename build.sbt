@@ -13,7 +13,7 @@ libraryDependencies ++= Seq(
     "com.amazonaws"                % "aws-java-sdk"              % "1.11.112",
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
-    "org.postgresql"               % "postgresql"                % "42.1.1",
+    "org.postgresql"               % "postgresql"                % "42.1.4",
     "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.8.7",           // only for JSON serialization for PostgreSQL
     "org.apache.commons"           % "commons-compress"          % "1.9",
     "org.scalatestplus.play"       %% "scalatestplus-play"       % "2.0.0" % "test",

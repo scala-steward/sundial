@@ -183,6 +183,36 @@ Parameters:
     Default: 0.0.0.0/0
     AllowedPattern: "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(/([0-9]|[1-2][0-9]|3[0-2]))"
     ConstraintDescription: Value must be valid CIDR notation
+  CodeDeployApplicationName:
+    Description: The EC2 job instance type
+    Type: String
+    Default: sundial
+  BatchComputeEnvironmentName:
+    Description: The name of the aws batch compute environment
+    Type: String
+    Default: sundial-compute-environment
+  BatchJobQueueName:
+    Description: The name of the aws batch job queue
+    Type: String
+    Default: sundial-job-queue
+  BatchSpotInstanceBidPercentage:
+    Description: The minimum percentage that a Spot Instance price must be when compared with the
+      On-Demand price for that instance type before instances are launched. For example, if your
+      bid percentage is 20%, then the Spot price must be below 20% of the current On-Demand price
+      for that EC2 instance
+    Type: Number
+  BatchInstanceMaxvCpus:
+    Description: The maximum number of EC2 vCPUs that an environment can reach
+    Type: Number
+    Default: 256
+  BatchInstanceMinvCpus:
+    Description: The minimum number of EC2 vCPUs that an environment should maintain
+    Type: Number
+    Default: 0
+  BatchInstanceDesiredvCpus:
+    Description: The desired number of EC2 vCPUS in the compute environment
+    Type: Number
+
 Mappings:
   AWSRegionToECSAMI:
     us-east-1:
@@ -775,11 +805,11 @@ Resources:
   CodedeployApplication:
     Type: AWS::CodeDeploy::Application
     Properties:
-      ApplicationName: Sundial
+      ApplicationName: !Ref CodeDeployApplicationName
   CodedeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
     Properties:
-      ApplicationName: Sundial
+      ApplicationName: !Ref CodeDeployApplicationName
       AutoScalingGroups:
       - Ref: ServiceInstanceAutoScalingGroup
       DeploymentGroupName: SundialProd
@@ -802,6 +832,123 @@ Resources:
     Type: AWS::SDB::Domain
     Properties:
       Description: Store metadata information
+  BatchServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: batch.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: batch-service-role-policy
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeAccountAttributes
+            - ec2:DescribeInstances
+            - ec2:DescribeSubnets
+            - ec2:DescribeSecurityGroups
+            - ec2:DescribeKeyPairs
+            - ec2:DescribeImages
+            - ec2:DescribeImageAttribute
+            - ec2:DescribeSpotFleetInstances
+            - ec2:DescribeSpotFleetRequests
+            - ec2:DescribeSpotPriceHistory
+            - ec2:RequestSpotFleet
+            - ec2:CancelSpotFleetRequests
+            - ec2:ModifySpotFleetRequest
+            - ec2:TerminateInstances
+            - autoscaling:DescribeAccountLimits
+            - autoscaling:DescribeAutoScalingGroups
+            - autoscaling:DescribeLaunchConfigurations
+            - autoscaling:DescribeAutoScalingInstances
+            - autoscaling:CreateLaunchConfiguration
+            - autoscaling:CreateAutoScalingGroup
+            - autoscaling:UpdateAutoScalingGroup
+            - autoscaling:SetDesiredCapacity
+            - autoscaling:DeleteLaunchConfiguration
+            - autoscaling:DeleteAutoScalingGroup
+            - autoscaling:CreateOrUpdateTags
+            - autoscaling:SuspendProcesses
+            - autoscaling:PutNotificationConfiguration
+            - autoscaling:TerminateInstanceInAutoScalingGroup
+            - ecs:DescribeClusters
+            - ecs:DescribeContainerInstances
+            - ecs:DescribeTaskDefinition
+            - ecs:DescribeTasks
+            - ecs:ListClusters
+            - ecs:ListContainerInstances
+            - ecs:ListTaskDefinitionFamilies
+            - ecs:ListTaskDefinitions
+            - ecs:ListTasks
+            - ecs:CreateCluster
+            - ecs:DeleteCluster
+            - ecs:RegisterTaskDefinition
+            - ecs:DeregisterTaskDefinition
+            - ecs:RunTask
+            - ecs:StartTask
+            - ecs:StopTask
+            - ecs:UpdateContainerAgent
+            - ecs:DeregisterContainerInstance
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogGroups
+            - iam:GetInstanceProfile
+            - iam:PassRole
+            Resource: ["*"]
+  BatchSpotIamFleetRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: "spotfleet.amazonaws.com"
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: batch-spot-iam-fleet-role-policy
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - ec2:DescribeImages
+            - ec2:DescribeSubnets
+            - ec2:RequestSpotInstances
+            - ec2:TerminateInstances
+            - ec2:DescribeInstanceStatus
+            - iam:PassRole
+            Resource: ["*"]
+  BatchComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      Type: MANAGED
+      ServiceRole: !Ref BatchServiceRole
+      ComputeEnvironmentName: !Ref BatchComputeEnvironmentName
+      ComputeResources:
+        SpotIamFleetRole: !Ref BatchSpotIamFleetRole
+        SecurityGroupIds: [!Ref JobInstanceSecurityGroup]
+        Subnets: !Ref SubnetID
+        Type: EC2
+        ImageId: !FindInMap ['AWSRegionToECSAMI', !Ref 'AWS::Region', 'AMIID']
+        InstanceRole: !Ref JobInstanceEC2InstanceProfile
+        InstanceTypes: [optimal]
+        Ec2KeyPair: !Ref SSHKey
+        BidPercentage: !Ref BatchSpotInstanceBidPercentage
+        MaxvCpus: !Ref BatchInstanceMaxvCpus
+        MinvCpus: !Ref BatchInstanceMinvCpus
+        DesiredvCpus: !Ref BatchInstanceDesiredvCpus
+  BatchJobQueue:
+    Type: AWS::Batch::JobQueue
+    Properties:
+      JobQueueName: !Ref BatchJobQueueName
+      Priority: 1
+      ComputeEnvironmentOrder:
+        - Order: 1
+          ComputeEnvironment: !Ref BatchComputeEnvironment
 Outputs:
   DBInstanceEndpoint:
     Value: !GetAtt ['DBInstance', 'Endpoint.Address']

@@ -183,10 +183,6 @@ Parameters:
     Default: 0.0.0.0/0
     AllowedPattern: "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(/([0-9]|[1-2][0-9]|3[0-2]))"
     ConstraintDescription: Value must be valid CIDR notation
-  CodeDeployApplicationName:
-    Description: The EC2 job instance type
-    Type: String
-    Default: sundial
   BatchComputeEnvironmentName:
     Description: The name of the aws batch compute environment
     Type: String
@@ -805,11 +801,11 @@ Resources:
   CodedeployApplication:
     Type: AWS::CodeDeploy::Application
     Properties:
-      ApplicationName: !Ref CodeDeployApplicationName
+      ApplicationName: Sundial
   CodedeployDeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
     Properties:
-      ApplicationName: !Ref CodeDeployApplicationName
+      ApplicationName: Sundial
       AutoScalingGroups:
       - Ref: ServiceInstanceAutoScalingGroup
       DeploymentGroupName: SundialProd

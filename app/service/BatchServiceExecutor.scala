@@ -39,7 +39,7 @@ class BatchServiceExecutor @Inject() (config: Configuration,
 
     BatchJobDefinition(definitionName = jobDefinitionName,
       container = taskContainer,
-      jobRoleArn = executable.taskRoleArn)
+      jobRoleArn = executable.jobRoleArn)
   }
 
 
@@ -78,7 +78,7 @@ class BatchServiceExecutor @Inject() (config: Configuration,
     val jobName = runJobResult.getJobName
     val jobId = UUID.fromString(runJobResult.getJobId)
 
-    BatchContainerState(task.id, new Date(), jobName, jobId, ExecutorStatus.Initializing)
+    BatchContainerState(task.id, new Date(), jobName, jobId, None, ExecutorStatus.Initializing)
   }
 
   override protected def actuallyRefreshState(state: BatchContainerState)
@@ -97,8 +97,9 @@ class BatchServiceExecutor @Inject() (config: Configuration,
           val batchStatus = batchJob.getStatus
           Logger.debug(s"Task status: $batchStatus")
           require(batchJob.getJobId == state.jobId.toString) // and the same arn
-        val (exitCode, exitReason) = getTaskExitCodeAndReason(batchJob)
-          state.copy(status = batchStatusToSundialStatus(batchStatus, exitCode, exitReason))
+          val (exitCode, exitReason) = getTaskExitCodeAndReason(batchJob)
+          val logStreamName = batchJob.getContainer.getLogStreamName()
+          state.copy(status = batchStatusToSundialStatus(batchStatus, exitCode, exitReason), logStreamName = Option(logStreamName))
         case _ =>
           if(!state.status.isDone && !state.status.isInstanceOf[ExecutorStatus.Failed]) {
             state.copy(status = ExecutorStatus.Failed(Some("Couldn't find running job in Batch")))

@@ -10,7 +10,7 @@ scalaVersion := "2.11.8"
 val prometheusLibVersion = "0.8.4"
 
 libraryDependencies ++= Seq(
-    "com.amazonaws"                % "aws-java-sdk"              % "1.11.112",
+    "com.amazonaws"                % "aws-java-sdk"              % "1.11.184",
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
     "org.postgresql"               % "postgresql"                % "42.1.4",

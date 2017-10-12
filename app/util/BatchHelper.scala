@@ -11,7 +11,7 @@ import scala.collection.JavaConverters._
 
 // The AWS SDK doesn't provide proper model classes, so we make our own
 
-case class BatchJobDefinition(definitionName: String, container: BatchContainerDefinition, jobRoleArn: String)
+case class BatchJobDefinition(definitionName: String, container: BatchContainerDefinition, jobRoleArn: Option[String])
 case class BatchContainerDefinition(image: String, vCpus: Int, memory: Int,
                                     command: Seq[String],
                                     environmentVariables: Map[String, String] = Map.empty,
@@ -51,11 +51,11 @@ class BatchHelper @Inject()() {
       .withImage(containerDef.image)
       .withMemory(containerDef.memory)
       .withVcpus(containerDef.vCpus)
-      .withJobRoleArn(jobDefinition.jobRoleArn)
 
+    val containerPropertiesWithJobRoleArn = jobDefinition.jobRoleArn.fold(containerProperties)(containerProperties.withJobRoleArn(_))
 
     val registerTaskDefinitionRequest = new RegisterJobDefinitionRequest()
-      .withContainerProperties(containerProperties)
+      .withContainerProperties(containerPropertiesWithJobRoleArn)
       .withJobDefinitionName(jobDefinition.definitionName)
       .withType(JobDefinitionType.Container)
 
@@ -71,16 +71,17 @@ class BatchHelper @Inject()() {
     * @param batchClient
     * @return
     */
-  def stopTask(jobId:String, reason: String)(implicit batchClient: AWSBatch): CancelJobResult ={
-    val stopTaskRequest = new CancelJobRequest()
+  def stopTask(jobId:String, reason: String)(implicit batchClient: AWSBatch): TerminateJobResult ={
+    val terminateJobRequest = new TerminateJobRequest()
       .withJobId(jobId)
       .withReason(reason)
-    batchClient.cancelJob(stopTaskRequest)
+
+    batchClient.terminateJob(terminateJobRequest)
   }
 
   def describeJobDefinition(jobDefinitionName: String)(implicit batchClient: AWSBatch): Option[JobDefinition] = {
     val request = new DescribeJobDefinitionsRequest().withJobDefinitionName(jobDefinitionName)
-    batchClient.describeJobDefinitions(request).getJobDefinitions.asScala.headOption
+    batchClient.describeJobDefinitions(request).getJobDefinitions.asScala.sortBy(_.getRevision.intValue() * -1).headOption
   }
 
   private def asInternalModel(jobDefinition: JobDefinition): BatchJobDefinition = {
@@ -96,7 +97,7 @@ class BatchHelper @Inject()() {
     )
     BatchJobDefinition(definitionName = jobDefinition.getJobDefinitionName,
       container = containerDefintion,
-      jobRoleArn = containerProperties.getJobRoleArn)
+      jobRoleArn = Option(containerProperties.getJobRoleArn))
   }
 
   def matches(actual: JobDefinition, expected: BatchJobDefinition): Boolean = {

@@ -139,6 +139,7 @@ object BatchStateTable {
   final val COL_STATUS = "status"
   final val COL_JOB_ID = "job_id"
   final val COL_JOB_NAME = "job_name"
+  final val COL_LOGSTREAM_NAME = "logstream_name"
 }
 
 object GlobalLockTable {

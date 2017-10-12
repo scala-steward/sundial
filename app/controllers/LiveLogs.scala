@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import javax.inject.Inject
 
 import com.amazonaws.services.logs.AWSLogs
-import com.amazonaws.services.logs.model.{DescribeLogStreamsRequest, GetLogEventsRequest, OutputLogEvent}
+import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
 import dao.SundialDaoFactory
 import model.{BatchExecutable, ECSExecutable}
 import play.api.mvc.{Action, Controller}
@@ -19,6 +19,8 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                           logsClient: AWSLogs) extends Controller {
 
   private val TaskLogToken = "task_([^_]+)_(.*)".r
+
+  private val BATCH_LOG_GROUP = "/aws/batch/job"
 
   def logs(processId: String) = Action {
     Ok(views.html.liveLogs(UUID.fromString(processId)))
@@ -80,22 +82,19 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                 val containerStateOpt = dao.batchContainerStateDao.loadState(task.id)
                 containerStateOpt.flatMap { containerState =>
                   val jobId = containerState.jobId
-                  val jobName = containerState.jobName
                   val token = taskLogTokens.get(task.id -> jobId.toString)
-                  val logStream = logsClient.describeLogStreams(
-                    new DescribeLogStreamsRequest()
-                      .withLogGroupName("/aws/batch/job")
-                      .withLogStreamNamePrefix(s"$jobName/$jobId")
-                  ).getLogStreams.get(0).getLogStreamName
-                  val response = logsClient.getLogEvents(
-                    new GetLogEventsRequest()
-                      .withLogGroupName("/aws/batch/job")
-                      .withLogStreamName(logStream)
-                      .withNextToken(token.orNull)
-                  )
-                  val nextToken = response.getNextForwardToken
-                  val events = response.getEvents.asScala
-                  Some(TaskLogsResponse(task.id, task.taskDefinitionName, jobId.toString, nextToken, events))
+                  val logStreamOpt = containerState.logStreamName
+                  logStreamOpt.map { logStream =>
+                    val response = logsClient.getLogEvents(
+                      new GetLogEventsRequest()
+                        .withLogGroupName(BATCH_LOG_GROUP)
+                        .withLogStreamName(logStream)
+                        .withNextToken(token.orNull)
+                    )
+                    val nextToken = response.getNextForwardToken
+                    val events = response.getEvents.asScala
+                    TaskLogsResponse(task.id, task.taskDefinitionName, jobId.toString, nextToken, events)
+                  }
                 }
               case _ =>
                 Seq.empty

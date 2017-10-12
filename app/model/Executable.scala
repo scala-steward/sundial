@@ -31,8 +31,8 @@ sealed trait ExecutableState {
 case class ECSExecutable(image: String, tag: String = "latest", command: Seq[String], memory: Option[Int], cpu: Option[Int], taskRoleArn: Option[String], logPaths: Seq[String], environmentVariables: Map[String, String]) extends Executable
 case class ECSContainerState(taskId: UUID, asOf: Date, ecsTaskArn: String, status: ExecutorStatus) extends ExecutableState
 
-case class BatchExecutable(image: String, tag: String = "latest", command: Seq[String], memory: Int, vCpus: Int, taskRoleArn: String, environmentVariables: Map[String, String], jobQueue: Option[String]) extends Executable
-case class BatchContainerState(taskId: UUID, asOf: Date, jobName: String, jobId: UUID, status: ExecutorStatus) extends ExecutableState
+case class BatchExecutable(image: String, tag: String = "latest", command: Seq[String], memory: Int, vCpus: Int, jobRoleArn: Option[String], environmentVariables: Map[String, String], jobQueue: Option[String]) extends Executable
+case class BatchContainerState(taskId: UUID, asOf: Date, jobName: String, jobId: UUID, logStreamName: Option[String], status: ExecutorStatus) extends ExecutableState
 
 case class ShellCommandExecutable(script: String, environmentVariables: Map[String, String]) extends Executable
 case class ShellCommandState(taskId: UUID, asOf: Date, status: ExecutorStatus) extends ExecutableState

@@ -169,8 +169,8 @@ object ModelConverter {
       v0.models.ShellScriptCommand(script, envAsEntries)
     case model.ECSExecutable(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables) =>
       v0.models.DockerImageCommand(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)))
-    case model.BatchExecutable(image, tag, command, memory, vCpus, taskRoleArn, environmentVariables, jobQueue) =>
-      v0.models.BatchImageCommand(image, tag, command, memory, vCpus, taskRoleArn, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)), jobQueue)
+    case model.BatchExecutable(image, tag, command, memory, vCpus, jobRoleArn, environmentVariables, jobQueue) =>
+      v0.models.BatchImageCommand(image, tag, command, memory, vCpus, jobRoleArn, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)), jobQueue)
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -205,14 +205,14 @@ object ModelConverter {
         environmentVariables.map(envVariable => envVariable.variableName -> envVariable.value).toMap
       )
 
-    case v0.models.BatchImageCommand(image, tag, command, memory, vCpus, taskRoleArn, environmentVariables, jobQueue) =>
+    case v0.models.BatchImageCommand(image, tag, command, memory, vCpus, jobRoleArn, environmentVariables, jobQueue) =>
       model.BatchExecutable(
         image,
         tag,
         command,
         memory,
         vCpus,
-        taskRoleArn,
+        jobRoleArn,
         environmentVariables.map(envVariable => envVariable.variableName -> envVariable.value).toMap,
         jobQueue
       )

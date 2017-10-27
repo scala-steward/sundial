@@ -1,5 +1,5 @@
 # Sample job template
-
+### Using ECS (docker_image_command executable)
 ```json
 {
   "process_definition_name": "SampleProcessName",
@@ -64,6 +64,22 @@
   "paused": false
 }
 ```
+### Using AWS Batch (batch_image_command executable) -- recommended
+
+```json
+{"executable": {
+        "batch_image_command": {
+          "image": "dockerregistryurl/imagename",
+          "tag": "0.0.1",
+          "command": [],
+          "vCpus": 1,
+          "memory": 1000,
+           "job_role_arn": "<<IAM role for job (see details below)>>",
+          "environment_variables": []
+        }
+      }
+      }
+```
 
 PUT this job template to http://sundialurl/api/process_definitions/SampleProcessName
 
@@ -93,3 +109,44 @@ PUT this job template to http://sundialurl/api/process_definitions/SampleProcess
 * **max_runtime_seconds**: Maximum number of seconds this task is allowed to run for before Sundial kill it.
 
 More descriptions of the options and client generators for Scala, Ruby, Java, NodeJs are available at http://apidoc.me/gilt/svc-sundial/latest, or http://ui-www.apibuilder.io.s3-website-us-east-1.amazonaws.com/org/gilt/app/svc-sundial
+
+# Creating IAM role for job
+
+When using AWS Batch executable, create an IAM role for the job or use existing one if it is safe to do so. 
+
+Make sure to modify the policy document with trust relationships (for the IAM role) to include permissions for ec2, ecs-tasks and the job instanceEC2 role (that Sundial has created for its compute environment). Here is a sample policy document-
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "batch.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::123456789:role/sundial-JobInstanceEC2Role-a1b2c3d4e5"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```

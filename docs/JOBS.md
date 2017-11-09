@@ -58,8 +58,15 @@
       "max_runtime_seconds": 1200
     }
   ],
-  "subscriptions": [
-    {"name": "Dev Team", "email": "dev-team@organization.com", "notify_when": "on_state_change_and_failures"}
+  "notifications": [
+    {"name": "Dev Team", "email": "dev-team@organization.com", "notify_when": "on_state_change_and_failures"},
+    {
+      "pagerduty": {
+        "service_key": "<yourservicekeyhere>",
+        "num_consecutive_failures": 3,
+        "api_url": "https://events.pagerduty.com"
+      }
+    }
   ],
   "paused": false
 }

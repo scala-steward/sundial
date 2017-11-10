@@ -72,6 +72,11 @@ class BatchHelper @Inject()() {
     * @return
     */
   def stopTask(jobId:String, reason: String)(implicit batchClient: AWSBatch): TerminateJobResult ={
+    val cancelJobRequest = new CancelJobRequest()
+      .withJobId(jobId)
+      .withReason(reason)
+    batchClient.cancelJob(cancelJobRequest)
+
     val terminateJobRequest = new TerminateJobRequest()
       .withJobId(jobId)
       .withReason(reason)

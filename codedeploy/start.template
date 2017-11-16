@@ -6,7 +6,7 @@ cd ${0%/*}
 # Set environment variables that are parameters, resources, and outputs from CloudFormation
 eval $(./cfn-env.sh)
 
-$(aws ecr get-login --region $REGION)
+$(aws ecr get-login --region $REGION --no-include-email)
 
 docker pull _DOCKER_REGISTRY_/_DOCKER_REPO_:_BUILD_ID_
 docker stop _DOCKER_REPO_ || true

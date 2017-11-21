@@ -22,8 +22,8 @@ libraryDependencies ++= Seq(
     jdbc,
     evolutions,
     "com.typesafe.play" %% "anorm" % "2.5.3",
-    "com.typesafe.play" %% "play-ws" % "2.5.13",
-    "com.typesafe.play" %% "play-cache" % "2.5.13",
+    "com.typesafe.play" %% "play-ws" % "2.5.18",
+    "com.typesafe.play" %% "play-cache" % "2.5.18",
     "org.mockito" % "mockito-all" % "1.10.19" % "test"
   )
 

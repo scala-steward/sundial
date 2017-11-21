@@ -24,3 +24,4 @@ Set up Sundial service and ECS cluster using Cloudformation template. See [DEPLO
 
 Submit your jobs using REST API. See description of job JSON format under [JOBS.md](docs/JOBS.md)
 
+The latest API is hosted here: https://app.apibuilder.io/gilt/svc-sundial/latest

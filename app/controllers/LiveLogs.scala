@@ -8,6 +8,7 @@ import com.amazonaws.services.logs.AWSLogs
 import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
 import dao.SundialDaoFactory
 import model.{BatchExecutable, ECSExecutable}
+import org.apache.commons.lang3.StringEscapeUtils
 import play.api.mvc.{Action, Controller}
 import util.{DateUtils, Json}
 
@@ -109,7 +110,7 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
           // Construct the log events list and sort
           val logEvents = logResponses.toList.flatMap { logResponse =>
             logResponse.events.map { event =>
-              List(event.getTimestamp, logResponse.taskId, logResponse.taskDefName, event.getMessage)
+              List(event.getTimestamp, logResponse.taskId, logResponse.taskDefName, StringEscapeUtils.escapeHtml4(event.getMessage))
             }
           }.sortBy(_.head.asInstanceOf[Long])
 

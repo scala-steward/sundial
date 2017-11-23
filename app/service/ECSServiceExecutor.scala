@@ -19,6 +19,7 @@ import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
+@deprecated(message = "ECS has been deprecated in favour of AWS Batch that allows easier way of scaling and cheaper execution thanks to spot instances.", since = "2.0.0")
 class ECSServiceExecutor @Inject()(config: Configuration,
                                    injectedEcsClient: AmazonECS,
                                    ecsHelper: ECSHelper,
@@ -168,7 +169,7 @@ class ECSServiceExecutor @Inject()(config: Configuration,
     Logger.debug(s"Run task result: $runTaskResult")
 
     val failures = runTaskResult.getFailures.asScala
-    if(failures.length > 0) {
+    if(failures.nonEmpty) {
       val reasons = failures.map(x => s"(${x.getArn},${x.getReason})")
       Logger.error(s"Failures initializing task ${task.id} : ${reasons.mkString(",")}")
       dao.taskLogsDao.saveEvents(Seq(TaskEventLog(UUID.randomUUID(),

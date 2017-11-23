@@ -1,18 +1,32 @@
-web:
-  build: .
-  ports:
-    - "9000:9000"
-  links:
-    - db
-  volumes:
-    - ~/.aws:/root/.aws
-  environment:
-    SUNDIAL_ECS_CLUSTER: 
-  privileged: true
-db:
-  image: postgres:9.4.4
-  ports:
-    - "5432:5432"
-  environment:
-    POSTGRES_PASSWORD: password
-    POSTGRES_USER: postgres
+version: "3"
+services:
+  web:
+    image: sundial:latest
+    command:
+      - -Dplay.evolutions.db.default.autoApply=true
+      - -Dconfig.resource=application.dev.conf
+    ports:
+      - "9000:9000"
+    links:
+      - db
+    volumes:
+      - ~/.aws:/usr/sbin/.aws
+      - ./logs:/opt/docker/logs
+    environment:
+      SUNDIAL_DB_URL: db
+      SUNDIAL_DB_NAME: sundial
+      SUNDIAL_DB_USERNAME: sundial
+      SUNDIAL_DB_PASSWORD: password
+      SUNDIAL_ECS_CLUSTER:
+    env_file:
+      - ./.aws.env
+    privileged: true
+  db:
+    image: postgres:9.4.4
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: sundial
+      POSTGRES_USER: sundial
+      POSTGRES_PASSWORD: password

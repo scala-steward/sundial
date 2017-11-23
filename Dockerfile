@@ -1,4 +1,4 @@
-FROM java:8-jre
+FROM openjdk:8-jre
 
 RUN apt-get update && \
     apt-get install -y graphviz && \
@@ -11,5 +11,5 @@ RUN mkdir /opt/service/logs
 
 WORKDIR /opt/service
 EXPOSE 9000
-ENTRYPOINT ["bin/svc-sundial","-Dplay.evolutions.db.default.autoApply=true"]
+ENTRYPOINT ["bin/sundial","-Dplay.evolutions.db.default.autoApply=true"]
 CMD []

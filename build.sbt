@@ -32,9 +32,9 @@ javaOptions in Test ++= Seq(
   "-Dconfig.file=conf/application.test.conf"
 )
 
-dockerBaseImage := "openjdk:8-jre"
 
 import com.typesafe.sbt.packager.docker._
+dockerBaseImage := "openjdk:8-jre"
 
 dockerCommands := (
   Seq(dockerCommands.value.head) ++ Seq(
@@ -43,3 +43,8 @@ dockerCommands := (
     ExecCmd("RUN", "apt-get", "clean"),
     ExecCmd("RUN", "rm", "-rf", "/var/lib/apt/lists/*", "/tmp/*", "/var/tmp/*")
   ) ++ dockerCommands.value.tail)
+
+bashScriptExtraDefines ++= Seq(
+  """addJava "-Dplay.evolutions.db.default.autoApply=true"""",
+  """addJava "-Dconfig.resource=application.prod.conf""""
+)

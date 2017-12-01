@@ -1,14 +1,14 @@
-import java.util.{Date, UUID}
 import java.util.concurrent.TimeUnit
+import java.util.{Date, UUID}
 
 import dao.memory.{InMemorySundialDao, InMemorySundialDaoFactory}
 import model._
+import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api
+import play.api.inject.ApplicationLifecycle
 import play.api.{Application, Configuration}
 import service._
-import play.api.inject.{ApplicationLifecycle, bind}
 
 class InMemoryGlobalLock extends GlobalLock {
   val lock = new Object()
@@ -17,9 +17,12 @@ class InMemoryGlobalLock extends GlobalLock {
 
 class SundialSchedulingSpec extends PlaySpec with MockitoSugar {
 
+  private val configuration = mock[Configuration]
+
+  when(configuration.getString("ecs.cluster")).thenReturn(None)//Some("MY_ECS_CLUSTER"))
 
   def mockSundial(daoFactory: InMemorySundialDaoFactory): Sundial = {
-    val mockTaskExecutor = new TaskExecutor(mock[BatchServiceExecutor], new ShellCommandExecutor(daoFactory), null)(mock[Configuration], mock[Application])
+    val mockTaskExecutor = new TaskExecutor(mock[BatchServiceExecutor], new ShellCommandExecutor(daoFactory), mock[EmrServiceExecutor])(configuration, mock[Application])
     val mockProcessStepper = new ProcessStepper(mockTaskExecutor, Seq.empty)
     new Sundial(new InMemoryGlobalLock, mockProcessStepper, daoFactory, mock[ApplicationLifecycle])
   }

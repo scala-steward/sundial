@@ -6,14 +6,11 @@ import javax.inject.Inject
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, AddJobFlowStepsRequest, Application, CancelStepsRequest, DescribeClusterRequest, HadoopJarStepConfig, InstanceGroupConfig, InstanceRoleType, JobFlowInstancesConfig, ListStepsRequest, MarketType, RunJobFlowRequest, StepConfig, TerminateJobFlowsRequest}
 import com.amazonaws.services.elasticmapreduce.{AmazonElasticMapReduce, AmazonElasticMapReduceClientBuilder}
-import com.jcraft.jsch.{ChannelExec, JSch}
 import dao.{ExecutableStateDao, SundialDao}
 import model._
 import play.api.Logger
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable
-import scala.io.Source
 import scala.util.control.NonFatal
 
 class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutable, EmrJobState] {

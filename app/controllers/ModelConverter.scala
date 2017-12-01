@@ -81,6 +81,12 @@ object ModelConverter {
         Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString),
           v0.models.MetadataEntry(state.taskId, state.asOf, "jobId", state.jobId.toString))
       }
+    case _: EmrJobExecutable =>
+      val stateOpt = dao.emrJobStateDao.loadState(task.id)
+      stateOpt.map { state =>
+        Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString),
+          v0.models.MetadataEntry(state.taskId, state.asOf, "jobId", state.taskId.toString))
+      }
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -288,16 +294,14 @@ object ModelConverter {
           val serviceRoleName = emrServiceRole match {
             case DefaultEmrServiceRole.DefaultEmrServiceRole => DefaultEmrServiceRole.DefaultEmrServiceRole.toString
             case CustomEmrServiceRole(roleName) => roleName
-            case DefaultEmrServiceRole.UNDEFINED(undefined) => {
-              throw new IllegalArgumentException(s"Unknown service role type: $undefined")
-            }
+            case DefaultEmrServiceRole.UNDEFINED(undefined) => throw new IllegalArgumentException(s"Unknown service role type: $undefined")
+            case EmrServiceRoleUndefinedType(undefined) => throw new IllegalArgumentException(s"Unknown service role type: $undefined")
           }
           val jobFlowRoleName = emrJobFlowRole match {
             case DefaultEmrJobFlowRole.DefaultEmrJobFlowRole => DefaultEmrJobFlowRole.DefaultEmrJobFlowRole.toString
             case CustomEmrJobFlowRole(roleName) => roleName
-            case DefaultEmrJobFlowRole.UNDEFINED(undefined) => {
-              throw new IllegalArgumentException(s"Unknown job flow role type: $undefined")
-            }
+            case DefaultEmrJobFlowRole.UNDEFINED(undefined) => throw new IllegalArgumentException(s"Unknown job flow role type: $undefined")
+            case EmrJobFlowRoleUndefinedType(undefined) => throw new IllegalArgumentException(s"Unknown job flow role type: $undefined")
           }
           EmrClusterDetails(Some(clusterName),
             None,

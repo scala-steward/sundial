@@ -2,27 +2,25 @@
 
 #Change these to match your environment
 REGION=us-east-1
-DOCKER_REGISTRY=
-DOCKER_REPO=svc-sundial
+# DOCKER_REGISTRY=
+DOCKER_REPO=sundial
 # An s3 bucket for deployment assets
-CODEDEPLOY_S3_BUCKET=
+# CODEDEPLOY_S3_BUCKET=
 
-sbt clean stage
+sbt docker:publishLocal
 
 #Only needed if you're using EC2 Container Registry
 $(aws ecr get-login --no-include-email --region $REGION)
 
 BUILD_ID=$(git describe --tags --dirty --always | sed "s/^v//")
 
-docker build -t $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID .
+docker tag $DOCKER_REPO:$BUILD_ID $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID .
 
 docker push $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID
 
 m4 -D_BUILD_ID_=$BUILD_ID -D_DOCKER_REPO_=$DOCKER_REPO -D_DOCKER_REGISTRY_=$DOCKER_REGISTRY codedeploy/start.template > codedeploy/start.sh
-m4 -D_BUILD_ID_=$BUILD_ID codedeploy/stop.template > codedeploy/stop.sh
 m4 -D_BUILD_ID_=$BUILD_ID codedeploy/healthcheck.template > codedeploy/healthcheck.sh
 chmod +x codedeploy/start.sh
-chmod +x codedeploy/stop.sh
 chmod +x codedeploy/healthcheck.sh
 
 aws deploy push \

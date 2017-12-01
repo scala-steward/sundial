@@ -1,6 +1,6 @@
 name := """sundial"""
 
-version := "2.0.0"
+version := "git describe --tags --dirty --always".!!.stripPrefix("v").trim
 
 enablePlugins(PlayScala)
 

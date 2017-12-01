@@ -9,10 +9,12 @@ eval $(./cfn-env.sh)
 $(aws ecr get-login --region $REGION --no-include-email)
 
 docker pull _DOCKER_REGISTRY_/_DOCKER_REPO_:_BUILD_ID_
-docker stop _DOCKER_REPO_ || true
-docker rm _DOCKER_REPO_ || true
 mkdir -pv /var/log/sundial
 chmod a+w /var/log/sundial
+
+docker ps -aq | xargs -r docker stop
+docker ps -aq | xargs -r docker rm
+
 exec docker run -d --name=_DOCKER_REPO_ -p 9000:9000 \
     -e "SUNDIAL_DB_NAME=$PARAMETER_DBName" \
     -e "SUNDIAL_DB_USERNAME=$PARAMETER_DBUsername" \

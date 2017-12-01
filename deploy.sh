@@ -14,7 +14,7 @@ $(aws ecr get-login --no-include-email --region $REGION)
 
 BUILD_ID=$(git describe --tags --dirty --always | sed "s/^v//")
 
-docker tag $DOCKER_REPO:$BUILD_ID $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID .
+docker tag $DOCKER_REPO:$BUILD_ID $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID
 
 docker push $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID
 

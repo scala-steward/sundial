@@ -20,15 +20,22 @@
       "types": [
         {
           "type": "docker_image_command",
-          "description": "Docker image to run on ECS with Sundial companion container"
+          "description": "Docker image to run on ECS with Sundial companion container",
+          "deprecation": {
+            "description": "Running jobs on AWS ECS is now deprecated. Use AWS Batch via batch_image_command instead."
+          }
         },
         {
           "type": "shell_script_command",
-          "description": "Shell command to run on Sundial service instance"
+          "description": "Shell command to run on Sundial service instance (Experimental)"
         },
         {
           "type": "batch_image_command",
           "description": "Docker image to run on AWS Batch"
+        },
+        {
+          "type": "emr_command",
+          "description": "Command to Spark Jobs on AWS EMR"
         }
       ]
     },
@@ -39,6 +46,46 @@
         },
         {
           "type": "pagerduty"
+        }
+      ]
+    },
+    "emr_cluster": {
+      "types": [
+        {
+          "type": "new_emr_cluster"
+        },
+        {
+          "type": "existing_emr_cluster"
+        }
+      ]
+    },
+    "emr_service_role": {
+      "types": [
+        {
+          "type": "default_emr_service_role"
+        },
+        {
+          "type": "custom_emr_service_role"
+        }
+      ]
+    },
+    "emr_job_flow_role": {
+      "types": [
+        {
+          "type": "default_emr_job_flow_role"
+        },
+        {
+          "type": "custom_emr_job_flow_role"
+        }
+      ]
+    },
+    "aws_market": {
+      "types": [
+        {
+          "type": "on_demand"
+        },
+        {
+          "type": "spot"
         }
       ]
     }
@@ -123,6 +170,64 @@
         {
           "name": "never",
           "description": "Never notify"
+        }
+      ]
+    },
+    "emr_release_label": {
+      "values": [
+        {
+          "name": "emr-5.10.0"
+        },
+        {
+          "name": "emr-5.9.0"
+        },
+        {
+          "name": "emr-4.9.2"
+        },
+        {
+          "name": "emr-4.9.1"
+        }
+      ]
+    },
+    "emr_application": {
+      "values": [
+        {
+          "name": "Hadoop"
+        },
+        {
+          "name": "Hive"
+        },
+        {
+          "name": "Mahout"
+        },
+        {
+          "name": "Pig"
+        },
+        {
+          "name": "Spark"
+        }
+      ]
+    },
+    "default_emr_service_role": {
+      "values": [
+        {
+          "value": "EMR_DefaultRole",
+          "name": "default_emr_service_role"
+        }
+      ]
+    },
+    "default_emr_job_flow_role": {
+      "values": [
+        {
+          "value": "EMR_EC2_DefaultRole",
+          "name": "default_emr_job_flow_role"
+        }
+      ]
+    },
+    "on_demand": {
+      "values": [
+        {
+          "name": "on_demand"
         }
       ]
     }
@@ -387,6 +492,170 @@
           "name": "environment_variables",
           "type": "[environment_variable]",
           "required": false
+        }
+      ]
+    },
+    "emr_instance_group_details": {
+      "fields": [
+        {
+          "name": "emr_instance_type",
+          "type": "string"
+        },
+        {
+          "name": "instance_count",
+          "type": "integer"
+        },
+        {
+          "name": "aws_market",
+          "type": "aws_market"
+        }
+      ]
+    },
+    "new_emr_cluster": {
+      "fields": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "release_label",
+          "type": "emr_release_label",
+          "default": "emr-5.10.0"
+        },
+        {
+          "name": "applications",
+          "type": "[emr_application]"
+        },
+        {
+          "name": "s3_log_uri",
+          "type": "string"
+        },
+        {
+          "name": "master_instance",
+          "type": "emr_instance_group_details"
+        },
+        {
+          "name": "core_instance",
+          "type": "emr_instance_group_details",
+          "required": false
+        },
+        {
+          "name": "task_instance",
+          "type": "emr_instance_group_details",
+          "required": false
+        },
+        {
+          "name": "ec2_subnet",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "emr_service_role",
+          "type": "emr_service_role"
+        },
+        {
+          "name": "emr_job_flow_role",
+          "type": "emr_job_flow_role"
+        }
+      ]
+    },
+    "existing_emr_cluster": {
+      "fields": [
+        {
+          "name": "cluster_id",
+          "type": "string",
+          "description": "The EMR cluster id",
+          "example": "j-2CRR69WTM7N31"
+        }
+      ]
+    },
+    "emr_command": {
+      "fields": [
+        {
+          "name": "emr_cluster",
+          "type": "emr_cluster",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "job_name",
+          "type": "string",
+          "required": true,
+          "description": ""
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "default": "us-east-1"
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "description": "",
+          "example": "org.apache.spark.examples.SparkPi"
+        },
+        {
+          "name": "s3_jar_path",
+          "type": "string",
+          "required": true,
+          "description": "",
+          "example": "s3://my-emr-source-bucket/my-emr-jar.jar"
+        },
+        {
+          "name": "spark_conf",
+          "type": "[string]",
+          "example": "[\"spark.driver.extraJavaOptions=-Denvironment=integration\"]",
+          "description": "options that will be sent to spark as --conf key=value, e.g. `--conf spark.driver.extraJavaOptions=-Denvironment=integration`"
+        },
+        {
+          "name": "args",
+          "type": "[string]",
+          "required": true,
+          "description": "",
+          "example": "[\"--executor-memory\", \"1g\"]"
+        },
+        {
+          "name": "s3_log_details",
+          "type": {
+            "model": "s3_log_details",
+            "fields": [
+              {
+                "name": "log_group_name",
+                "type": "string"
+              },
+              {
+                "name": "log_stream_name",
+                "type": "string"
+              }
+            ]
+          },
+          "required": false
+        }
+      ]
+    },
+    "custom_emr_service_role": {
+      "fields": [
+        {
+          "name": "role_name",
+          "type": "string"
+        }
+      ]
+    },
+    "custom_emr_job_flow_role": {
+      "fields": [
+        {
+          "name": "role_name",
+          "type": "string"
+        }
+      ]
+    },
+    "spot": {
+      "fields": [
+        {
+          "name": "bid_price",
+          "type": "decimal"
         }
       ]
     },

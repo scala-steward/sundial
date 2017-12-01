@@ -1,6 +1,6 @@
 package dao
 
-import model.{BatchContainerState, ECSContainerState, ShellCommandState}
+import model.{BatchContainerState, ECSContainerState, EmrJobState, ShellCommandState}
 
 trait SundialDao {
 
@@ -12,6 +12,7 @@ trait SundialDao {
   def ecsContainerStateDao: ExecutableStateDao[ECSContainerState]
   def batchContainerStateDao: ExecutableStateDao[BatchContainerState]
   def shellCommandStateDao: ExecutableStateDao[ShellCommandState]
+  def emrJobStateDao: ExecutableStateDao[EmrJobState]
 
   def ensureCommitted()
   def close()

@@ -81,9 +81,10 @@ class DisplayModels @Inject() (graphify: Graphify, s3Client: AmazonS3, @Named("s
     }
 
     val backend = taskDef.executable match {
-      case e: BatchExecutable => TaskBackend.Batch
-      case e: ECSExecutable => TaskBackend.Ecs
-      case e: ShellCommandExecutable => TaskBackend.Shell
+      case _: BatchExecutable => TaskBackend.Batch
+      case _: ECSExecutable => TaskBackend.Ecs
+      case _: ShellCommandExecutable => TaskBackend.Shell
+      case _: EmrJobExecutable=> TaskBackend.Emr
     }
 
     TaskDTO(

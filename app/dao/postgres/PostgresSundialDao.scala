@@ -3,7 +3,6 @@ package dao.postgres
 import java.sql.Connection
 
 import dao._
-import model.BatchContainerState
 
 class PostgresSundialDao(implicit conn: Connection) extends SundialDao {
 
@@ -32,5 +31,8 @@ class PostgresSundialDao(implicit conn: Connection) extends SundialDao {
 
   override lazy val ecsContainerStateDao = new PostgresECSServiceStateDao()
 
-  override def batchContainerStateDao = new PostgresBatchStateDao()
+  override lazy val batchContainerStateDao = new PostgresBatchStateDao()
+
+  override lazy val emrJobStateDao = new PostgresEmrStateDao()
+
 }

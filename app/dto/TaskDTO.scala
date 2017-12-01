@@ -16,6 +16,9 @@ object TaskBackend {
   case object Shell extends TaskBackend {
     override val toString = "Shell"
   }
+  case object Emr extends TaskBackend {
+    override val toString = "EMR"
+  }
 }
 
 case class TaskDTO(

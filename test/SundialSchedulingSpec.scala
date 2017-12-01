@@ -5,6 +5,8 @@ import dao.memory.{InMemorySundialDao, InMemorySundialDaoFactory}
 import model._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
+import play.api
+import play.api.{Application, Configuration}
 import service._
 import play.api.inject.{ApplicationLifecycle, bind}
 
@@ -17,7 +19,7 @@ class SundialSchedulingSpec extends PlaySpec with MockitoSugar {
 
 
   def mockSundial(daoFactory: InMemorySundialDaoFactory): Sundial = {
-    val mockTaskExecutor = new TaskExecutor(mock[ECSServiceExecutor], mock[BatchServiceExecutor], new ShellCommandExecutor(daoFactory))
+    val mockTaskExecutor = new TaskExecutor(mock[BatchServiceExecutor], new ShellCommandExecutor(daoFactory), null)(mock[Configuration], mock[Application])
     val mockProcessStepper = new ProcessStepper(mockTaskExecutor, Seq.empty)
     new Sundial(new InMemoryGlobalLock, mockProcessStepper, daoFactory, mock[ApplicationLifecycle])
   }

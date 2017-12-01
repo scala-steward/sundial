@@ -132,6 +132,17 @@ object ECSStateTable {
   final val COL_TASK_ARN = "task_arn"
 }
 
+object EmrStateTable {
+  final val TABLE = "emr_service_state"
+  final val COL_TASK_ID = "task_id"
+  final val COL_JOB_NAME = "job_name"
+  final val COL_CLUSTER_ID = "cluster_id"
+  final val COL_STEP_ID = "step_id"
+  final val COL_REGION = "region"
+  final val COL_AS_OF = "as_of"
+  final val COL_STATUS = "status"
+}
+
 object BatchStateTable {
   final val TABLE = "batch_service_state"
   final val COL_TASK_ID = "task_id"

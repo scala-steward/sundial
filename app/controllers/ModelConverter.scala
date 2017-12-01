@@ -6,6 +6,7 @@ import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models._
 import dao.SundialDao
 import model._
+import play.api.Logger
 import util.Conversions._
 
 object ModelConverter {
@@ -62,19 +63,19 @@ object ModelConverter {
   }
 
   def loadExecutableMetadata(task: model.Task)(implicit dao: SundialDao): Option[Seq[v0.models.MetadataEntry]] = task.executable match {
-    case e: ShellCommandExecutable =>
+    case _: ShellCommandExecutable =>
       val stateOpt = dao.shellCommandStateDao.loadState(task.id)
       stateOpt.map { state =>
         // Use the task ID as the UUID for the metadata entry
         Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString))
       }
-    case e: ECSExecutable =>
+    case _: ECSExecutable =>
       val stateOpt = dao.ecsContainerStateDao.loadState(task.id)
       stateOpt.map { state =>
         Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString),
-            v0.models.MetadataEntry(state.taskId, state.asOf, "taskArn", state.ecsTaskArn))
+          v0.models.MetadataEntry(state.taskId, state.asOf, "taskArn", state.ecsTaskArn))
       }
-    case e: BatchExecutable =>
+    case _: BatchExecutable =>
       val stateOpt = dao.batchContainerStateDao.loadState(task.id)
       stateOpt.map { state =>
         Seq(v0.models.MetadataEntry(state.taskId, state.asOf, "status", state.status.toString),
@@ -158,7 +159,7 @@ object ModelConverter {
   def toExternalExecutable(executable: model.Executable): v0.models.TaskExecutable = executable match {
     case model.ShellCommandExecutable(script, env) =>
       val envAsEntries = {
-        if(env.isEmpty) {
+        if (env.isEmpty) {
           Option.empty
         } else {
           Some(env.map { case (key, value) =>
@@ -171,6 +172,60 @@ object ModelConverter {
       v0.models.DockerImageCommand(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)))
     case model.BatchExecutable(image, tag, command, memory, vCpus, jobRoleArn, environmentVariables, jobQueue) =>
       v0.models.BatchImageCommand(image, tag, command, memory, vCpus, jobRoleArn, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)), jobQueue)
+    case model.EmrJobExecutable(emrClusterDetails, jobName, region, clazz, s3JarPath, sparkConf, args, s3LogDetailsOpt) => {
+      def toEmrInstanceGroup(instanceGroupDetails: InstanceGroupDetails) = {
+        val awsMarket = (instanceGroupDetails.awsMarket, instanceGroupDetails.bidPriceOpt) match {
+          case ("on_demand", None) => OnDemand.OnDemand
+          case ("spot", Some(bidPrice)) => Spot(BigDecimal(bidPrice))
+          case _ => OnDemand.OnDemand
+        }
+        EmrInstanceGroupDetails(instanceGroupDetails.instanceType, instanceGroupDetails.instanceCount, awsMarket)
+      }
+      val cluster = emrClusterDetails match {
+        case EmrClusterDetails(
+        Some(clusterName),
+        None,
+        Some(releaseLabel),
+        applications,
+        Some(s3LogUri),
+        Some(masterInstanceGroup),
+        coreInstanceGroupOpt,
+        taskInstanceGroupOpt,
+        ec2SubnetOpt,
+        Some(emrServiceRole),
+        Some(emrJobFlowRole),
+        false) => {
+          val serviceRole = if (emrServiceRole == DefaultEmrServiceRole.DefaultEmrServiceRole.toString) {
+            DefaultEmrServiceRole.DefaultEmrServiceRole
+          } else {
+            CustomEmrServiceRole(emrServiceRole)
+          }
+          val jobFlowRole = if (emrJobFlowRole == DefaultEmrJobFlowRole.DefaultEmrJobFlowRole.toString) {
+            DefaultEmrJobFlowRole.DefaultEmrJobFlowRole
+          } else {
+            CustomEmrJobFlowRole(emrJobFlowRole)
+          }
+          v0.models.NewEmrCluster(
+            clusterName,
+            EmrReleaseLabel.fromString(releaseLabel).get,
+            applications.map(EmrApplication.fromString(_).get),
+            s3LogUri,
+            toEmrInstanceGroup(masterInstanceGroup),
+            coreInstanceGroupOpt.map(toEmrInstanceGroup),
+            taskInstanceGroupOpt.map(toEmrInstanceGroup),
+            ec2SubnetOpt,
+            serviceRole,
+            jobFlowRole
+          )
+        }
+        case EmrClusterDetails(None, Some(clusterId), None, applications, None, None, None, None, None, None, None, true) if applications.isEmpty => v0.models.ExistingEmrCluster(clusterId)
+        case _ => throw new IllegalArgumentException(s"Unexpected Cluster details: $emrClusterDetails")
+      }
+      val logDetailsOpt = s3LogDetailsOpt.flatMap {
+        case LogDetails(logGroupName, logStreamName) => Some(S3LogDetails(logGroupName, logStreamName))
+      }
+      v0.models.EmrCommand(cluster, jobName, region, clazz, s3JarPath, sparkConf, args, logDetailsOpt)
+    }
   }
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -217,6 +272,57 @@ object ModelConverter {
         jobQueue
       )
 
+    case v0.models.EmrCommand(emrCluster, jobName, region, clazz, s3JarPath, sparkConf, args, s3LogDetailsOpt) => {
+
+      def toInstanceGroupDetails(emrInstanceGroupDetails: EmrInstanceGroupDetails) = {
+        val (awsMarket: String, bidPriceOpt: Option[Double]) = emrInstanceGroupDetails.awsMarket match {
+          case OnDemand.OnDemand => ("on_demand", None)
+          case Spot(bidPrice) => ("spot", Some(bidPrice.toDouble))
+          case _ => ("on_demand", None)
+        }
+        InstanceGroupDetails(emrInstanceGroupDetails.emrInstanceType, emrInstanceGroupDetails.instanceCount, awsMarket, bidPriceOpt)
+      }
+
+      val clusterDetails = emrCluster match {
+        case NewEmrCluster(clusterName, releaseLabel, applications, s3LogUri, masterInstanceGroup, coreInstanceGroup, taskInstanceGroup, ec2SubnetOpt, emrServiceRole, emrJobFlowRole) => {
+          val serviceRoleName = emrServiceRole match {
+            case DefaultEmrServiceRole.DefaultEmrServiceRole => DefaultEmrServiceRole.DefaultEmrServiceRole.toString
+            case CustomEmrServiceRole(roleName) => roleName
+            case DefaultEmrServiceRole.UNDEFINED(undefined) => {
+              throw new IllegalArgumentException(s"Unknown service role type: $undefined")
+            }
+          }
+          val jobFlowRoleName = emrJobFlowRole match {
+            case DefaultEmrJobFlowRole.DefaultEmrJobFlowRole => DefaultEmrJobFlowRole.DefaultEmrJobFlowRole.toString
+            case CustomEmrJobFlowRole(roleName) => roleName
+            case DefaultEmrJobFlowRole.UNDEFINED(undefined) => {
+              throw new IllegalArgumentException(s"Unknown job flow role type: $undefined")
+            }
+          }
+          EmrClusterDetails(Some(clusterName),
+            None,
+            Some(releaseLabel.toString),
+            applications.map(_.toString),
+            Some(s3LogUri),
+            Some(toInstanceGroupDetails(masterInstanceGroup)),
+            coreInstanceGroup.map(toInstanceGroupDetails),
+            taskInstanceGroup.map(toInstanceGroupDetails),
+            ec2Subnet = ec2SubnetOpt,
+            Some(serviceRoleName),
+            Some(jobFlowRoleName),
+            existingCluster = false)
+        }
+        case ExistingEmrCluster(clusterId) => EmrClusterDetails(clusterName = None, clusterId = Some(clusterId), existingCluster = true)
+        case EmrClusterUndefinedType(undefinedType) => {
+          Logger.error(s"UnsupportedClusterType($undefinedType)")
+          throw new IllegalArgumentException(s"Cluster Type not supported: $undefinedType")
+        }
+      }
+      val logDetailsOpt = s3LogDetailsOpt.flatMap {
+        case S3LogDetails(logGroupName, logStreamName) => Some(LogDetails(logGroupName, logStreamName))
+      }
+      EmrJobExecutable(clusterDetails, jobName, region, clazz, s3JarPath, sparkConf, args, logDetailsOpt)
+    }
     case v0.models.TaskExecutableUndefinedType(description) =>
       throw new IllegalArgumentException(s"Unknown executable type with description [$description]")
   }

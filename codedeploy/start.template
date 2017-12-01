@@ -14,7 +14,7 @@ docker ps -aq | xargs -r docker stop
 docker ps -aq | xargs -r docker rm
 
 mkdir -pv /var/log/sundial
-chmod a+w /var/log/sundial
+chmod 777 -R /var/log/sundial
 
 exec docker run -d --name=_DOCKER_REPO_ -p 9000:9000 \
     -e "SUNDIAL_DB_NAME=$PARAMETER_DBName" \

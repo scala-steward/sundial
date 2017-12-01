@@ -38,22 +38,32 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
   }
 
+  /**
+    * Builds the spark submit ARGS=[]
+    * @param executable
+    * @return
+    */
+  private def buildSparkArgs(executable: EmrJobExecutable) = {
+    val sparkConfigs = executable
+      .sparkConf
+      .flatMap(conf => List(ConfOption, conf))
+
+    List(SparkSubmitCommand) ++
+      sparkConfigs ++
+      List(
+        ClassOption, executable.clazz,
+        executable.s3JarPath
+      ) ++
+      executable.args
+  }
+
   private def submitJobToExistingCluster(executable: EmrJobExecutable, task: Task) = {
 
     val emrClient = getEmrClient(executable.region)
 
     val clusterId = executable.emrClusterDetails.clusterId.get
 
-    val sparkConfigs = executable
-      .sparkConf
-      .flatMap(conf => List(ConfOption, conf))
-
-    val args = List(SparkSubmitCommand) ++
-      sparkConfigs ++
-      List(
-        ClassOption, executable.clazz,
-        executable.s3JarPath) ++
-      executable.args
+    val args = buildSparkArgs(executable)
 
     val (stepId, executorStatus) = try {
       val jobRequest = new AddJobFlowStepsRequest(clusterId)
@@ -90,6 +100,12 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
   private def createClusterAndSubmitJob(executable: EmrJobExecutable, task: Task) = {
 
+    /**
+      * Builds an AWS InstanceGroupConfig from the given job's configuration
+      * @param instanceRoleType
+      * @param instanceGroupDetails
+      * @return
+      */
     def toInstanceGroupConfig(instanceRoleType: InstanceRoleType, instanceGroupDetails: InstanceGroupDetails) = {
       val instanceGroupConfig = new InstanceGroupConfig()
         .withInstanceRole(instanceRoleType)
@@ -113,28 +129,21 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       emrServiceRole <- clusterDetails.emrServiceRole
       emrJobFlowRole <- clusterDetails.emrJobFlowRole
       masterInstanceGroup <- clusterDetails.masterInstanceGroup
-
     } yield {
 
+      // List of applications to install on the new EMR cluster
       val applications = clusterDetails.applications.map(new Application().withName(_))
 
-      val sparkConfigs = executable
-        .sparkConf
-        .flatMap(conf => List(ConfOption, conf))
+      val args = buildSparkArgs(executable)
 
-      val args = List(SparkSubmitCommand) ++
-        sparkConfigs ++
-        List(
-          ClassOption, executable.clazz,
-          executable.s3JarPath) ++
-        executable.args
-
-      val instanceDetails = List (
+      // Master, Core and Task instance groups
+      val instanceDetails = List(
         Some(toInstanceGroupConfig(InstanceRoleType.MASTER, masterInstanceGroup)),
         clusterDetails.coreInstanceGroup.map(instanceDetails => toInstanceGroupConfig(InstanceRoleType.CORE, instanceDetails)),
         clusterDetails.taskInstanceGroup.map(instanceDetails => toInstanceGroupConfig(InstanceRoleType.TASK, instanceDetails))
       ).flatten
 
+      // Configuration of the EMR instances
       var jobFlowInstancesConfig = new JobFlowInstancesConfig()
         .withKeepJobFlowAliveWhenNoSteps(false)
         .withInstanceGroups(instanceDetails: _*)
@@ -142,6 +151,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       // Add Ec2Subnet if subnet defined in configuration
       jobFlowInstancesConfig = executable.emrClusterDetails.ec2Subnet.fold(jobFlowInstancesConfig)(jobFlowInstancesConfig.withEc2SubnetId(_))
 
+      // The actual cluster to launch
       val request = new RunJobFlowRequest()
         .withName(clusterName)
         .withReleaseLabel(releaseLabel)
@@ -158,15 +168,14 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
         .withJobFlowRole(emrJobFlowRole)
         .withInstances(jobFlowInstancesConfig)
 
+      // aka the cluster id
       val flowId = emrClient.runJobFlow(request).getJobFlowId
-
-      Logger.info(s"FlowId($flowId)")
 
       val step = emrClient
         .listSteps(new ListStepsRequest().withClusterId(flowId))
         .getSteps
         .asScala
-        .find(_.getName == executable.jobName)
+        .find(_.getName == executable.jobName) // There will always be only one.
         .get
 
 
@@ -180,6 +189,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
     }
 
+    // This is sub-optimal (check for-comp on Option), but if for whichever reason the configuration is broken, this won't start any cluster and fail the job
     emrJobStateOpt.getOrElse(
       EmrJobState(task.id,
         executable.jobName,
@@ -192,6 +202,20 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
   }
 
+  /**
+    * Attempts to kill an EMR Step ie. a Sundial EMR job.
+    *
+    * Please note that is NOT possible to Kill a Step running on EMR unless the step itself is in Pending.
+    *
+    * For steps running on _new_ Emr Clusters, the cluster is killed instead.
+    *
+    * Check here: https://aws.amazon.com/premiumsupport/knowledge-center/cancel-emr-step/ for more details.
+    *
+    * @param state
+    * @param task
+    * @param reason
+    * @param dao
+    */
   override protected def actuallyKillExecutable(state: EmrJobState, task: Task, reason: String)(implicit dao: SundialDao): Unit = {
 
     val emrClient = getEmrClient(state.region)

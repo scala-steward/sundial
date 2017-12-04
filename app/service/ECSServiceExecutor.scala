@@ -30,7 +30,7 @@ class ECSServiceExecutor @Inject()(config: Configuration,
                                    @Named("sdbDomain") sdbDomain: String) extends SpecificTaskExecutor[ECSExecutable, ECSContainerState] {
 
   val awsRegion = config.getString("aws.region")
-  val companionImage = config.getString("companion.tag").get
+  val companionImage = config.getString("ecs.companion.tag").get
   val cluster = config.getString("ecs.cluster").get
   val defaultCpu = config.getInt("ecs.defaultCpu").get
   val defaultMemory = config.getInt("ecs.defaultMemory").get

@@ -14,4 +14,4 @@ docker build -t $DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME . &&
 docker push $DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME
 
 echo "Make sure to update the Sundial application.conf with:"
-echo "companion.tag=\"$DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME\""
+echo "ecs.companion.tag=\"$DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME\""

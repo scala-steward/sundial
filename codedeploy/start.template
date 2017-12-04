@@ -17,6 +17,7 @@ mkdir -pv /var/log/sundial
 chmod 777 -R /var/log/sundial
 
 exec docker run -d --name=_DOCKER_REPO_ -p 9000:9000 \
+    -e "ECS_COMPANION_TAG=_ECS_COMPANION_TAG_" \
     -e "SUNDIAL_DB_NAME=$PARAMETER_DBName" \
     -e "SUNDIAL_DB_USERNAME=$PARAMETER_DBUsername" \
     -e "SUNDIAL_DB_PASSWORD=$PARAMETER_DBPassword" \

@@ -18,7 +18,7 @@ docker tag $DOCKER_REPO:$BUILD_ID $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID
 
 docker push $DOCKER_REGISTRY/$DOCKER_REPO:$BUILD_ID
 
-m4 -D_BUILD_ID_=$BUILD_ID -D_DOCKER_REPO_=$DOCKER_REPO -D_DOCKER_REGISTRY_=$DOCKER_REGISTRY codedeploy/start.template > codedeploy/start.sh
+m4 -D_BUILD_ID_=$BUILD_ID -D_DOCKER_REPO_=$DOCKER_REPO -D_DOCKER_REGISTRY_=$DOCKER_REGISTRY -D_ECS_COMPANION_TAG_=$ECS_COMPANION_TAG codedeploy/start.template > codedeploy/start.sh
 m4 -D_BUILD_ID_=$BUILD_ID codedeploy/healthcheck.template > codedeploy/healthcheck.sh
 chmod +x codedeploy/start.sh
 chmod +x codedeploy/healthcheck.sh

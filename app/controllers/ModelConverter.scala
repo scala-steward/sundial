@@ -200,6 +200,7 @@ object ModelConverter {
         ec2SubnetOpt,
         Some(emrServiceRole),
         Some(emrJobFlowRole),
+        Some(visibleToAllUsers),
         false) => {
           val serviceRole = if (emrServiceRole == DefaultEmrServiceRole.DefaultEmrServiceRole.toString) {
             DefaultEmrServiceRole.DefaultEmrServiceRole
@@ -221,10 +222,11 @@ object ModelConverter {
             taskInstanceGroupOpt.map(toEmrInstanceGroup),
             ec2SubnetOpt,
             serviceRole,
-            jobFlowRole
+            jobFlowRole,
+            visibleToAllUsers
           )
         }
-        case EmrClusterDetails(None, Some(clusterId), None, applications, None, None, None, None, None, None, None, true) if applications.isEmpty => v0.models.ExistingEmrCluster(clusterId)
+        case EmrClusterDetails(None, Some(clusterId), None, applications, None, None, None, None, None, None, None, None, true) if applications.isEmpty => v0.models.ExistingEmrCluster(clusterId)
         case _ => throw new IllegalArgumentException(s"Unexpected Cluster details: $emrClusterDetails")
       }
       val logDetailsOpt = s3LogDetailsOpt.flatMap {
@@ -290,7 +292,8 @@ object ModelConverter {
       }
 
       val clusterDetails = emrCluster match {
-        case NewEmrCluster(clusterName, releaseLabel, applications, s3LogUri, masterInstanceGroup, coreInstanceGroup, taskInstanceGroup, ec2SubnetOpt, emrServiceRole, emrJobFlowRole) => {
+        case NewEmrCluster(clusterName, releaseLabel, applications, s3LogUri,
+        masterInstanceGroup, coreInstanceGroup, taskInstanceGroup, ec2SubnetOpt, emrServiceRole, emrJobFlowRole, visibleToAllUsers) => {
           val serviceRoleName = emrServiceRole match {
             case DefaultEmrServiceRole.DefaultEmrServiceRole => DefaultEmrServiceRole.DefaultEmrServiceRole.toString
             case CustomEmrServiceRole(roleName) => roleName
@@ -314,6 +317,7 @@ object ModelConverter {
             ec2Subnet = ec2SubnetOpt,
             Some(serviceRoleName),
             Some(jobFlowRoleName),
+            Some(visibleToAllUsers),
             existingCluster = false)
         }
         case ExistingEmrCluster(clusterId) => EmrClusterDetails(clusterName = None, clusterId = Some(clusterId), existingCluster = true)

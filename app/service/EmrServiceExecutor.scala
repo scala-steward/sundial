@@ -4,7 +4,7 @@ import java.util.Date
 import javax.inject.Inject
 
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, AddJobFlowStepsRequest, Application, CancelStepsRequest, DescribeClusterRequest, HadoopJarStepConfig, InstanceGroupConfig, InstanceRoleType, JobFlowInstancesConfig, ListStepsRequest, MarketType, RunJobFlowRequest, StepConfig, TerminateJobFlowsRequest}
+import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, AddJobFlowStepsRequest, Application, CancelStepsRequest, HadoopJarStepConfig, InstanceGroupConfig, InstanceRoleType, JobFlowInstancesConfig, ListStepsRequest, RunJobFlowRequest, StepConfig, TerminateJobFlowsRequest}
 import com.amazonaws.services.elasticmapreduce.{AmazonElasticMapReduce, AmazonElasticMapReduceClientBuilder}
 import dao.{ExecutableStateDao, SundialDao}
 import model._
@@ -126,6 +126,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       emrServiceRole <- clusterDetails.emrServiceRole
       emrJobFlowRole <- clusterDetails.emrJobFlowRole
       masterInstanceGroup <- clusterDetails.masterInstanceGroup
+      isVisibleToAllUsers <- clusterDetails.visibleToAllUsers
     } yield {
 
       // List of applications to install on the new EMR cluster
@@ -164,6 +165,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
         .withServiceRole(emrServiceRole)
         .withJobFlowRole(emrJobFlowRole)
         .withInstances(jobFlowInstancesConfig)
+        .withVisibleToAllUsers(isVisibleToAllUsers)
 
       // aka the cluster id
       val flowId = emrClient.runJobFlow(request).getJobFlowId

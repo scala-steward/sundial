@@ -4,7 +4,7 @@ CREATE TYPE emr_executor_status AS ENUM ('pending', 'cancel_pending', 'running',
 
 CREATE TABLE emr_service_state
 (
-  task_id     UUID PRIMARY KEY,
+  task_id     UUID PRIMARY KEY NOT NULL,
   job_name    VARCHAR(255),
   cluster_id  VARCHAR(128) NOT NULL,
   step_id     VARCHAR(128),

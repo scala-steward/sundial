@@ -5,12 +5,24 @@
  */
 package com.gilt.svc.sundial.v0.models {
 
+  /**
+   * The EC2 market of the EC2 instances
+   */
   sealed trait AwsMarket extends _root_.scala.Product with _root_.scala.Serializable
 
+  /**
+   * Whether or not to create a new EMR cluster or re-use a pre-existing one
+   */
   sealed trait EmrCluster extends _root_.scala.Product with _root_.scala.Serializable
 
+  /**
+   * The EMR role to use on the EC2 instances
+   */
   sealed trait EmrJobFlowRole extends _root_.scala.Product with _root_.scala.Serializable
 
+  /**
+   * The EMR service role to use
+   */
   sealed trait EmrServiceRole extends _root_.scala.Product with _root_.scala.Serializable
 
   sealed trait Notification extends _root_.scala.Product with _root_.scala.Serializable
@@ -61,10 +73,16 @@ package com.gilt.svc.sundial.v0.models {
     minutes: String
   ) extends ProcessSchedule
 
+  /**
+   * Custom, preconfigured, EMR EC2 instance role
+   */
   case class CustomEmrJobFlowRole(
     roleName: String
   ) extends EmrJobFlowRole
 
+  /**
+   * Custom, preconfigured, EMR Service role
+   */
   case class CustomEmrServiceRole(
     roleName: String
   ) extends EmrServiceRole
@@ -90,8 +108,17 @@ package com.gilt.svc.sundial.v0.models {
   ) extends Notification
 
   /**
+   * @param emrCluster The EMR cluster on which to launch the job (aka step)
+   * @param jobName NAme to be assigned to the Job
+   * @param region the AWS Region
+   * @param `class` The spark job's `Main.class` to run
+   * @param s3JarPath the s3 path to the jar of the job to be run
    * @param sparkConf options that will be sent to spark as --conf key=value, e.g. `--conf
    *        spark.driver.extraJavaOptions=-Denvironment=integration`
+   * @param args command line arguments to be passe to the job's main class
+   * @param s3LogDetails AWS EMR periodically (currently every 5 minutes) zips up all the logs and upload
+   *        them into S3. This does not work well with sundial's _live logs_. Make use of S3
+   *        Logs to visualise in real time job's log on sundial's live logs panel
    */
   case class EmrCommand(
     emrCluster: com.gilt.svc.sundial.v0.models.EmrCluster,
@@ -104,6 +131,9 @@ package com.gilt.svc.sundial.v0.models {
     s3LogDetails: _root_.scala.Option[com.gilt.svc.sundial.v0.models.S3LogDetails] = None
   ) extends TaskExecutable
 
+  /**
+   * Additional configuration for Master/Core/Task EMR instance Groups.
+   */
   case class EmrInstanceGroupDetails(
     emrInstanceType: String,
     instanceCount: Int,
@@ -116,6 +146,8 @@ package com.gilt.svc.sundial.v0.models {
   )
 
   /**
+   * Existing EMR cluster configuration object
+   *
    * @param clusterId The EMR cluster id
    */
   case class ExistingEmrCluster(
@@ -146,6 +178,18 @@ package com.gilt.svc.sundial.v0.models {
     value: String
   )
 
+  /**
+   * New EMR cluster configuration object
+   *
+   * @param ec2Subnet To be set in case the EMR cannot be launched in the `default VPC`
+   * @param emrServiceRole role to be assigned to the service, the default one should cover most of the
+   *        cases
+   * @param emrJobFlowRole role to be assigned to the ec2 instances composing the EMR cluster. The default
+   *        one should cover most of the cases
+   * @param visibleToAllUsers whether or not to show the new cluster in the list of clusters. For more details
+   *        see [emr
+   *        docs](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-emr-cluster.html#cfn-emr-cluster-visibletoallusers)
+   */
   case class NewEmrCluster(
     name: String,
     releaseLabel: com.gilt.svc.sundial.v0.models.EmrReleaseLabel = com.gilt.svc.sundial.v0.models.EmrReleaseLabel.Emr5100,
@@ -156,7 +200,8 @@ package com.gilt.svc.sundial.v0.models {
     taskInstance: _root_.scala.Option[com.gilt.svc.sundial.v0.models.EmrInstanceGroupDetails] = None,
     ec2Subnet: _root_.scala.Option[String] = None,
     emrServiceRole: com.gilt.svc.sundial.v0.models.EmrServiceRole,
-    emrJobFlowRole: com.gilt.svc.sundial.v0.models.EmrJobFlowRole
+    emrJobFlowRole: com.gilt.svc.sundial.v0.models.EmrJobFlowRole,
+    visibleToAllUsers: Boolean = false
   ) extends EmrCluster
 
   /**
@@ -203,6 +248,9 @@ package com.gilt.svc.sundial.v0.models {
     environmentVariables: _root_.scala.Option[Seq[com.gilt.svc.sundial.v0.models.EnvironmentVariable]] = None
   ) extends TaskExecutable
 
+  /**
+   * the maximum spot bid price
+   */
   case class Spot(
     bidPrice: BigDecimal
   ) extends AwsMarket
@@ -336,6 +384,9 @@ package com.gilt.svc.sundial.v0.models {
     description: String
   ) extends TaskExecutable
 
+  /**
+   * The default EMR EC2 Instance role
+   */
   sealed trait DefaultEmrJobFlowRole extends EmrJobFlowRole
 
   object DefaultEmrJobFlowRole {
@@ -369,6 +420,9 @@ package com.gilt.svc.sundial.v0.models {
 
   }
 
+  /**
+   * The default EMR Service role
+   */
   sealed trait DefaultEmrServiceRole extends EmrServiceRole
 
   object DefaultEmrServiceRole {
@@ -402,6 +456,9 @@ package com.gilt.svc.sundial.v0.models {
 
   }
 
+  /**
+   * List of applications to install in the EMR cluster
+   */
   sealed trait EmrApplication extends _root_.scala.Product with _root_.scala.Serializable
 
   object EmrApplication {
@@ -439,6 +496,9 @@ package com.gilt.svc.sundial.v0.models {
 
   }
 
+  /**
+   * Version (aka label in AWS-EMR) of the EMR stack to create.
+   */
   sealed trait EmrReleaseLabel extends _root_.scala.Product with _root_.scala.Serializable
 
   object EmrReleaseLabel {
@@ -527,6 +587,9 @@ package com.gilt.svc.sundial.v0.models {
 
   }
 
+  /**
+   * The onDemand type of Market Type
+   */
   sealed trait OnDemand extends AwsMarket
 
   object OnDemand {
@@ -1295,7 +1358,8 @@ package com.gilt.svc.sundial.v0.models {
         (__ \ "task_instance").readNullable[com.gilt.svc.sundial.v0.models.EmrInstanceGroupDetails] and
         (__ \ "ec2_subnet").readNullable[String] and
         (__ \ "emr_service_role").read[com.gilt.svc.sundial.v0.models.EmrServiceRole] and
-        (__ \ "emr_job_flow_role").read[com.gilt.svc.sundial.v0.models.EmrJobFlowRole]
+        (__ \ "emr_job_flow_role").read[com.gilt.svc.sundial.v0.models.EmrJobFlowRole] and
+        (__ \ "visible_to_all_users").read[Boolean]
       )(NewEmrCluster.apply _)
     }
 
@@ -1307,7 +1371,8 @@ package com.gilt.svc.sundial.v0.models {
         "s3_log_uri" -> play.api.libs.json.JsString(obj.s3LogUri),
         "master_instance" -> jsObjectEmrInstanceGroupDetails(obj.masterInstance),
         "emr_service_role" -> jsObjectEmrServiceRole(obj.emrServiceRole),
-        "emr_job_flow_role" -> jsObjectEmrJobFlowRole(obj.emrJobFlowRole)
+        "emr_job_flow_role" -> jsObjectEmrJobFlowRole(obj.emrJobFlowRole),
+        "visible_to_all_users" -> play.api.libs.json.JsBoolean(obj.visibleToAllUsers)
       ) ++ (obj.coreInstance match {
         case None => play.api.libs.json.Json.obj()
         case Some(x) => play.api.libs.json.Json.obj("core_instance" -> jsObjectEmrInstanceGroupDetails(x))

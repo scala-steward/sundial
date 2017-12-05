@@ -570,6 +570,12 @@
           "name": "emr_job_flow_role",
           "type": "emr_job_flow_role",
           "description": "role to be assigned to the ec2 instances composing the EMR cluster. The default one should cover most of the cases"
+        },
+        {
+          "name": "visible_to_all_users",
+          "type": "boolean",
+          "default": "false",
+          "description": "whether or not to show the new cluster in the list of clusters. For more details see [emr docs](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-emr-cluster.html#cfn-emr-cluster-visibletoallusers)"
         }
       ]
     },

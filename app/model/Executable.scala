@@ -54,6 +54,7 @@ case class EmrClusterDetails(clusterName: Option[String],
                              ec2Subnet: Option[String] = None,
                              emrServiceRole: Option[String] = None,
                              emrJobFlowRole: Option[String] = None,
+                             visibleToAllUsers: Option[Boolean] = None,
                              existingCluster: Boolean)
 
 case class LogDetails(logGroupName: String, logStreamName: String)

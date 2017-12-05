@@ -245,6 +245,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       case "CANCELLED" => EmrExecutorState.Cancelled
       case "FAILED" => ExecutorStatus.Failed(None)
       case "INTERRUPTED" => EmrExecutorState.Interrupted
+      case state => throw new IllegalArgumentException(s"Unexpected State($state)")
     }
   }
 

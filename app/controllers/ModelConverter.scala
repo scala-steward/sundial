@@ -322,8 +322,8 @@ object ModelConverter {
           throw new IllegalArgumentException(s"Cluster Type not supported: $undefinedType")
         }
       }
-      val logDetailsOpt = s3LogDetailsOpt.flatMap {
-        case S3LogDetails(logGroupName, logStreamName) => Some(LogDetails(logGroupName, logStreamName))
+      val logDetailsOpt = s3LogDetailsOpt.map {
+        case S3LogDetails(logGroupName, logStreamName) => LogDetails(logGroupName, logStreamName)
       }
       EmrJobExecutable(clusterDetails, jobName, region, clazz, s3JarPath, sparkConf, args, logDetailsOpt)
     }

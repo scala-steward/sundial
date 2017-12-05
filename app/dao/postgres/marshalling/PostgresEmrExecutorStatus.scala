@@ -12,6 +12,7 @@ object PostgresEmrExecutorStatus {
     case "cancelled" => EmrExecutorState.Cancelled
     case "failed" => ExecutorStatus.Failed(None)
     case "interrupted" => EmrExecutorState.Interrupted
+    case _ => throw new IllegalArgumentException(s"Unexpected Status($str)")
   }
 
   def apply(status: ExecutorStatus) = status match {
@@ -22,6 +23,7 @@ object PostgresEmrExecutorStatus {
     case EmrExecutorState.Cancelled => "cancelled"
     case EmrExecutorState.Interrupted => "interrupted"
     case ExecutorStatus.Failed(_) => "failed"
+    case status => throw new IllegalArgumentException(s"Unexpected Status($status)")
   }
 
 }

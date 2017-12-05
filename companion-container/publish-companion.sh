@@ -13,5 +13,5 @@ $(aws ecr get-login --region $REGION)
 docker build -t $DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME . &&
 docker push $DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME
 
-echo "Make sure to update the Sundial application.conf with:"
-echo "ecs.companion.tag=\"$DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME\""
+echo "Make sure to set the Sundial Docker ENV with:"
+echo "ECS_COMPANION_TAG=\"$DOCKER_REGISTRY/$DOCKER_REPO:$TAG_NAME\""

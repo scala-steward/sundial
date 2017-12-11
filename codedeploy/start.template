@@ -23,5 +23,6 @@ exec docker run -d --name=_DOCKER_REPO_ -p 9000:9000 \
     -e "SUNDIAL_DB_PASSWORD=$PARAMETER_DBPassword" \
     -e "SUNDIAL_DB_URL=$OUTPUT_DBInstanceEndpoint" \
     -e "SUNDIAL_ECS_CLUSTER=$RESOURCE_ECSCluster" \
+    -e "NOTIFICATIONS_EMAIL_FROM=_NOTIFICATIONS_EMAIL_FROM_" \
     -v "/var/log/sundial:/var/log/sundial" \
     _DOCKER_REGISTRY_/_DOCKER_REPO_:_BUILD_ID_ \

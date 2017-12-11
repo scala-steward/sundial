@@ -133,11 +133,15 @@ package com.gilt.svc.sundial.v0.models {
 
   /**
    * Additional configuration for Master/Core/Task EMR instance Groups.
+   *
+   * @param ebsVolumeSize optional EBS volume in GB to attach to the emr instance, for simplicity only one
+   *        volume for the given size and type gp2 will be created.
    */
   case class EmrInstanceGroupDetails(
     emrInstanceType: String,
     instanceCount: Int,
-    awsMarket: com.gilt.svc.sundial.v0.models.AwsMarket
+    awsMarket: com.gilt.svc.sundial.v0.models.AwsMarket,
+    ebsVolumeSize: _root_.scala.Option[Int] = None
   )
 
   case class EnvironmentVariable(
@@ -1225,7 +1229,8 @@ package com.gilt.svc.sundial.v0.models {
       (
         (__ \ "emr_instance_type").read[String] and
         (__ \ "instance_count").read[Int] and
-        (__ \ "aws_market").read[com.gilt.svc.sundial.v0.models.AwsMarket]
+        (__ \ "aws_market").read[com.gilt.svc.sundial.v0.models.AwsMarket] and
+        (__ \ "ebs_volume_size").readNullable[Int]
       )(EmrInstanceGroupDetails.apply _)
     }
 
@@ -1234,7 +1239,10 @@ package com.gilt.svc.sundial.v0.models {
         "emr_instance_type" -> play.api.libs.json.JsString(obj.emrInstanceType),
         "instance_count" -> play.api.libs.json.JsNumber(obj.instanceCount),
         "aws_market" -> jsObjectAwsMarket(obj.awsMarket)
-      )
+      ) ++ (obj.ebsVolumeSize match {
+        case None => play.api.libs.json.Json.obj()
+        case Some(x) => play.api.libs.json.Json.obj("ebs_volume_size" -> play.api.libs.json.JsNumber(x))
+      })
     }
 
     implicit def jsonWritesSvcSundialEmrInstanceGroupDetails: play.api.libs.json.Writes[EmrInstanceGroupDetails] = {

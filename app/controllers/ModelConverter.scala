@@ -185,7 +185,7 @@ object ModelConverter {
           case ("spot", Some(bidPrice)) => Spot(BigDecimal(bidPrice))
           case _ => OnDemand.OnDemand
         }
-        EmrInstanceGroupDetails(instanceGroupDetails.instanceType, instanceGroupDetails.instanceCount, awsMarket)
+        EmrInstanceGroupDetails(instanceGroupDetails.instanceType, instanceGroupDetails.instanceCount, awsMarket, instanceGroupDetails.ebsVolumeSizeOpt)
       }
       val cluster = emrClusterDetails match {
         case EmrClusterDetails(
@@ -288,7 +288,7 @@ object ModelConverter {
           case Spot(bidPrice) => ("spot", Some(bidPrice.toDouble))
           case _ => ("on_demand", None)
         }
-        InstanceGroupDetails(emrInstanceGroupDetails.emrInstanceType, emrInstanceGroupDetails.instanceCount, awsMarket, bidPriceOpt)
+        InstanceGroupDetails(emrInstanceGroupDetails.emrInstanceType, emrInstanceGroupDetails.instanceCount, awsMarket, bidPriceOpt, emrInstanceGroupDetails.ebsVolumeSize)
       }
 
       val clusterDetails = emrCluster match {

@@ -59,7 +59,7 @@ case class EmrClusterDetails(clusterName: Option[String],
 
 case class LogDetails(logGroupName: String, logStreamName: String)
 
-case class InstanceGroupDetails(instanceType: String, instanceCount: Int, awsMarket: String, bidPriceOpt: Option[Double])
+case class InstanceGroupDetails(instanceType: String, instanceCount: Int, awsMarket: String, bidPriceOpt: Option[Double], ebsVolumeSizeOpt: Option[Int])
 
 case class EmrJobExecutable(emrClusterDetails: EmrClusterDetails,
                             jobName: String,

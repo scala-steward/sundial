@@ -518,6 +518,12 @@
         {
           "name": "aws_market",
           "type": "aws_market"
+        },
+        {
+          "name": "ebs_volume_size",
+          "type": "integer",
+          "description": "optional EBS volume in GB to attach to the emr instance, for simplicity only one volume for the given size and type gp2 will be created.",
+          "required": false
         }
       ]
     },

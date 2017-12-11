@@ -4,7 +4,7 @@ import java.util.Date
 import javax.inject.Inject
 
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, AddJobFlowStepsRequest, Application, CancelStepsRequest, HadoopJarStepConfig, InstanceGroupConfig, InstanceRoleType, JobFlowInstancesConfig, ListStepsRequest, RunJobFlowRequest, StepConfig, TerminateJobFlowsRequest}
+import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, AddJobFlowStepsRequest, Application, CancelStepsRequest, EbsBlockDeviceConfig, EbsConfiguration, HadoopJarStepConfig, InstanceGroupConfig, InstanceRoleType, JobFlowInstancesConfig, ListStepsRequest, RunJobFlowRequest, StepConfig, TerminateJobFlowsRequest, VolumeSpecification}
 import com.amazonaws.services.elasticmapreduce.{AmazonElasticMapReduce, AmazonElasticMapReduceClientBuilder}
 import dao.{ExecutableStateDao, SundialDao}
 import model._
@@ -37,6 +37,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
   /**
     * Builds the spark submit ARGS=[]
+    *
     * @param executable
     * @return
     */
@@ -99,20 +100,37 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
     /**
       * Builds an AWS InstanceGroupConfig from the given job's configuration
+      *
       * @param instanceRoleType
       * @param instanceGroupDetails
       * @return
       */
     def toInstanceGroupConfig(instanceRoleType: InstanceRoleType, instanceGroupDetails: InstanceGroupDetails) = {
-      val instanceGroupConfig = new InstanceGroupConfig()
+      var instanceGroupConfig = new InstanceGroupConfig()
         .withInstanceRole(instanceRoleType)
         .withMarket(instanceGroupDetails.awsMarket.toUpperCase)
         .withInstanceType(instanceGroupDetails.instanceType)
         .withInstanceCount(instanceGroupDetails.instanceCount)
 
-      instanceGroupDetails
+      // Set the price for SPOT instances
+      instanceGroupConfig = instanceGroupDetails
         .bidPriceOpt
         .fold(instanceGroupConfig)(bidPrice => instanceGroupConfig.withBidPrice(bidPrice.toString))
+
+      // If ebs volume is set, a single GP2 disk is attached to the instance.
+      instanceGroupConfig = instanceGroupDetails
+        .ebsVolumeSizeOpt
+        .fold(instanceGroupConfig)(ebsVolumeSize => {
+          instanceGroupConfig
+            .withEbsConfiguration(new EbsConfiguration()
+              .withEbsBlockDeviceConfigs(new EbsBlockDeviceConfig()
+                .withVolumesPerInstance(1)
+                .withVolumeSpecification(new VolumeSpecification().withSizeInGB(ebsVolumeSize).withVolumeType("gp2")))
+              .withEbsOptimized(true)
+            )
+        })
+
+      instanceGroupConfig
     }
 
     val emrClient = getEmrClient(executable.region)

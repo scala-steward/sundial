@@ -20,15 +20,22 @@
       "types": [
         {
           "type": "docker_image_command",
-          "description": "Docker image to run on ECS with Sundial companion container"
+          "description": "Docker image to run on ECS with Sundial companion container",
+          "deprecation": {
+            "description": "Running jobs on AWS ECS is now deprecated. Use AWS Batch via batch_image_command instead."
+          }
         },
         {
           "type": "shell_script_command",
-          "description": "Shell command to run on Sundial service instance"
+          "description": "Shell command to run on Sundial service instance (Experimental)"
         },
         {
           "type": "batch_image_command",
           "description": "Docker image to run on AWS Batch"
+        },
+        {
+          "type": "emr_command",
+          "description": "Command to submit Spark Jobs on AWS EMR"
         }
       ]
     },
@@ -39,6 +46,50 @@
         },
         {
           "type": "pagerduty"
+        }
+      ]
+    },
+    "emr_cluster": {
+      "description": "Whether or not to create a new EMR cluster or re-use a pre-existing one",
+      "types": [
+        {
+          "type": "new_emr_cluster"
+        },
+        {
+          "type": "existing_emr_cluster"
+        }
+      ]
+    },
+    "emr_service_role": {
+      "description": "The EMR service role to use",
+      "types": [
+        {
+          "type": "default_emr_service_role"
+        },
+        {
+          "type": "custom_emr_service_role"
+        }
+      ]
+    },
+    "emr_job_flow_role": {
+      "description": "The EMR role to use on the EC2 instances",
+      "types": [
+        {
+          "type": "default_emr_job_flow_role"
+        },
+        {
+          "type": "custom_emr_job_flow_role"
+        }
+      ]
+    },
+    "aws_market": {
+      "description": "The EC2 market of the EC2 instances",
+      "types": [
+        {
+          "type": "on_demand"
+        },
+        {
+          "type": "spot"
         }
       ]
     }
@@ -123,6 +174,69 @@
         {
           "name": "never",
           "description": "Never notify"
+        }
+      ]
+    },
+    "emr_release_label": {
+      "description": "Version (aka label in AWS-EMR) of the EMR stack to create.",
+      "values": [
+        {
+          "name": "emr-5.10.0"
+        },
+        {
+          "name": "emr-5.9.0"
+        },
+        {
+          "name": "emr-4.9.2"
+        },
+        {
+          "name": "emr-4.9.1"
+        }
+      ]
+    },
+    "emr_application": {
+      "description": "List of applications to install in the EMR cluster",
+      "values": [
+        {
+          "name": "Hadoop"
+        },
+        {
+          "name": "Hive"
+        },
+        {
+          "name": "Mahout"
+        },
+        {
+          "name": "Pig"
+        },
+        {
+          "name": "Spark"
+        }
+      ]
+    },
+    "default_emr_service_role": {
+      "description": "The default EMR Service role",
+      "values": [
+        {
+          "value": "EMR_DefaultRole",
+          "name": "default_emr_service_role"
+        }
+      ]
+    },
+    "default_emr_job_flow_role": {
+      "description": "The default EMR EC2 Instance role",
+      "values": [
+        {
+          "value": "EMR_EC2_DefaultRole",
+          "name": "default_emr_job_flow_role"
+        }
+      ]
+    },
+    "on_demand": {
+      "description": "The onDemand type of Market Type",
+      "values": [
+        {
+          "name": "on_demand"
         }
       ]
     }
@@ -387,6 +501,192 @@
           "name": "environment_variables",
           "type": "[environment_variable]",
           "required": false
+        }
+      ]
+    },
+    "emr_instance_group_details": {
+      "description": "Additional configuration for Master/Core/Task EMR instance Groups.",
+      "fields": [
+        {
+          "name": "emr_instance_type",
+          "type": "string"
+        },
+        {
+          "name": "instance_count",
+          "type": "integer"
+        },
+        {
+          "name": "aws_market",
+          "type": "aws_market"
+        },
+        {
+          "name": "ebs_volume_size",
+          "type": "integer",
+          "description": "optional EBS volume in GB to attach to the emr instance, for simplicity only one volume for the given size and type gp2 will be created.",
+          "required": false
+        }
+      ]
+    },
+    "new_emr_cluster": {
+      "description": "New EMR cluster configuration object",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "release_label",
+          "type": "emr_release_label",
+          "default": "emr-5.10.0"
+        },
+        {
+          "name": "applications",
+          "type": "[emr_application]"
+        },
+        {
+          "name": "s3_log_uri",
+          "type": "string"
+        },
+        {
+          "name": "master_instance",
+          "type": "emr_instance_group_details"
+        },
+        {
+          "name": "core_instance",
+          "type": "emr_instance_group_details",
+          "required": false
+        },
+        {
+          "name": "task_instance",
+          "type": "emr_instance_group_details",
+          "required": false
+        },
+        {
+          "name": "ec2_subnet",
+          "type": "string",
+          "required": false,
+          "description": "To be set in case the EMR cannot be launched in the `default VPC`"
+        },
+        {
+          "name": "emr_service_role",
+          "type": "emr_service_role",
+          "description": "role to be assigned to the service, the default one should cover most of the cases"
+        },
+        {
+          "name": "emr_job_flow_role",
+          "type": "emr_job_flow_role",
+          "description": "role to be assigned to the ec2 instances composing the EMR cluster. The default one should cover most of the cases"
+        },
+        {
+          "name": "visible_to_all_users",
+          "type": "boolean",
+          "default": "false",
+          "description": "whether or not to show the new cluster in the list of clusters. For more details see [emr docs](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-emr-cluster.html#cfn-emr-cluster-visibletoallusers)"
+        }
+      ]
+    },
+    "existing_emr_cluster": {
+      "description": "Existing EMR cluster configuration object",
+      "fields": [
+        {
+          "name": "cluster_id",
+          "type": "string",
+          "description": "The EMR cluster id",
+          "example": "j-2CRR69WTM7N31"
+        }
+      ]
+    },
+    "emr_command": {
+      "fields": [
+        {
+          "name": "emr_cluster",
+          "type": "emr_cluster",
+          "required": true,
+          "description": "The EMR cluster on which to launch the job (aka step)"
+        },
+        {
+          "name": "job_name",
+          "type": "string",
+          "required": true,
+          "description": "NAme to be assigned to the Job"
+        },
+        {
+          "name": "region",
+          "type": "string",
+          "required": true,
+          "description": "the AWS Region",
+          "default": "us-east-1"
+        },
+        {
+          "name": "class",
+          "type": "string",
+          "description": "The spark job's `Main.class` to run",
+          "example": "org.apache.spark.examples.SparkPi"
+        },
+        {
+          "name": "s3_jar_path",
+          "type": "string",
+          "required": true,
+          "description": "the s3 path to the jar of the job to be run",
+          "example": "s3://my-emr-source-bucket/my-emr-jar.jar"
+        },
+        {
+          "name": "spark_conf",
+          "type": "[string]",
+          "example": "[\"spark.driver.extraJavaOptions=-Denvironment=integration\"]",
+          "description": "options that will be sent to spark as --conf key=value, e.g. `--conf spark.driver.extraJavaOptions=-Denvironment=integration`"
+        },
+        {
+          "name": "args",
+          "type": "[string]",
+          "required": true,
+          "description": "command line arguments to be passe to the job's main class",
+          "example": "[\"--executor-memory\", \"1g\"]"
+        },
+        {
+          "name": "s3_log_details",
+          "description": "AWS EMR periodically (currently every 5 minutes) zips up all the logs and upload them into S3. This does not work well with sundial's _live logs_. Make use of S3 Logs to visualise in real time job's log on sundial's live logs panel",
+          "type": {
+            "model": "s3_log_details",
+            "fields": [
+              {
+                "name": "log_group_name",
+                "type": "string"
+              },
+              {
+                "name": "log_stream_name",
+                "type": "string"
+              }
+            ]
+          },
+          "required": false
+        }
+      ]
+    },
+    "custom_emr_service_role": {
+      "description": "Custom, preconfigured, EMR Service role",
+      "fields": [
+        {
+          "name": "role_name",
+          "type": "string"
+        }
+      ]
+    },
+    "custom_emr_job_flow_role": {
+      "description": "Custom, preconfigured, EMR EC2 instance role",
+      "fields": [
+        {
+          "name": "role_name",
+          "type": "string"
+        }
+      ]
+    },
+    "spot": {
+      "description": "the maximum spot bid price",
+      "fields": [
+        {
+          "name": "bid_price",
+          "type": "decimal"
         }
       ]
     },

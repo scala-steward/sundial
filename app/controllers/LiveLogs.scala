@@ -6,13 +6,16 @@ import javax.inject.Inject
 
 import com.amazonaws.services.logs.AWSLogs
 import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
+import com.amazonaws.services.s3.model.S3ObjectSummary
+import com.amazonaws.services.s3.{AmazonS3Client, AmazonS3ClientBuilder}
 import dao.SundialDaoFactory
-import model.{BatchExecutable, ECSExecutable}
+import model.{BatchExecutable, ECSExecutable, EmrJobExecutable}
 import org.apache.commons.lang3.StringEscapeUtils
 import play.api.mvc.{Action, Controller}
 import util.{DateUtils, Json}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 case class TaskLogsResponse(taskId: UUID, taskDefName: String, logPath: String, nextToken: String, events: Seq[OutputLogEvent])
 
@@ -63,18 +66,10 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
             taskDefinitions.get(task.taskDefinitionName).map(_.executable) match {
               case Some(e: ECSExecutable) =>
                 e.logPaths.flatMap { logPath =>
-                  val token = taskLogTokens.get(task.id -> logPath)
+                  val tokenOpt = taskLogTokens.get(task.id -> logPath)
                   try {
-                    val response = logsClient.getLogEvents(
-                      new GetLogEventsRequest()
-                        .withLogGroupName("sundial/tasks-internal")
-                        .withLogStreamName(s"${task.id}_${logPath}")
-                        .withNextToken(token.orNull)
-                        //.withStartTime(asOf.getTime)
-                    )
-                    val nextToken = response.getNextForwardToken
-                    val events = response.getEvents
-                    Some(TaskLogsResponse(task.id, task.taskDefinitionName, logPath, nextToken, events.asScala))
+                    val (nextToken, events) = fetchLogEvents("sundial/tasks-internal", s"${task.id}_${logPath}", tokenOpt, asOf)
+                    Some(TaskLogsResponse(task.id, task.taskDefinitionName, logPath, nextToken, events))
                   } catch {
                     case e: com.amazonaws.services.logs.model.ResourceNotFoundException => None
                   }
@@ -83,19 +78,21 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                 val containerStateOpt = dao.batchContainerStateDao.loadState(task.id)
                 containerStateOpt.flatMap { containerState =>
                   val jobId = containerState.jobId
-                  val token = taskLogTokens.get(task.id -> jobId.toString)
+                  val tokenOpt = taskLogTokens.get(task.id -> jobId.toString)
                   val logStreamOpt = containerState.logStreamName
                   logStreamOpt.map { logStream =>
-                    val response = logsClient.getLogEvents(
-                      new GetLogEventsRequest()
-                        .withLogGroupName(BATCH_LOG_GROUP)
-                        .withLogStreamName(logStream)
-                        .withNextToken(token.orNull)
-                    )
-                    val nextToken = response.getNextForwardToken
-                    val events = response.getEvents.asScala
+                    val (nextToken, events) = fetchLogEvents(BATCH_LOG_GROUP, logStream, tokenOpt, asOf)
                     TaskLogsResponse(task.id, task.taskDefinitionName, jobId.toString, nextToken, events)
                   }
+                }
+              case Some(e: EmrJobExecutable) =>
+                for {
+                  state <- dao.emrJobStateDao.loadState(task.id)
+                  logDetails <- e.s3LogDetailsOpt
+                } yield {
+                  val tokenOpt = taskLogTokens.get(task.id -> state.taskId.toString)
+                  val (nextToken, events) = fetchLogEvents(logDetails.logGroupName, logDetails.logStreamName, tokenOpt, asOf)
+                  TaskLogsResponse(task.id, task.taskDefinitionName, state.taskId.toString, nextToken, events)
                 }
               case _ =>
                 Seq.empty
@@ -127,6 +124,19 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
           NotFound
       }
     }
+  }
+
+  private def fetchLogEvents(logGroupName :String, logStreamName :String, tokenOpt: Option[String], asOf: Date) = {
+    val response = logsClient.getLogEvents(
+      new GetLogEventsRequest()
+        .withLogGroupName(logGroupName)
+        .withLogStreamName(logStreamName)
+        .withNextToken(tokenOpt.orNull)
+        .withStartTime(asOf.getTime)
+    )
+    val nextToken = response.getNextForwardToken
+    val events = response.getEvents
+    (nextToken, events.asScala)
   }
 
 }

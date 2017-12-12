@@ -39,7 +39,8 @@ trait SpecificTaskExecutor[ExecutableType <: Executable, StateType <: Executable
 }
 
 class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
-                             shellCommandExecutor: ShellCommandExecutor)(implicit configuration: Configuration, application: Application) {
+                             shellCommandExecutor: ShellCommandExecutor,
+                             emrServiceExecutor: EmrServiceExecutor)(implicit configuration: Configuration, application: Application) {
 
   // Not perfect design here, but because of the deprecation it will be enough to just delete line below and update cases accordingly.
   private val ecsContainerServiceExecutorOpt: Option[ECSServiceExecutor] = configuration.getString("ecs.cluster").fold(Option.empty[ECSServiceExecutor])(_ => Some(application.injector.instanceOf(classOf[ECSServiceExecutor])))
@@ -49,6 +50,7 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
       case e: ECSExecutable if ecsContainerServiceExecutorOpt.isDefined => ecsContainerServiceExecutorOpt.get.startExecutable(e, task)
       case e: BatchExecutable => batchServiceExecutor.startExecutable(e, task)
       case e: ShellCommandExecutable => shellCommandExecutor.startExecutable(e, task)
+      case e: EmrJobExecutable => emrServiceExecutor.startExecutable(e, task)
       case _ => Logger.warn(s"No Executor found for Task($task)")
     }
   }
@@ -58,6 +60,7 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
       case _: ECSExecutable if ecsContainerServiceExecutorOpt.isDefined => ecsContainerServiceExecutorOpt.get.killExecutable(task, reason)
       case _: BatchExecutable => batchServiceExecutor.killExecutable(task, reason)
       case _: ShellCommandExecutable => shellCommandExecutor.killExecutable(task, reason)
+      case _: EmrJobExecutable => emrServiceExecutor.killExecutable(task, reason)
       case _ => Logger.warn(s"No Executor found for Task($task)")
     }
   }
@@ -68,6 +71,7 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
       case _: ECSExecutable if ecsContainerServiceExecutorOpt.isDefined => ecsContainerServiceExecutorOpt.get.refreshStatus(task)
       case _: BatchExecutable => batchServiceExecutor.refreshStatus(task)
       case _: ShellCommandExecutable => shellCommandExecutor.refreshStatus(task)
+      case _: EmrJobExecutable => emrServiceExecutor.refreshStatus(task)
       case _ => {
         Logger.warn(s"No Executor found for Task($task)")
         None

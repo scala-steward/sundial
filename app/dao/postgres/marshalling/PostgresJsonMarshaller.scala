@@ -43,6 +43,7 @@ object PostgresJsonMarshaller {
   final val EXECUTABLE_SHELL = "shell"
   final val EXECUTABLE_DOCKER = "docker"
   final val EXECUTABLE_BATCH = "batch"
+  final val EXECUTABLE_EMR = "emr"
 
   final val SCHEDULE_TYPE_KEY = "type"
   final val SCHEDULE_CONTINUOUS = "continuous"
@@ -71,14 +72,16 @@ object PostgresJsonMarshaller {
       case EXECUTABLE_SHELL => mapper.treeToValue[ShellCommandExecutable](tree)
       case EXECUTABLE_DOCKER => mapper.treeToValue[ECSExecutable](tree)
       case EXECUTABLE_BATCH => mapper.treeToValue[BatchExecutable](tree)
+      case EXECUTABLE_EMR => mapper.treeToValue[EmrJobExecutable](tree)
     }
   }
 
   def toJson(executable: Executable): String = {
     val executableType = executable match {
-      case e: ShellCommandExecutable => EXECUTABLE_SHELL
-      case e: ECSExecutable => EXECUTABLE_DOCKER
-      case e: BatchExecutable => EXECUTABLE_BATCH
+      case _: ShellCommandExecutable => EXECUTABLE_SHELL
+      case _: ECSExecutable => EXECUTABLE_DOCKER
+      case _: BatchExecutable => EXECUTABLE_BATCH
+      case _: EmrJobExecutable => EXECUTABLE_EMR
     }
     val tree: ObjectNode = mapper.valueToTree(executable)
     tree.put(EXECUTABLE_TYPE_KEY, executableType)

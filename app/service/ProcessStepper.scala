@@ -216,6 +216,9 @@ class ProcessStepper @Inject() (
           case Some(BatchExecutorStatus.Runnable) => TaskStatus.Running()
           case Some(BatchExecutorStatus.Pending) => TaskStatus.Running()
           case Some(BatchExecutorStatus.Submitted) => TaskStatus.Running()
+          case Some(EmrExecutorState.CancelPending) => TaskStatus.Running()
+          case Some(EmrExecutorState.Cancelled) => TaskStatus.Failure(new Date(), Some("Emr Job Cancelled"))
+          case Some(EmrExecutorState.Interrupted) => TaskStatus.Failure(new Date(), Some("Emr Job Interrupted"))
 
           case None =>
             val message = s"The underlying executable was apparently never started; updating task as failed."

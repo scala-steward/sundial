@@ -68,7 +68,7 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                 e.logPaths.flatMap { logPath =>
                   val tokenOpt = taskLogTokens.get(task.id -> logPath)
                   try {
-                    val (nextToken, events) = fetchLogEvents("sundial/tasks-internal", s"${task.id}_${logPath}", tokenOpt, asOf)
+                    val (nextToken, events) = fetchLogEvents("sundial/tasks-internal", s"${task.id}_${logPath}", tokenOpt)
                     Some(TaskLogsResponse(task.id, task.taskDefinitionName, logPath, nextToken, events))
                   } catch {
                     case e: com.amazonaws.services.logs.model.ResourceNotFoundException => None
@@ -81,7 +81,7 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                   val tokenOpt = taskLogTokens.get(task.id -> jobId.toString)
                   val logStreamOpt = containerState.logStreamName
                   logStreamOpt.map { logStream =>
-                    val (nextToken, events) = fetchLogEvents(BATCH_LOG_GROUP, logStream, tokenOpt, asOf)
+                    val (nextToken, events) = fetchLogEvents(BATCH_LOG_GROUP, logStream, tokenOpt)
                     TaskLogsResponse(task.id, task.taskDefinitionName, jobId.toString, nextToken, events)
                   }
                 }
@@ -91,7 +91,7 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                   logDetails <- e.s3LogDetailsOpt
                 } yield {
                   val tokenOpt = taskLogTokens.get(task.id -> state.taskId.toString)
-                  val (nextToken, events) = fetchLogEvents(logDetails.logGroupName, logDetails.logStreamName, tokenOpt, asOf)
+                  val (nextToken, events) = fetchLogEvents(logDetails.logGroupName, logDetails.logStreamName, tokenOpt)
                   TaskLogsResponse(task.id, task.taskDefinitionName, state.taskId.toString, nextToken, events)
                 }
               case _ =>
@@ -126,17 +126,19 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
     }
   }
 
-  private def fetchLogEvents(logGroupName :String, logStreamName :String, tokenOpt: Option[String], asOf: Date) = {
-    val response = logsClient.getLogEvents(
-      new GetLogEventsRequest()
-        .withLogGroupName(logGroupName)
-        .withLogStreamName(logStreamName)
-        .withNextToken(tokenOpt.orNull)
-        .withStartTime(asOf.getTime)
-    )
+  private def fetchLogEvents(logGroupName :String, logStreamName :String, tokenOpt: Option[String]) = {
+
+    val getLogRequest = new GetLogEventsRequest()
+      .withLogGroupName(logGroupName)
+      .withLogStreamName(logStreamName)
+      .withNextToken(tokenOpt.orNull)
+
+    val response = logsClient.getLogEvents(getLogRequest)
+
     val nextToken = response.getNextForwardToken
     val events = response.getEvents
     (nextToken, events.asScala)
+
   }
 
 }

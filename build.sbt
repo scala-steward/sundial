@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
     ws,
     cache,
     "com.typesafe.play" %% "anorm" % "2.5.3",
-    "com.amazonaws"                % "aws-java-sdk"              % "1.11.233",
+    "com.amazonaws"                % "aws-java-sdk"              % "1.11.248",
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
     "org.postgresql"               % "postgresql"                % "42.1.4",

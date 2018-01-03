@@ -1,6 +1,6 @@
 FROM phusion/baseimage
 
-RUN add-apt-repository -y ppa:fkrull/deadsnakes && \
+RUN add-apt-repository -y ppa:deadsnakes/ppa && \
     apt-get update && \
     apt-get install -y python2.7 wget && \
     ln -s /usr/bin/python2.7 /usr/bin/python && \

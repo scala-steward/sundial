@@ -2,7 +2,8 @@ name := """sundial"""
 
 version := "git describe --tags --dirty --always".!!.stripPrefix("v").trim
 
-enablePlugins(PlayScala)
+enablePlugins(PlayScala, PlayAkkaHttpServer)
+disablePlugins(PlayNettyServer)
 
 scalaVersion := "2.11.12"
 

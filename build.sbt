@@ -1,3 +1,5 @@
+import scoverage.ScoverageKeys
+
 name := """sundial"""
 
 version := "git describe --tags --dirty --always".!!.stripPrefix("v").trim

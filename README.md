@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/gilt/sundial.svg?branch=master)](https://travis-ci.org/gilt/sundial)
+[![Build Status](https://travis-ci.org/gilt/sundial.svg?branch=master)](https://travis-ci.org/gilt/sundial) [![Coverage Status](https://coveralls.io/repos/github/gilt/sundial/badge.svg?branch=master)](https://coveralls.io/github/gilt/sundial?branch=master)
 
 # Sundial
 

@@ -4,7 +4,7 @@
 
 What is Sundial?
 
-Sundial is a batch job scheduler for running Dockerized batch jobs on either Amazon ECS or recently, AWS Batch
+Sundial is a batch job scheduler for running Dockerized batch jobs on either Amazon ECS or recently, AWS Batch and AWS EMR (Elastic MapReduce)
 
 Think of Sundial as an alternative to Chronos that uses Amazon ECS instead of Mesos and has some nice extra features.
 

@@ -376,7 +376,7 @@
           "name": "require_explicit_success",
           "description": "If true, the task must explicitly update its status with Sundial in order to succeed.",
           "type": "boolean",
-          "required": true
+          "default": false
         }
       ]
     },

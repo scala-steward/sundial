@@ -22,7 +22,7 @@ class PostgresEmrStateDao(implicit conn: Connection) extends ExecutableStateDao[
         taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
         jobName = row.getString(COL_JOB_NAME),
         clusterId = row.getString(COL_CLUSTER_ID),
-        stepId = row.getString(COL_STEP_ID),
+        stepIds = row.getString(COL_STEP_ID).split(","),
         region = row.getString(COL_REGION),
         asOf = javaDate(row.getTimestamp(COL_AS_OF)),
         status = PostgresEmrExecutorStatus(rs.getString(COL_STATUS))
@@ -60,7 +60,7 @@ class PostgresEmrStateDao(implicit conn: Connection) extends ExecutableStateDao[
       stmt.setObject(1, state.taskId)
       stmt.setString(2, state.jobName)
       stmt.setString(3, state.clusterId)
-      stmt.setString(4, state.stepId)
+      stmt.setString(4, state.stepIds.mkString(","))
       stmt.setString(5, state.region)
       stmt.setTimestamp(6, state.asOf)
       stmt.setString(7, PostgresEmrExecutorStatus(state.status))

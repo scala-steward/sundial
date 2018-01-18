@@ -18,7 +18,8 @@ services:
       SUNDIAL_DB_USERNAME: sundial
       SUNDIAL_DB_PASSWORD: password
       NOTIFICATIONS_EMAIL_FROM: "Sundial <sundial@yourdomain.com>"
-      SUNDIAL_ECS_CLUSTER:
+      SUNDIAL_ECS_CLUSTER: ""
+      ECS_COMPANION_TAG: ""
     env_file:
       - ./.aws.env
     privileged: true

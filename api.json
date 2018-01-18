@@ -599,6 +599,23 @@
         }
       ]
     },
+    "s3_cp": {
+      "description": "Wrapper of the S3DistCp spark job for more info visit the aws [s3-dist-cp](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/UsingEMR_s3distcp.html) page",
+      "fields": [
+        {
+          "name": "source",
+          "type": "string",
+          "description": "Source folder or file to copy. It can be either a s3 or HDFS location",
+          "example": "s3:///my-bucket-root - hdfs://tmp/my-temp-folder"
+        },
+        {
+          "name": "destination",
+          "type": "string",
+          "description": "Source folder or file to copy. It can be either a s3 or HDFS location",
+          "example": "s3:///my-bucket-root - hdfs://tmp/my-temp-folder"
+        }
+      ]
+    },
     "emr_command": {
       "fields": [
         {
@@ -662,6 +679,18 @@
               }
             ]
           },
+          "required": false
+        },
+        {
+          "name": "load_data",
+          "description": "will trigger a s3 dist cp job for every entry in this array, can be used to load data from s3 into HDFS. **requires Hadoop** as application on the cluster",
+          "type": "[s3_cp]",
+          "required": false
+        },
+        {
+          "name": "save_results",
+          "description": "will trigger a s3 dist cp job for every entry in this array, can be used to save data from HDFS to s3. **requires Hadoop** as application on the cluster",
+          "type": "[s3_cp]",
           "required": false
         }
       ]

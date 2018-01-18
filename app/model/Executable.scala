@@ -61,6 +61,8 @@ case class LogDetails(logGroupName: String, logStreamName: String)
 
 case class InstanceGroupDetails(instanceType: String, instanceCount: Int, awsMarket: String, bidPriceOpt: Option[Double], ebsVolumeSizeOpt: Option[Int])
 
+case class CopyFileJob(source: String, destination: String)
+
 case class EmrJobExecutable(emrClusterDetails: EmrClusterDetails,
                             jobName: String,
                             region: String,
@@ -68,6 +70,8 @@ case class EmrJobExecutable(emrClusterDetails: EmrClusterDetails,
                             s3JarPath: String,
                             sparkConf: Seq[String],
                             args: Seq[String],
-                            s3LogDetailsOpt: Option[LogDetails]) extends Executable
+                            s3LogDetailsOpt: Option[LogDetails],
+                            loadData: Option[Seq[CopyFileJob]],
+                            saveResults: Option[Seq[CopyFileJob]]) extends Executable
 
-case class EmrJobState(taskId: UUID, jobName: String, clusterId: String, stepId: String, region: String, asOf: Date, status: ExecutorStatus) extends ExecutableState
+case class EmrJobState(taskId: UUID, jobName: String, clusterId: String, stepIds: Seq[String], region: String, asOf: Date, status: ExecutorStatus) extends ExecutableState

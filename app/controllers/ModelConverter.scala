@@ -178,7 +178,7 @@ object ModelConverter {
       v0.models.DockerImageCommand(image, tag, command, memory, cpu, taskRoleArn, logPaths, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)))
     case model.BatchExecutable(image, tag, command, memory, vCpus, jobRoleArn, environmentVariables, jobQueue) =>
       v0.models.BatchImageCommand(image, tag, command, memory, vCpus, jobRoleArn, environmentVariables.toSeq.map(variable => EnvironmentVariable(variable._1, variable._2)), jobQueue)
-    case model.EmrJobExecutable(emrClusterDetails, jobName, region, clazz, s3JarPath, sparkConf, args, s3LogDetailsOpt) => {
+    case model.EmrJobExecutable(emrClusterDetails, jobName, region, clazz, s3JarPath, sparkConf, args, s3LogDetailsOpt, loadData, saveResults) => {
       def toEmrInstanceGroup(instanceGroupDetails: InstanceGroupDetails) = {
         val awsMarket = (instanceGroupDetails.awsMarket, instanceGroupDetails.bidPriceOpt) match {
           case ("on_demand", None) => OnDemand.OnDemand
@@ -232,7 +232,9 @@ object ModelConverter {
       val logDetailsOpt = s3LogDetailsOpt.flatMap {
         case LogDetails(logGroupName, logStreamName) => Some(S3LogDetails(logGroupName, logStreamName))
       }
-      v0.models.EmrCommand(cluster, jobName, region, clazz, s3JarPath, sparkConf, args, logDetailsOpt)
+      val loadDataOpt = loadData.map(_.map(copyFileJob => S3Cp(copyFileJob.source, copyFileJob.destination)))
+      val saveResultsOpt = saveResults.map(_.map(copyFileJob => S3Cp(copyFileJob.source, copyFileJob.destination)))
+      v0.models.EmrCommand(cluster, jobName, region, clazz, s3JarPath, sparkConf, args, logDetailsOpt, loadDataOpt, saveResultsOpt)
     }
   }
 
@@ -280,7 +282,7 @@ object ModelConverter {
         jobQueue
       )
 
-    case v0.models.EmrCommand(emrCluster, jobName, region, clazz, s3JarPath, sparkConf, args, s3LogDetailsOpt) => {
+    case v0.models.EmrCommand(emrCluster, jobName, region, clazz, s3JarPath, sparkConf, args, s3LogDetailsOpt, loadDataOpt, saveResultsOpt) => {
 
       def toInstanceGroupDetails(emrInstanceGroupDetails: EmrInstanceGroupDetails) = {
         val (awsMarket: String, bidPriceOpt: Option[Double]) = emrInstanceGroupDetails.awsMarket match {
@@ -329,7 +331,9 @@ object ModelConverter {
       val logDetailsOpt = s3LogDetailsOpt.map {
         case S3LogDetails(logGroupName, logStreamName) => LogDetails(logGroupName, logStreamName)
       }
-      EmrJobExecutable(clusterDetails, jobName, region, clazz, s3JarPath, sparkConf, args, logDetailsOpt)
+      val loadData = loadDataOpt.map(_.map(s3Cp => CopyFileJob(s3Cp.source, s3Cp.destination)))
+      val saveResults = saveResultsOpt.map(_.map(s3Cp => CopyFileJob(s3Cp.source, s3Cp.destination)))
+      EmrJobExecutable(clusterDetails, jobName, region, clazz, s3JarPath, sparkConf, args, logDetailsOpt, loadData, saveResults)
     }
     case v0.models.TaskExecutableUndefinedType(description) =>
       throw new IllegalArgumentException(s"Unknown executable type with description [$description]")

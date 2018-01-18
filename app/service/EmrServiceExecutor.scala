@@ -9,19 +9,14 @@ import com.amazonaws.services.elasticmapreduce.{AmazonElasticMapReduce, AmazonEl
 import dao.{ExecutableStateDao, SundialDao}
 import model._
 import play.api.Logger
+import service.emr.EmrStepHelper
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutable, EmrJobState] {
 
-  private val CommandRunnerJar = "command-runner.jar"
-
-  private val SparkSubmitCommand = "spark-submit"
-
-  private val ConfOption = "--conf"
-
-  private val ClassOption = "--class"
+  private val emrStateHelper = EmrStepHelper()
 
   override protected def stateDao(implicit dao: SundialDao): ExecutableStateDao[EmrJobState] = dao.emrJobStateDao
 
@@ -35,61 +30,37 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
   }
 
-  /**
-    * Builds the spark submit ARGS=[]
-    *
-    * @param executable
-    * @return
-    */
-  private def buildSparkArgs(executable: EmrJobExecutable) = {
-    val sparkConfigs = executable
-      .sparkConf
-      .flatMap(conf => List(ConfOption, conf))
-
-    List(SparkSubmitCommand) ++
-      sparkConfigs ++
-      List(
-        ClassOption, executable.clazz,
-        executable.s3JarPath
-      ) ++
-      executable.args
-  }
-
   private def submitJobToExistingCluster(executable: EmrJobExecutable, task: Task) = {
 
     val emrClient = getEmrClient(executable.region)
 
     val clusterId = executable.emrClusterDetails.clusterId.get
 
-    val args = buildSparkArgs(executable)
+    val args = emrStateHelper.buildSparkArgs(executable)
 
-    val (stepId, executorStatus) = try {
+    val loadDataJobs = emrStateHelper.toStepConfig(executable.loadData)
+    val saveResultsJobs = emrStateHelper.toStepConfig(executable.saveResults)
+
+    val steps = loadDataJobs ++
+      List(emrStateHelper.buildStepConfig(executable.jobName, args, ActionOnFailure.CONTINUE)) ++
+      saveResultsJobs
+
+    val (stepIds, executorStatus) = try {
       val jobRequest = new AddJobFlowStepsRequest(clusterId)
-        .withSteps(
-          List(
-            new StepConfig()
-              .withActionOnFailure(ActionOnFailure.CONTINUE)
-              .withName(executable.jobName)
-              .withHadoopJarStep(
-                new HadoopJarStepConfig(CommandRunnerJar)
-                  .withArgs(args: _*)
-              )
-          ): _*
-        )
-      val stepId = emrClient
+        .withSteps(steps: _*)
+      val stepIds: Seq[String] = emrClient
         .addJobFlowSteps(jobRequest)
         .getStepIds
         .asScala
-        .head
-      (stepId, ExecutorStatus.Initializing)
+      (stepIds, ExecutorStatus.Initializing)
     } catch {
-      case NonFatal(t) => ("N/A", ExecutorStatus.Failed(Some(t.getMessage)))
+      case NonFatal(t) => (List("N/A"), ExecutorStatus.Failed(Some(t.getMessage)))
     }
 
     EmrJobState(task.id,
       executable.jobName,
       clusterId,
-      stepId,
+      stepIds,
       executable.region,
       new Date(),
       executorStatus)
@@ -150,7 +121,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       // List of applications to install on the new EMR cluster
       val applications = clusterDetails.applications.map(new Application().withName(_))
 
-      val args = buildSparkArgs(executable)
+      val args = emrStateHelper.buildSparkArgs(executable)
 
       // Master, Core and Task instance groups
       val instanceDetails = List(
@@ -167,17 +138,18 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       // Add Ec2Subnet if subnet defined in configuration
       jobFlowInstancesConfig = executable.emrClusterDetails.ec2Subnet.fold(jobFlowInstancesConfig)(jobFlowInstancesConfig.withEc2SubnetId(_))
 
+      val loadDataSteps = emrStateHelper.toStepConfig(executable.loadData)
+      val saveResultSteps = emrStateHelper.toStepConfig(executable.saveResults)
+
+      val stepConfigs = loadDataSteps ++
+        List(emrStateHelper.buildStepConfig(executable.jobName, args)) ++
+        saveResultSteps
+
       // The actual cluster to launch
       val request = new RunJobFlowRequest()
         .withName(clusterName)
         .withReleaseLabel(releaseLabel)
-        .withSteps(new StepConfig()
-          .withName(executable.jobName)
-          .withActionOnFailure(ActionOnFailure.TERMINATE_CLUSTER)
-          .withHadoopJarStep(
-            new HadoopJarStepConfig(CommandRunnerJar)
-              .withArgs(args: _*)
-          ))
+        .withSteps(stepConfigs: _*)
         .withApplications(applications: _*)
         .withLogUri(logUri)
         .withServiceRole(emrServiceRole)
@@ -188,21 +160,19 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       // aka the cluster id
       val flowId = emrClient.runJobFlow(request).getJobFlowId
 
-      val step = emrClient
+      val steps = emrClient
         .listSteps(new ListStepsRequest().withClusterId(flowId))
         .getSteps
         .asScala
-        .find(_.getName == executable.jobName) // There will always be only one.
-        .get
 
 
       EmrJobState(task.id,
         executable.jobName,
         flowId,
-        step.getId,
+        steps.map(_.getId),
         executable.region,
         new Date(),
-        getExecutorState(step.getStatus.getState))
+        emrStateHelper.getOverallExecutorState(steps.map(_.getStatus.getState)))
 
     }
 
@@ -211,7 +181,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
       EmrJobState(task.id,
         executable.jobName,
         "N/A",
-        "N/A",
+        List("N/A"),
         executable.region,
         new Date(),
         ExecutorStatus.Failed(Some("Could not create new EMR cluster, verify configuration")))
@@ -240,7 +210,7 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
     if (emrJobExecutable.emrClusterDetails.existingCluster) {
 
-      val cancelStepsRequest = new CancelStepsRequest().withClusterId(state.clusterId).withStepIds(state.stepId)
+      val cancelStepsRequest = new CancelStepsRequest().withClusterId(state.clusterId).withStepIds(state.stepIds: _*)
       val response = emrClient.cancelSteps(cancelStepsRequest)
       val stepCancelResponse = response
         .getCancelStepsInfoList
@@ -256,26 +226,13 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
 
   }
 
-  private def getExecutorState(state: String): ExecutorStatus = {
-    state match {
-      case "PENDING" => ExecutorStatus.Initializing
-      case "CANCEL_PENDING" => EmrExecutorState.CancelPending
-      case "RUNNING" => ExecutorStatus.Running
-      case "COMPLETED" => ExecutorStatus.Succeeded
-      case "CANCELLED" => EmrExecutorState.Cancelled
-      case "FAILED" => ExecutorStatus.Failed(None)
-      case "INTERRUPTED" => EmrExecutorState.Interrupted
-      case state => throw new IllegalArgumentException(s"Unexpected State($state)")
-    }
-  }
-
   override protected def actuallyRefreshState(state: EmrJobState)(implicit dao: SundialDao): EmrJobState = {
     val emrClient = getEmrClient(state.region)
 
-    val listStepsRequest = new ListStepsRequest().withClusterId(state.clusterId).withStepIds(state.stepId)
+    val listStepsRequest = new ListStepsRequest().withClusterId(state.clusterId).withStepIds(state.stepIds: _*)
     try {
-      val status = emrClient.listSteps(listStepsRequest).getSteps.asScala.head.getStatus
-      state.copy(status = getExecutorState(status.getState))
+      val statuses = emrClient.listSteps(listStepsRequest).getSteps.asScala.map(_.getStatus.getState)
+      state.copy(status = emrStateHelper.getOverallExecutorState(statuses))
     } catch {
       case NonFatal(t) => {
         Logger.error(s"Could not refresh State($state)", t)

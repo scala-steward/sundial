@@ -180,6 +180,9 @@
     "emr_release_label": {
       "description": "Version (aka label in AWS-EMR) of the EMR stack to create.",
       "values": [
+        { 
+          "name": "emr-5.11.1"
+        },
         {
           "name": "emr-5.11.0"
         },

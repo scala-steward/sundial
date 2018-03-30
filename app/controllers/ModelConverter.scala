@@ -214,7 +214,7 @@ object ModelConverter {
           }
           v0.models.NewEmrCluster(
             clusterName,
-            EmrReleaseLabel.fromString(releaseLabel).get,
+            EmrReleaseLabel.fromString(releaseLabel).getOrElse(sys.error(s"Unrecognised EMR version $releaseLabel")),
             applications.map(EmrApplication.fromString(_).get),
             s3LogUri,
             toEmrInstanceGroup(masterInstanceGroup),

@@ -10,16 +10,22 @@ import dao.SundialDaoFactory
 import dto.DisplayModels
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.io.IOUtils
+import play.api.http.FileMimeTypes
 import play.api.{Configuration, Logger}
 import play.api.mvc._
 import util.Graphify
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class Application @Inject() (config: Configuration,
                              graphify: Graphify,
                              daoFactory: SundialDaoFactory,
                              s3Client: AmazonS3,
                              displayModels: DisplayModels,
-                             @Named("s3Bucket") s3Bucket:String) extends Controller {
+                             @Named("s3Bucket") s3Bucket:String,
+                             fileMimeTypes: FileMimeTypes) extends Controller {
+
+  private implicit val fmt = fileMimeTypes
 
   def index = Action { implicit request =>
     daoFactory.withSundialDao { implicit dao =>

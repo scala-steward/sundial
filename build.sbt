@@ -13,6 +13,7 @@ val prometheusLibVersion = "0.8.4"
 
 libraryDependencies ++= Seq(
     jdbc,
+    guice,
     evolutions,
     ws,
     cache,
@@ -21,11 +22,11 @@ libraryDependencies ++= Seq(
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
     "org.postgresql"               % "postgresql"                % "42.1.4",
-    "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.8.7",           // only for JSON serialization for PostgreSQL
+    "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.8.11",           // only for JSON serialization for PostgreSQL
     "org.apache.commons"           % "commons-compress"          % "1.9",
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,
     "org.lyranthe.prometheus" %% "play25" % prometheusLibVersion,
-    "org.scalatestplus.play"       %% "scalatestplus-play"       % "2.0.0" % "test",
+    "org.scalatestplus.play"       %% "scalatestplus-play"       % "3.1.2" % "test",
     "org.mockito" % "mockito-all" % "1.10.19" % "test"
   )
 

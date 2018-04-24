@@ -9,7 +9,7 @@ import javax.inject.Inject
 import dao._
 import model._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 object ShellCommandRegistry {
 
@@ -83,11 +83,11 @@ class ShellCommandExecutor @Inject() (daoFactory: SundialDaoFactory) extends Spe
     bw.write(executable.script)
     bw.close()
 
-    val builder = new ProcessBuilder().command(Seq("bash", scriptFile.getAbsolutePath()))
+    val builder = new ProcessBuilder().command(Seq("bash", scriptFile.getAbsolutePath()).asJava)
     // communicate to the script how many attempts have been made before through an env variable
     // this is important for our unit tests and should not be removed!
     builder.environment().put("SUNDIAL_TASK_PREVIOUS_ATTEMPTS", task.previousAttempts.toString())
-    builder.environment().putAll(executable.environmentVariables)
+    builder.environment().putAll(executable.environmentVariables.asJava)
     val shellProcess = builder.start()
     val stdoutFlag = redirectOutput(shellProcess.getInputStream(), "stdout", task)
     val stderrFlag = redirectOutput(shellProcess.getInputStream(), "stderr", task)

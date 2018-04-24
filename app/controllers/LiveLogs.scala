@@ -2,25 +2,22 @@ package controllers
 
 import java.util.concurrent.TimeUnit
 import java.util.{Date, UUID}
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.amazonaws.services.logs.AWSLogs
 import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
-import com.amazonaws.services.s3.model.S3ObjectSummary
-import com.amazonaws.services.s3.{AmazonS3Client, AmazonS3ClientBuilder}
 import dao.SundialDaoFactory
 import model.{BatchExecutable, ECSExecutable, EmrJobExecutable}
 import org.apache.commons.lang3.StringEscapeUtils
-import play.api.mvc.{Action, Controller}
+import play.api.mvc.InjectedController
 import util.{DateUtils, Json}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 
 case class TaskLogsResponse(taskId: UUID, taskDefName: String, logPath: String, nextToken: String, events: Seq[OutputLogEvent])
 
 class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
-                          logsClient: AWSLogs) extends Controller {
+                          logsClient: AWSLogs) extends InjectedController {
 
   private val TaskLogToken = "task_([^_]+)_(.*)".r
 

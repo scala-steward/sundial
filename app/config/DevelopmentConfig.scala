@@ -19,7 +19,7 @@ class DevelopmentConfig(environment: Environment, configuration: Configuration) 
   @Provides
   @Named("s3Bucket")
   @Singleton
-  def s3Bucket: String = configuration.getString("s3.bucket").get
+  def s3Bucket: String = configuration.get[String]("s3.bucket")
 
   @Provides
   @Named("sdbDomain")

@@ -11,7 +11,7 @@ import dao.SundialDaoFactory
 import play.api.libs.json.Json
 import play.api.mvc._
 
-class Processes @Inject() (daoFactory: SundialDaoFactory) extends Controller {
+class Processes @Inject() (daoFactory: SundialDaoFactory) extends InjectedController {
 
   def get(processDefinitionName: Option[String],
           startTime: Option[DateTime],

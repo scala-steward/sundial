@@ -1,18 +1,18 @@
 package controllers
 
 import java.util.{Date, UUID}
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
 import controllers.ModelConverter.toInternalNotification
 import dao.SundialDaoFactory
 import model._
 import play.api.libs.json.Json
-import play.api.mvc.{Action, Controller}
+import play.api.mvc.InjectedController
 import util.CycleDetector
 
-class ProcessDefinitions @Inject() (daoFactory: SundialDaoFactory) extends Controller {
+class ProcessDefinitions @Inject() (daoFactory: SundialDaoFactory) extends InjectedController {
 
   def get() = Action {
     val result: Seq[v0.models.ProcessDefinition] = daoFactory.withSundialDao { implicit dao =>

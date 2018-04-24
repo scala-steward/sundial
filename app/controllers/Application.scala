@@ -23,7 +23,7 @@ class Application @Inject() (config: Configuration,
                              s3Client: AmazonS3,
                              displayModels: DisplayModels,
                              @Named("s3Bucket") s3Bucket:String,
-                             fileMimeTypes: FileMimeTypes) extends Controller {
+                             fileMimeTypes: FileMimeTypes) extends InjectedController {
 
   private implicit val fmt = fileMimeTypes
 

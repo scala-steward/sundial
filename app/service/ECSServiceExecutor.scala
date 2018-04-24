@@ -29,11 +29,11 @@ class ECSServiceExecutor @Inject()(config: Configuration,
                                    @Named("s3Bucket") s3Bucket: String,
                                    @Named("sdbDomain") sdbDomain: String) extends SpecificTaskExecutor[ECSExecutable, ECSContainerState] {
 
-  val awsRegion = config.getString("aws.region")
-  val companionImage = config.getString("ecs.companion.tag").get
-  val cluster = config.getString("ecs.cluster").get
-  val defaultCpu = config.getInt("ecs.defaultCpu").get
-  val defaultMemory = config.getInt("ecs.defaultMemory").get
+  val awsRegion = config.getOptional[String]("aws.region")
+  val companionImage = config.get[String]("ecs.companion.tag")
+  val cluster = config.get[String]("ecs.cluster")
+  val defaultCpu = config.get[Int]("ecs.defaultCpu")
+  val defaultMemory = config.get[Int]("ecs.defaultMemory")
 
   implicit val ecsClient = injectedEcsClient
 

@@ -62,11 +62,11 @@ class Config(environment: Environment, configuration: Configuration) extends Abs
   @Provides
   @Singleton
   def notifications(wsClient: WSClient, daoFactory: SundialDaoFactory, displayModels: DisplayModels, sesClient: AmazonSimpleEmailServiceAsync): Seq[Notification] = {
-    configuration.getString("notifications.mode") match {
+    configuration.getOptional[String]("notifications.mode") match {
       case Some("browser") => Seq(new DevelopmentEmailNotifications(daoFactory, displayModels, sesClient))
-      case Some("email") => Seq(new EmailNotifications(daoFactory, configuration.getString("notifications.from").get, displayModels, sesClient))
+      case Some("email") => Seq(new EmailNotifications(daoFactory, configuration.get[String]("notifications.from"), displayModels, sesClient))
       case Some("all") => Seq(
-        new EmailNotifications(daoFactory, configuration.getString("notifications.from").get, displayModels, sesClient),
+        new EmailNotifications(daoFactory, configuration.get[String]("notifications.from"), displayModels, sesClient),
         new PagerdutyNotifications(wsClient, daoFactory)
       )
       case _ => Seq.empty
@@ -76,9 +76,9 @@ class Config(environment: Environment, configuration: Configuration) extends Abs
   @Provides
   @Singleton
   def taskPlacementStrategy(): PlacementStrategy = {
-    val taskPlacementString = configuration.getString("ecs.defaultTaskPlacement").getOrElse("random").toLowerCase
-    val binpackPlacement = configuration.getString("ecs.binpackPlacement").getOrElse("memory").toLowerCase
-    val spreadPlacement = configuration.getString("ecs.spreadPlacement").getOrElse("host").toLowerCase
+    val taskPlacementString = configuration.getOptional[String]("ecs.defaultTaskPlacement").getOrElse("random").toLowerCase
+    val binpackPlacement = configuration.getOptional[String]("ecs.binpackPlacement").getOrElse("memory").toLowerCase
+    val spreadPlacement = configuration.getOptional[String]("ecs.spreadPlacement").getOrElse("host").toLowerCase
     val placementStrategyType = PlacementStrategyType.fromValue(taskPlacementString)
     val placementStrategy = new PlacementStrategy().withType(placementStrategyType)
     placementStrategyType match {

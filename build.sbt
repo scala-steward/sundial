@@ -1,4 +1,5 @@
 import scoverage.ScoverageKeys
+import scala.sys.process._
 
 name := """sundial"""
 
@@ -7,17 +8,16 @@ version := "git describe --tags --dirty --always".!!.stripPrefix("v").trim
 enablePlugins(PlayScala, PlayAkkaHttpServer)
 disablePlugins(PlayNettyServer)
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.4"
 
-val prometheusLibVersion = "0.8.4"
+val prometheusLibVersion = "0.9.0-M5"
 
 libraryDependencies ++= Seq(
     jdbc,
     guice,
     evolutions,
     ws,
-    cache,
-    "com.typesafe.play" %% "anorm" % "2.5.3",
+  "org.playframework.anorm" %% "anorm" % "2.6.1",
     "com.amazonaws"                % "aws-java-sdk"              % "1.11.248",
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
@@ -25,7 +25,7 @@ libraryDependencies ++= Seq(
     "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.8.11",           // only for JSON serialization for PostgreSQL
     "org.apache.commons"           % "commons-compress"          % "1.9",
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,
-    "org.lyranthe.prometheus" %% "play25" % prometheusLibVersion,
+    "org.lyranthe.prometheus" %% "play26" % prometheusLibVersion,
     "org.scalatestplus.play"       %% "scalatestplus-play"       % "3.1.2" % "test",
     "org.mockito" % "mockito-all" % "1.10.19" % "test"
   )

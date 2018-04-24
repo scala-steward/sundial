@@ -1,18 +1,18 @@
 package controllers
 
 import java.util.{Date, UUID}
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.gilt.svc.sundial.v0
 import com.gilt.svc.sundial.v0.models.json._
 import dao.SundialDaoFactory
 import model.ReportedTaskStatus
 import org.joda.time.DateTime
 import play.api.libs.json.Json
-import play.api.mvc.{Action, Controller}
+import play.api.mvc.InjectedController
 import util.Conversions._
 
-class Tasks @Inject() (daoFactory: SundialDaoFactory) extends Controller {
+class Tasks @Inject() (daoFactory: SundialDaoFactory) extends InjectedController {
 
   def get(processDefinitionName: String,
           taskDefinitionName: String,

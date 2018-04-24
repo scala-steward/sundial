@@ -19,7 +19,7 @@ class BatchServiceExecutor @Inject() (config: Configuration,
                                           sdbClient: AmazonSimpleDB,
                                           @Named("sundialUrl") sundialUrl :String) extends SpecificTaskExecutor[BatchExecutable, BatchContainerState] {
 
-  private val defaultJobQueue = config.getString("batch.job.queue").get
+  private val defaultJobQueue = config.get[String]("batch.job.queue")
 
   private implicit val batchClient = injectedBatchClient
 

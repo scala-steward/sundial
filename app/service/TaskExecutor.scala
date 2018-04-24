@@ -43,7 +43,7 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
                              emrServiceExecutor: EmrServiceExecutor)(implicit configuration: Configuration, application: Application) {
 
   // Not perfect design here, but because of the deprecation it will be enough to just delete line below and update cases accordingly.
-  private val ecsContainerServiceExecutorOpt: Option[ECSServiceExecutor] = configuration.getString("ecs.cluster").fold(Option.empty[ECSServiceExecutor])(_ => Some(application.injector.instanceOf(classOf[ECSServiceExecutor])))
+  private val ecsContainerServiceExecutorOpt: Option[ECSServiceExecutor] = configuration.getOptional[String]("ecs.cluster").fold(Option.empty[ECSServiceExecutor])(_ => Some(application.injector.instanceOf(classOf[ECSServiceExecutor])))
 
   def startExecutable(task: Task)(implicit dao: SundialDao): Unit = {
     task.executable match {

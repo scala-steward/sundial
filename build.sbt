@@ -18,7 +18,7 @@ libraryDependencies ++= Seq(
     evolutions,
     ws,
   "org.playframework.anorm" %% "anorm" % "2.6.1",
-    "com.amazonaws"                % "aws-java-sdk"              % "1.11.317",
+    "com.amazonaws"                % "aws-java-sdk"              % "1.11.336",
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
     "org.postgresql"               % "postgresql"                % "42.2.2",

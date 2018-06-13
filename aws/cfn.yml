@@ -212,26 +212,26 @@ Parameters:
 Mappings:
   AWSRegionToECSAMI:
     us-east-1:
-      AMIID: ami-04351e12
+      AMIID: ami-5253c32d
     us-west-2:
-      AMIID: ami-57d9cd2e
+      AMIID: ami-d2f489aa
     eu-west-1:
-      AMIID: ami-809f84e6
+      AMIID: ami-c91624b0
     ap-northeast-1:
-      AMIID: ami-e4657283
+      AMIID: ami-f3f8098c
     ap-southeast-2:
-      AMIID: ami-42e9f921
+      AMIID: ami-bc04d5de
   AWSRegionToLinuxAMI:
     us-east-1:
-      AMIID: ami-b73b63a0
+      AMIID: ami-97785bed
     us-west-2:
-      AMIID: ami-c229c0a2
+      AMIID: ami-824c4ee2
     eu-west-1:
-      AMIID: ami-31328842
+      AMIID: ami-d834aba1
     ap-northeast-1:
-      AMIID: ami-f80e0596
+      AMIID: ami-ceafcba8
     ap-southeast-2:
-      AMIID: ami-f2210191
+      AMIID: ami-942dd1f6
 Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster

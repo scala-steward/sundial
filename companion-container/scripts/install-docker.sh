@@ -20,7 +20,7 @@ if ! [[ -s /tmp/docker.tgz ]]; then
         n=0
         until [ $n -ge 5 ]
         do
-                wget -O /tmp/docker.tgz https://get.docker.com/builds/Linux/x86_64/docker-$SERVER_DOCKER_VERSION.tgz && break
+                wget -O /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$SERVER_DOCKER_VERSION.tgz && break
                 n=$((n + 1))
                 sleep 10
         done

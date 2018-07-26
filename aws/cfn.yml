@@ -369,7 +369,7 @@ Resources:
     Properties:
       VPCZoneIdentifier: !Ref SubnetID
       LaunchConfigurationName: !Ref JobInstanceConfiguration
-      MinSize: 2
+      MinSize: 0
       MaxSize: 6
       DesiredCapacity: !Ref JobClusterSize
     CreationPolicy:
@@ -727,6 +727,8 @@ Resources:
             - ecr:BatchCheckLayerAvailability
             - ecr:GetAuthorizationToken
             Resource: ["*"]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonElasticMapReduceFullAccess
   ServiceInstanceEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:

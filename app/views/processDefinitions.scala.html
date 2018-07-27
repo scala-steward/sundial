@@ -16,7 +16,7 @@
         <div class="row">
             <div class="col-lg-12">
 
-                <h1>Process Definitions</h1>
+                <h1>Scheduled Process Definitions</h1>
 
                 <table class="table">
                     <thead>
@@ -30,19 +30,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @processDefinitions.map { processDef =>
+                        @processDefinitions.collect {
+                        case processDef if !processDef.definition.isPaused => {
                             <tr>
                                 <td>
                                     <a href="@routes.Application.processDefinition(processDef.definition.name)">
                                         @processDef.definition.name
                                     </a>
                                 </td>
-                                <td>@if(processDef.definition.isPaused) {
-                                       Paused
-                                    } else {
-                                        @processDef.nextRun.map(d => util.DateUtils.basicDateTimeFormat.format(d)).getOrElse("never")
-                                    }
-                                </td>
+                                <td>@processDef.nextRun.map(d => util.DateUtils.basicDateTimeFormat.format(d)).getOrElse("never")</td>
                                 <td>@processDef.lastRun.map(r => util.DateUtils.basicDateTimeFormat.format(r.startedAt)).getOrElse("never")</td>
                                 <td>@processDef.lastDuration</td>
                                 <td>
@@ -74,9 +70,65 @@
                                 </td>
                             </tr>
                         }
+                    }
                     </tbody>
                 </table>
 
+                <h1>Paused Process Definitions</h1>
+
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Last Run</th>
+                        <th>Last Duration</th>
+                        <th>Last Status</th>
+                        <th>History</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @processDefinitions.collect {
+                    case processDef if processDef.definition.isPaused => {
+                    <tr>
+                        <td>
+                            <a href="@routes.Application.processDefinition(processDef.definition.name)">
+                                @processDef.definition.name
+                            </a>
+                        </td>
+                        <td>@processDef.lastRun.map(r => util.DateUtils.basicDateTimeFormat.format(r.startedAt)).getOrElse("never")</td>
+                        <td>@processDef.lastDuration</td>
+                        <td>
+                            @processDef.lastRun.map { process =>
+                            <a href="@routes.Application.processDetail(process.id.toString())">
+                                @process.status.statusType
+                            </a>
+                            }
+                        </td>
+                        <td>
+                            @processDef.runs.map { run =>
+                            <svg width="20" height="20">
+                                <a xlink:href="@routes.Application.processDetail(run.id.toString)">
+                                    <circle
+                                            title="@run.startedAt<br/>@run.status<br/>@util.DateUtils.prettyDuration(run.duration, TimeUnit.MILLISECONDS)"
+                                            data-toggle="tooltip" cx="10" cy="10" r="@{
+                                                    val durations = processDef
+                                                            .runs.filter(_.status != model.ProcessStatusType.Running)
+                                                            .map(_.duration.asInstanceOf[java.lang.Long])
+                                                    util.ViewUtil.radius[java.lang.Long](run.duration, durations, 0.5, 5, 10)
+                                                }" fill="@{run.status match {
+                                                case model.ProcessStatusType.Succeeded => "darkgreen"
+                                    case model.ProcessStatusType.Failed => "indianred"
+                                    case model.ProcessStatusType.Running => "darkslateblue"
+                                    }}"/>
+                                </a>
+                            </svg>
+                            }
+                        </td>
+                    </tr>
+                    }
+                    }
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -22,7 +22,7 @@ GET           /assets/*file                                                    c
 # apidoc:0.11.76 http://www.apidoc.me/gilt/svc-sundial/0.0.11/play_2_x_routes
 
 GET        /_internal_/metrics                                       controllers.Healthchecks.getMetrics()
-GET        /api/processes/                                               controllers.Processes.get(process_definition_name: _root_.scala.Option[String], start_time: _root_.scala.Option[_root_.org.joda.time.DateTime], end_time: _root_.scala.Option[_root_.org.joda.time.DateTime], max_records: _root_.scala.Option[Int], allowed_statuses: List[com.gilt.svc.sundial.v0.models.ProcessStatus])
+GET        /api/processes/                                               controllers.Processes.get(process_definition_name: _root_.scala.Option[String], start_time: _root_.scala.Option[_root_.org.joda.time.DateTime], end_time: _root_.scala.Option[_root_.org.joda.time.DateTime], max_records: _root_.scala.Option[Int], allowed_statuses: List[com.hbc.svc.sundial.v1.models.ProcessStatus])
 GET        /api/processes/:process_id                                    controllers.Processes.getByProcessId(process_id: _root_.java.util.UUID)
 POST       /api/processes/:process_id/retry                              controllers.Processes.postRetryByProcessId(process_id: _root_.java.util.UUID)
 POST       /api/processes/:process_id/kill                               controllers.Processes.postKillByProcessId(process_id: _root_.java.util.UUID)
@@ -33,7 +33,7 @@ DELETE     /api/process_definitions/:process_definition_name             control
 POST       /api/process_definitions/:process_definition_name/trigger     controllers.ProcessDefinitions.postTriggerByProcessDefinitionName(process_definition_name: String, task_definition_name: _root_.scala.Option[String])
 POST       /api/process_definitions/:process_definition_name/pause       controllers.ProcessDefinitions.postPauseByProcessDefinitionName(process_definition_name: String)
 POST       /api/process_definitions/:process_definition_name/resume      controllers.ProcessDefinitions.postResumeByProcessDefinitionName(process_definition_name: String)
-GET        /api/tasks/                                                   controllers.Tasks.get(process_definition_name: String, task_definition_name: String, allowed_statuses: List[com.gilt.svc.sundial.v0.models.TaskStatus], start_time: _root_.scala.Option[_root_.org.joda.time.DateTime], end_time: _root_.scala.Option[_root_.org.joda.time.DateTime], limit: _root_.scala.Option[Int])
+GET        /api/tasks/                                                   controllers.Tasks.get(process_definition_name: String, task_definition_name: String, allowed_statuses: List[com.hbc.svc.sundial.v1.models.TaskStatus], start_time: _root_.scala.Option[_root_.org.joda.time.DateTime], end_time: _root_.scala.Option[_root_.org.joda.time.DateTime], limit: _root_.scala.Option[Int])
 POST       /api/tasks/:task_id/log_entries                               controllers.Tasks.postLogEntriesByTaskId(task_id: _root_.java.util.UUID)
 POST       /api/tasks/:task_id/metadata                                  controllers.Tasks.postMetadataByTaskId(task_id: _root_.java.util.UUID)
 POST       /api/tasks/:task_id/succeed                                   controllers.Tasks.postSucceedByTaskId(task_id: _root_.java.util.UUID)

@@ -1,11 +1,13 @@
 package service
 
+import java.util
 import java.util.Date
-import javax.inject.Inject
 
+import javax.inject.Inject
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, AddJobFlowStepsRequest, Application, CancelStepsRequest, EbsBlockDeviceConfig, EbsConfiguration, HadoopJarStepConfig, InstanceGroupConfig, InstanceRoleType, JobFlowInstancesConfig, ListStepsRequest, RunJobFlowRequest, StepConfig, TerminateJobFlowsRequest, VolumeSpecification}
+import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, AddJobFlowStepsRequest, Application, CancelStepsRequest, Configuration, EbsBlockDeviceConfig, EbsConfiguration, HadoopJarStepConfig, InstanceGroupConfig, InstanceRoleType, JobFlowInstancesConfig, ListStepsRequest, RunJobFlowRequest, StepConfig, TerminateJobFlowsRequest, VolumeSpecification}
 import com.amazonaws.services.elasticmapreduce.{AmazonElasticMapReduce, AmazonElasticMapReduceClientBuilder}
+import com.hbc.svc.sundial.v1.models.EmrConfiguration
 import dao.{ExecutableStateDao, SundialDao}
 import model._
 import play.api.Logger
@@ -68,6 +70,19 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
   }
 
   private def createClusterAndSubmitJob(executable: EmrJobExecutable, task: Task) = {
+
+    def toConfigurations(emrConfigsOpt: Option[Seq[EmrConfiguration]]): util.Collection[Configuration] = {
+      emrConfigsOpt.map { emrConfigs =>
+        emrConfigs.map(toConfiguration).asJavaCollection
+      }.orNull
+    }
+
+    def toConfiguration(emrConfig: EmrConfiguration): Configuration = {
+      val properties = emrConfig.properties.map(_.asJava).orNull
+      new Configuration().withClassification(emrConfig.classification.orNull)
+        .withConfigurations(toConfigurations(emrConfig.configurations))
+        .withProperties(properties)
+    }
 
     /**
       * Builds an AWS InstanceGroupConfig from the given job's configuration
@@ -156,6 +171,8 @@ class EmrServiceExecutor @Inject()() extends SpecificTaskExecutor[EmrJobExecutab
         .withJobFlowRole(emrJobFlowRole)
         .withInstances(jobFlowInstancesConfig)
         .withVisibleToAllUsers(isVisibleToAllUsers)
+        .withConfigurations(toConfigurations(executable.emrClusterDetails.configurations))
+        .withSecurityConfiguration(executable.emrClusterDetails.securityConfiguration.orNull)
 
       // aka the cluster id
       val flowId = emrClient.runJobFlow(request).getJobFlowId

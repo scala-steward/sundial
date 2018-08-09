@@ -2,6 +2,8 @@ package model
 
 import java.util.{Date, UUID}
 
+import com.hbc.svc.sundial.v1.models.EmrConfiguration
+
 sealed trait ExecutorStatus {
   def isDone: Boolean
 }
@@ -55,7 +57,9 @@ case class EmrClusterDetails(clusterName: Option[String],
                              emrServiceRole: Option[String] = None,
                              emrJobFlowRole: Option[String] = None,
                              visibleToAllUsers: Option[Boolean] = None,
-                             existingCluster: Boolean)
+                             configurations: Option[Seq[EmrConfiguration]] = None,
+                             existingCluster: Boolean,
+                             securityConfiguration: Option[String] = None)
 
 case class LogDetails(logGroupName: String, logStreamName: String)
 

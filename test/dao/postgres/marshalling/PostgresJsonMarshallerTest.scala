@@ -1,7 +1,7 @@
 package dao.postgres.marshalling
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategy.SNAKE_CASE
-import com.gilt.svc.sundial.v0.models.NotificationOptions
+import com.hbc.svc.sundial.v1.models.NotificationOptions
 import model.{EmailNotification, PagerdutyNotification, Team}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner

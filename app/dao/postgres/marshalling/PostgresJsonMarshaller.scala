@@ -5,7 +5,7 @@ import java.io.ByteArrayOutputStream
 import com.fasterxml.jackson.core.JsonEncoding
 import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
 import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode, PropertyNamingStrategy}
-import com.gilt.svc.sundial.v0.models.NotificationOptions
+import com.hbc.svc.sundial.v1.models.NotificationOptions
 import model._
 import util.Json
 

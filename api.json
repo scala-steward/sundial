@@ -179,7 +179,13 @@
     },
     "emr_release_label": {
       "description": "Version (aka label in AWS-EMR) of the EMR stack to create.",
-      "values": [
+      "values":  [
+        {
+          "name": "emr-5.16.0"
+        },
+        {
+          "name": "emr-5.15.0"
+        },
         {
           "name": "emr-5.14.0"
         },
@@ -600,6 +606,18 @@
           "type": "boolean",
           "default": "false",
           "description": "whether or not to show the new cluster in the list of clusters. For more details see [emr docs](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-emr-cluster.html#cfn-emr-cluster-visibletoallusers)"
+        },
+        {
+          "name": "configurations",
+          "type": "[emr_configuration]",
+          "required": false,
+          "description": "Extra configuration to be applied to cluster, see https://docs.aws.amazon.com/emr/latest/APIReference/API_Configuration.html"
+        },
+        {
+          "name": "security_configuration",
+          "type": "string",
+          "required": false,
+          "description": "Allow you to specify a security configuration for the cluster"
         }
       ]
     },
@@ -725,6 +743,26 @@
         {
           "name": "role_name",
           "type": "string"
+        }
+      ]
+    },
+    "emr_configuration": {
+      "description": "See https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-configure-apps.html",
+      "fields": [
+        {
+          "name": "classification",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "configurations",
+          "type": "[emr_configuration]",
+          "required": false
+        },
+        {
+          "name": "properties",
+          "type": "map[string]",
+          "required": false
         }
       ]
     },

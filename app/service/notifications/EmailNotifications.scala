@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.amazonaws.services.simpleemail.{AmazonSimpleEmailServiceAsync, AmazonSimpleEmailServiceAsyncClientBuilder}
 import com.amazonaws.services.simpleemail.model._
-import com.gilt.svc.sundial.v0.models.NotificationOptions
+import com.hbc.svc.sundial.v1.models.NotificationOptions
 import dao._
 import dto.{DisplayModels, ProcessDTO}
 import model._

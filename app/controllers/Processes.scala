@@ -5,8 +5,8 @@ import javax.inject.Inject
 
 import model.{KillProcessRequest, ProcessStatusType, TaskBackoff}
 import org.joda.time.DateTime
-import com.gilt.svc.sundial.v0
-import com.gilt.svc.sundial.v0.models.json._
+import com.hbc.svc.sundial.v1
+import com.hbc.svc.sundial.v1.models.json._
 import dao.SundialDaoFactory
 import play.api.libs.json.Json
 import play.api.mvc._
@@ -17,7 +17,7 @@ class Processes @Inject() (daoFactory: SundialDaoFactory) extends InjectedContro
           startTime: Option[DateTime],
           endTime: Option[DateTime],
           maxRecords: Option[Int],
-          validStatuses: List[v0.models.ProcessStatus]) = Action {
+          validStatuses: List[v1.models.ProcessStatus]) = Action {
 
     val validStatusTypes = {
       if(validStatuses.isEmpty) {
@@ -26,7 +26,7 @@ class Processes @Inject() (daoFactory: SundialDaoFactory) extends InjectedContro
         Some(validStatuses.map(ModelConverter.toInternalProcessStatusType))
       }
     }
-    val result: Seq[v0.models.Process] = daoFactory.withSundialDao { implicit dao =>
+    val result: Seq[v1.models.Process] = daoFactory.withSundialDao { implicit dao =>
       val processes = dao.processDao.findProcesses(processDefinitionName,
                                                    startTime.map(_.toDate()),
                                                    endTime.map(_.toDate()),

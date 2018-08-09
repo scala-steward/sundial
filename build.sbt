@@ -30,7 +30,7 @@ libraryDependencies ++= Seq(
     "org.mockito" % "mockito-all" % "1.10.19" % "test"
   )
 
-routesImport ++= Seq("com.gilt.svc.sundial.v0.Bindables.Core._", "com.gilt.svc.sundial.v0.Bindables.Models._")
+routesImport ++= Seq("com.hbc.svc.sundial.v1.Bindables.Core._", "com.hbc.svc.sundial.v1.Bindables.Models._")
 
 javaOptions in Test ++= Seq(
   "-Dconfig.file=conf/application.test.conf"

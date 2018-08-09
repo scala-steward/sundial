@@ -3,8 +3,8 @@ package controllers
 import java.util.{Date, UUID}
 
 import javax.inject.Inject
-import com.gilt.svc.sundial.v0
-import com.gilt.svc.sundial.v0.models.json._
+import com.hbc.svc.sundial.v1
+import com.hbc.svc.sundial.v1.models.json._
 import controllers.ModelConverter.toInternalNotification
 import dao.SundialDaoFactory
 import model._
@@ -15,7 +15,7 @@ import util.CycleDetector
 class ProcessDefinitions @Inject() (daoFactory: SundialDaoFactory) extends InjectedController {
 
   def get() = Action {
-    val result: Seq[v0.models.ProcessDefinition] = daoFactory.withSundialDao { implicit dao =>
+    val result: Seq[v1.models.ProcessDefinition] = daoFactory.withSundialDao { implicit dao =>
       val definitions = dao.processDefinitionDao.loadProcessDefinitions()
       definitions.map(ModelConverter.toExternalProcessDefinition)
     }
@@ -24,7 +24,7 @@ class ProcessDefinitions @Inject() (daoFactory: SundialDaoFactory) extends Injec
   }
 
   def getByProcessDefinitionName(processDefinitionName: String) = Action {
-    val resultOpt: Option[v0.models.ProcessDefinition] = daoFactory.withSundialDao { implicit dao =>
+    val resultOpt: Option[v1.models.ProcessDefinition] = daoFactory.withSundialDao { implicit dao =>
       val definition = dao.processDefinitionDao.loadProcessDefinition(processDefinitionName)
       definition.map(ModelConverter.toExternalProcessDefinition)
     }
@@ -35,7 +35,7 @@ class ProcessDefinitions @Inject() (daoFactory: SundialDaoFactory) extends Injec
     }
   }
 
-  def putByProcessDefinitionName(processDefinitionName: String) = Action(parse.json[v0.models.ProcessDefinition]) { request =>
+  def putByProcessDefinitionName(processDefinitionName: String) = Action(parse.json[v1.models.ProcessDefinition]) { request =>
 
     if(processDefinitionName != request.body.processDefinitionName) {
       BadRequest(s"URL process definition name ($processDefinitionName) does not match body process definitiion name (${request.body.processDefinitionName})")
@@ -43,7 +43,7 @@ class ProcessDefinitions @Inject() (daoFactory: SundialDaoFactory) extends Injec
       daoFactory.withSundialDao { implicit dao =>
         val taskDefinitionsByName = request.body.taskDefinitions.map(taskDef => taskDef.taskDefinitionName -> taskDef).toMap
         val hasCycle = request.body.taskDefinitions.exists { taskDef =>
-          CycleDetector.hasCycle[v0.models.TaskDefinition](taskDef, current => {
+          CycleDetector.hasCycle[v1.models.TaskDefinition](taskDef, current => {
             current.dependencies.map(_.taskDefinitionName).map(taskDefinitionsByName)
           })
         }

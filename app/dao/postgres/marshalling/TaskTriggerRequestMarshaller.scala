@@ -8,17 +8,22 @@ import util.JdbcUtil._
 
 object TaskTriggerRequestMarshaller {
 
-  def marshal(request: TaskTriggerRequest, stmt: PreparedStatement, columns: Seq[String], startIndex: Int = 1)
-             (implicit conn: Connection) = {
+  def marshal(request: TaskTriggerRequest,
+              stmt: PreparedStatement,
+              columns: Seq[String],
+              startIndex: Int = 1)(implicit conn: Connection) = {
     import TaskTriggerRequestTable._
     var index = startIndex
     columns.foreach { col =>
       col match {
         case COL_REQUEST_ID => stmt.setObject(index, request.requestId)
-        case COL_PROCESS_DEF_NAME => stmt.setString(index, request.processDefinitionName)
-        case COL_TASK_DEF_NAME => stmt.setString(index, request.taskDefinitionName)
+        case COL_PROCESS_DEF_NAME =>
+          stmt.setString(index, request.processDefinitionName)
+        case COL_TASK_DEF_NAME =>
+          stmt.setString(index, request.taskDefinitionName)
         case COL_REQUESTED_AT => stmt.setTimestamp(index, request.requestedAt)
-        case COL_STARTED_PROCESS_ID => stmt.setObject(index, request.startedProcessId.orNull)
+        case COL_STARTED_PROCESS_ID =>
+          stmt.setObject(index, request.startedProcessId.orNull)
       }
       index += 1
     }
@@ -31,7 +36,8 @@ object TaskTriggerRequestMarshaller {
       processDefinitionName = rs.getString(COL_PROCESS_DEF_NAME),
       taskDefinitionName = rs.getString(COL_TASK_DEF_NAME),
       requestedAt = javaDate(rs.getTimestamp(COL_REQUESTED_AT)),
-      startedProcessId = Option(rs.getObject(COL_STARTED_PROCESS_ID)).map(_.asInstanceOf[UUID])
+      startedProcessId =
+        Option(rs.getObject(COL_STARTED_PROCESS_ID)).map(_.asInstanceOf[UUID])
     )
   }
 

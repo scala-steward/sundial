@@ -1,6 +1,11 @@
 package dao
 
-import model.{BatchContainerState, ECSContainerState, EmrJobState, ShellCommandState}
+import model.{
+  BatchContainerState,
+  ECSContainerState,
+  EmrJobState,
+  ShellCommandState
+}
 
 trait SundialDao {
 

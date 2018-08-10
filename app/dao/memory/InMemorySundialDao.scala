@@ -1,7 +1,12 @@
 package dao.memory
 
 import dao._
-import model.{BatchContainerState, ECSContainerState, EmrJobState, ShellCommandState}
+import model.{
+  BatchContainerState,
+  ECSContainerState,
+  EmrJobState,
+  ShellCommandState
+}
 
 class InMemorySundialDao extends SundialDao {
 
@@ -19,11 +24,14 @@ class InMemorySundialDao extends SundialDao {
 
   override val processDao = new InMemoryProcessDao()
 
-  override val shellCommandStateDao = new InMemoryExecutableStateDao[ShellCommandState]()
+  override val shellCommandStateDao =
+    new InMemoryExecutableStateDao[ShellCommandState]()
 
-  override val ecsContainerStateDao = new InMemoryExecutableStateDao[ECSContainerState]()
+  override val ecsContainerStateDao =
+    new InMemoryExecutableStateDao[ECSContainerState]()
 
-  override def batchContainerStateDao = new InMemoryExecutableStateDao[BatchContainerState]()
+  override def batchContainerStateDao =
+    new InMemoryExecutableStateDao[BatchContainerState]()
 
   override def emrJobStateDao = new InMemoryExecutableStateDao[EmrJobState]()
 

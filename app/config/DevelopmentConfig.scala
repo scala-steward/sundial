@@ -5,11 +5,10 @@ import javax.inject.Named
 import com.google.inject.{AbstractModule, Provides, Singleton}
 import play.api.{Configuration, Environment}
 
-class DevelopmentConfig(environment: Environment, configuration: Configuration) extends AbstractModule {
+class DevelopmentConfig(environment: Environment, configuration: Configuration)
+    extends AbstractModule {
 
-  override def configure() = {
-
-  }
+  override def configure() = {}
 
   @Provides
   @Named("cfnStackName")

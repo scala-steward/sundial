@@ -14,10 +14,14 @@ import util.{DateUtils, Json}
 
 import scala.collection.JavaConverters._
 
-case class TaskLogsResponse(taskId: UUID, taskDefName: String, logPath: String, nextToken: String, events: Seq[OutputLogEvent])
+case class TaskLogsResponse(taskId: UUID,
+                            taskDefName: String,
+                            logPath: String,
+                            nextToken: String,
+                            events: Seq[OutputLogEvent])
 
-class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
-                          logsClient: AWSLogs) extends InjectedController {
+class LiveLogs @Inject()(daoFactory: SundialDaoFactory, logsClient: AWSLogs)
+    extends InjectedController {
 
   private val TaskLogToken = "task_([^_]+)_(.*)".r
 
@@ -37,9 +41,13 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
       dao.processDao.loadProcess(processId) match {
         case Some(process) =>
           // filter for the minimum time that logs can be from
-          val asOf = body.get("asof").flatMap(_.headOption).map { asOfStr =>
-            new Date(asOfStr.toLong - TimeUnit.MINUTES.toMillis(10))
-          }.getOrElse(new Date())
+          val asOf = body
+            .get("asof")
+            .flatMap(_.headOption)
+            .map { asOfStr =>
+              new Date(asOfStr.toLong - TimeUnit.MINUTES.toMillis(10))
+            }
+            .getOrElse(new Date())
           val taskLogTokens = body.collect {
             case (TaskLogToken(taskIdStr, logName), token) =>
               (UUID.fromString(taskIdStr), logName) -> token.head
@@ -50,36 +58,59 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
           }.toSeq
 
           // Filter to tasks that are present in the tokens, or hadn't ended by the asof time
-          val tasks = dao.processDao.loadTasksForProcess(processId).filter { task =>
-            requestedTasks.contains(task.id) || task.endedAt.map(_.before(asOf)).getOrElse(true)
+          val tasks = dao.processDao.loadTasksForProcess(processId).filter {
+            task =>
+              requestedTasks.contains(task.id) || task.endedAt
+                .map(_.before(asOf))
+                .getOrElse(true)
           }
 
-          val taskDefinitions = dao.processDefinitionDao.loadTaskDefinitions(process.id).map { taskDef =>
-            taskDef.name -> taskDef
-          }.toMap
+          val taskDefinitions = dao.processDefinitionDao
+            .loadTaskDefinitions(process.id)
+            .map { taskDef =>
+              taskDef.name -> taskDef
+            }
+            .toMap
 
           // For each task log, fetch logs and the new token
           val logResponses = tasks.flatMap { task =>
-            taskDefinitions.get(task.taskDefinitionName).map(_.executable) match {
+            taskDefinitions
+              .get(task.taskDefinitionName)
+              .map(_.executable) match {
               case Some(e: ECSExecutable) =>
                 e.logPaths.flatMap { logPath =>
                   val tokenOpt = taskLogTokens.get(task.id -> logPath)
                   try {
-                    val (nextToken, events) = fetchLogEvents("sundial/tasks-internal", s"${task.id}_${logPath}", tokenOpt)
-                    Some(TaskLogsResponse(task.id, task.taskDefinitionName, logPath, nextToken, events))
+                    val (nextToken, events) =
+                      fetchLogEvents("sundial/tasks-internal",
+                                     s"${task.id}_${logPath}",
+                                     tokenOpt)
+                    Some(
+                      TaskLogsResponse(task.id,
+                                       task.taskDefinitionName,
+                                       logPath,
+                                       nextToken,
+                                       events))
                   } catch {
-                    case e: com.amazonaws.services.logs.model.ResourceNotFoundException => None
+                    case e: com.amazonaws.services.logs.model.ResourceNotFoundException =>
+                      None
                   }
                 }
               case Some(e: BatchExecutable) =>
-                val containerStateOpt = dao.batchContainerStateDao.loadState(task.id)
+                val containerStateOpt =
+                  dao.batchContainerStateDao.loadState(task.id)
                 containerStateOpt.flatMap { containerState =>
                   val jobId = containerState.jobId
                   val tokenOpt = taskLogTokens.get(task.id -> jobId.toString)
                   val logStreamOpt = containerState.logStreamName
                   logStreamOpt.map { logStream =>
-                    val (nextToken, events) = fetchLogEvents(BATCH_LOG_GROUP, logStream, tokenOpt)
-                    TaskLogsResponse(task.id, task.taskDefinitionName, jobId.toString, nextToken, events)
+                    val (nextToken, events) =
+                      fetchLogEvents(BATCH_LOG_GROUP, logStream, tokenOpt)
+                    TaskLogsResponse(task.id,
+                                     task.taskDefinitionName,
+                                     jobId.toString,
+                                     nextToken,
+                                     events)
                   }
                 }
               case Some(e: EmrJobExecutable) =>
@@ -87,9 +118,17 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
                   state <- dao.emrJobStateDao.loadState(task.id)
                   logDetails <- e.s3LogDetailsOpt
                 } yield {
-                  val tokenOpt = taskLogTokens.get(task.id -> state.taskId.toString)
-                  val (nextToken, events) = fetchLogEvents(logDetails.logGroupName, logDetails.logStreamName, tokenOpt)
-                  TaskLogsResponse(task.id, task.taskDefinitionName, state.taskId.toString, nextToken, events)
+                  val tokenOpt =
+                    taskLogTokens.get(task.id -> state.taskId.toString)
+                  val (nextToken, events) =
+                    fetchLogEvents(logDetails.logGroupName,
+                                   logDetails.logStreamName,
+                                   tokenOpt)
+                  TaskLogsResponse(task.id,
+                                   task.taskDefinitionName,
+                                   state.taskId.toString,
+                                   nextToken,
+                                   events)
                 }
               case _ =>
                 Seq.empty
@@ -97,24 +136,36 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
           }
 
           // Construct the new parameters body
-          val paramsMap = Map("asof" -> asOf.getTime) ++ logResponses.map { logResponse =>
-            s"task_${logResponse.taskId}_${logResponse.logPath}" -> logResponse.nextToken
+          val paramsMap = Map("asof" -> asOf.getTime) ++ logResponses.map {
+            logResponse =>
+              s"task_${logResponse.taskId}_${logResponse.logPath}" -> logResponse.nextToken
           }
 
           // Construct the log events list and sort
-          val logEvents = logResponses.toList.flatMap { logResponse =>
-            logResponse.events.map { event =>
-              List(event.getTimestamp, logResponse.taskId, logResponse.taskDefName, StringEscapeUtils.escapeHtml4(event.getMessage))
+          val logEvents = logResponses.toList
+            .flatMap { logResponse =>
+              logResponse.events.map { event =>
+                List(event.getTimestamp,
+                     logResponse.taskId,
+                     logResponse.taskDefName,
+                     StringEscapeUtils.escapeHtml4(event.getMessage))
+              }
             }
-          }.sortBy(_.head.asInstanceOf[Long])
+            .sortBy(_.head.asInstanceOf[Long])
 
           // Also include information about the process
-          val processInfo = Map("name" -> process.processDefinitionName,
-                                "started" -> process.startedAt.getTime,
-                                "status" -> process.status.statusType.toString,
-                                "duration" -> DateUtils.prettyDuration(process.startedAt, process.endedAt.getOrElse(new Date)))
+          val processInfo = Map(
+            "name" -> process.processDefinitionName,
+            "started" -> process.startedAt.getTime,
+            "status" -> process.status.statusType.toString,
+            "duration" -> DateUtils.prettyDuration(
+              process.startedAt,
+              process.endedAt.getOrElse(new Date))
+          )
 
-          val response = Map("params" -> paramsMap, "events" -> logEvents, "process" -> processInfo)
+          val response = Map("params" -> paramsMap,
+                             "events" -> logEvents,
+                             "process" -> processInfo)
 
           Ok(Json.mapper().writeValueAsString(response)).as("application/json")
         case _ =>
@@ -123,7 +174,9 @@ class LiveLogs @Inject() (daoFactory: SundialDaoFactory,
     }
   }
 
-  private def fetchLogEvents(logGroupName :String, logStreamName :String, tokenOpt: Option[String]) = {
+  private def fetchLogEvents(logGroupName: String,
+                             logStreamName: String,
+                             tokenOpt: Option[String]) = {
 
     val getLogRequest = new GetLogEventsRequest()
       .withLogGroupName(logGroupName)

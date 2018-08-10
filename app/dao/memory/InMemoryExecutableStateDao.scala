@@ -6,7 +6,8 @@ import java.util.concurrent.ConcurrentHashMap
 import dao.ExecutableStateDao
 import model.ExecutableState
 
-class InMemoryExecutableStateDao[T <: ExecutableState] extends ExecutableStateDao[T] {
+class InMemoryExecutableStateDao[T <: ExecutableState]
+    extends ExecutableStateDao[T] {
 
   private val data = new ConcurrentHashMap[UUID, T]()
 

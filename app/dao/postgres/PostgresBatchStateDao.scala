@@ -8,7 +8,8 @@ import dao.postgres.marshalling.PostgresBatchExecutorStatus
 import model.BatchContainerState
 import util.JdbcUtil._
 
-class PostgresBatchStateDao(implicit conn: Connection) extends ExecutableStateDao[BatchContainerState] {
+class PostgresBatchStateDao(implicit conn: Connection)
+    extends ExecutableStateDao[BatchContainerState] {
 
   override def loadState(taskId: UUID) = {
     import dao.postgres.common.BatchStateTable._
@@ -17,15 +18,17 @@ class PostgresBatchStateDao(implicit conn: Connection) extends ExecutableStateDa
     stmt.setObject(1, taskId)
     val rs = stmt.executeQuery()
     rs.map { row =>
-      BatchContainerState(
-        taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
-        asOf = javaDate(row.getTimestamp(COL_AS_OF)),
-        status = PostgresBatchExecutorStatus(rs.getString(COL_STATUS)),
-        jobName = rs.getString(COL_JOB_NAME),
-        jobId = rs.getObject(COL_JOB_ID).asInstanceOf[UUID],
-        logStreamName = Option(rs.getString(COL_LOGSTREAM_NAME))
-      )
-    }.toList.headOption
+        BatchContainerState(
+          taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
+          asOf = javaDate(row.getTimestamp(COL_AS_OF)),
+          status = PostgresBatchExecutorStatus(rs.getString(COL_STATUS)),
+          jobName = rs.getString(COL_JOB_NAME),
+          jobId = rs.getObject(COL_JOB_ID).asInstanceOf[UUID],
+          logStreamName = Option(rs.getString(COL_LOGSTREAM_NAME))
+        )
+      }
+      .toList
+      .headOption
   }
 
   override def saveState(state: BatchContainerState) = {
@@ -51,7 +54,7 @@ class PostgresBatchStateDao(implicit conn: Connection) extends ExecutableStateDa
       stmt.setObject(6, state.taskId)
       stmt.executeUpdate() > 0
     }
-    if(!didUpdate) {
+    if (!didUpdate) {
       val sql =
         s"""
            |INSERT INTO $TABLE

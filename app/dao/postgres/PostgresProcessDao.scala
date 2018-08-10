@@ -27,10 +27,17 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
            |WHERE $COL_ID = ?
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      ProcessMarshaller.marshalProcess(process, stmt, Seq(COL_DEF_NAME, COL_STARTED, COL_STATUS, COL_ENDED_AT, COL_TASK_FILTER, COL_ID))
+      ProcessMarshaller.marshalProcess(process,
+                                       stmt,
+                                       Seq(COL_DEF_NAME,
+                                           COL_STARTED,
+                                           COL_STATUS,
+                                           COL_ENDED_AT,
+                                           COL_TASK_FILTER,
+                                           COL_ID))
       stmt.executeUpdate() > 0
     }
-    if(!didUpdate) {
+    if (!didUpdate) {
       val sql =
         s"""
            |INSERT INTO $TABLE
@@ -39,7 +46,14 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
            |(?, ?, ?, ?::process_status, ?, ?)
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      ProcessMarshaller.marshalProcess(process, stmt, Seq(COL_ID, COL_DEF_NAME, COL_STARTED, COL_STATUS, COL_ENDED_AT, COL_TASK_FILTER))
+      ProcessMarshaller.marshalProcess(process,
+                                       stmt,
+                                       Seq(COL_ID,
+                                           COL_DEF_NAME,
+                                           COL_STARTED,
+                                           COL_STATUS,
+                                           COL_ENDED_AT,
+                                           COL_TASK_FILTER))
       stmt.execute()
     }
     process
@@ -53,25 +67,39 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
     rs.map(ProcessMarshaller.unmarshalProcess).headOption
   }
 
-  override def loadPreviousProcess(processId: UUID, processDefinitionName: String): Option[Process] = {
+  override def loadPreviousProcess(
+      processId: UUID,
+      processDefinitionName: String): Option[Process] = {
     import ProcessTable._
-    val stmt = conn.prepareStatement(s"SELECT * FROM $TABLE WHERE $COL_DEF_NAME = ? ORDER BY $COL_STARTED DESC LIMIT 2")
+    val stmt = conn.prepareStatement(
+      s"SELECT * FROM $TABLE WHERE $COL_DEF_NAME = ? ORDER BY $COL_STARTED DESC LIMIT 2")
     stmt.setString(1, processDefinitionName)
-    stmt.executeQuery().map(ProcessMarshaller.unmarshalProcess).toList.filterNot(_.id == processId).headOption
+    stmt
+      .executeQuery()
+      .map(ProcessMarshaller.unmarshalProcess)
+      .toList
+      .filterNot(_.id == processId)
+      .headOption
   }
 
   override def loadRunningProcesses(): Seq[Process] = {
     import ProcessTable._
-    val stmt = conn.prepareStatement(s"SELECT * FROM $TABLE WHERE $COL_STATUS = ?::process_status")
+    val stmt = conn.prepareStatement(
+      s"SELECT * FROM $TABLE WHERE $COL_STATUS = ?::process_status")
     stmt.setString(1, STATUS_RUNNING)
     stmt.executeQuery().map(ProcessMarshaller.unmarshalProcess).toList
   }
 
   override def loadMostRecentProcess(processDefinitionName: String) = {
     import ProcessTable._
-    val stmt = conn.prepareStatement(s"SELECT * FROM $TABLE WHERE $COL_DEF_NAME = ? ORDER BY $COL_STARTED DESC LIMIT 1")
+    val stmt = conn.prepareStatement(
+      s"SELECT * FROM $TABLE WHERE $COL_DEF_NAME = ? ORDER BY $COL_STARTED DESC LIMIT 1")
     stmt.setString(1, processDefinitionName)
-    stmt.executeQuery().map(ProcessMarshaller.unmarshalProcess).toList.headOption
+    stmt
+      .executeQuery()
+      .map(ProcessMarshaller.unmarshalProcess)
+      .toList
+      .headOption
   }
 
   /*
@@ -96,12 +124,21 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
            |WHERE $COL_ID = ?
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_PROCESS_ID, COL_PROC_DEF_NAME, COL_TASK_DEF_NAME, COL_EXECUTABLE, COL_ATTEMPTS, COL_STARTED, COL_STATUS, COL_REASON, COL_ENDED_AT, COL_ID)
+      val cols = Seq(COL_PROCESS_ID,
+                     COL_PROC_DEF_NAME,
+                     COL_TASK_DEF_NAME,
+                     COL_EXECUTABLE,
+                     COL_ATTEMPTS,
+                     COL_STARTED,
+                     COL_STATUS,
+                     COL_REASON,
+                     COL_ENDED_AT,
+                     COL_ID)
       TaskMarshaller.marshalTask(task, stmt, cols)
       stmt.executeUpdate() > 0
     }
 
-    if(!didUpdate) {
+    if (!didUpdate) {
       val sql =
         s"""
            |INSERT INTO $TABLE
@@ -110,7 +147,16 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
            |(?, ?, ?, ?, ?::jsonb, ?, ?, ?::task_status, ?, ?)
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_ID, COL_PROCESS_ID, COL_PROC_DEF_NAME, COL_TASK_DEF_NAME, COL_EXECUTABLE, COL_ATTEMPTS, COL_STARTED, COL_STATUS, COL_REASON, COL_ENDED_AT)
+      val cols = Seq(COL_ID,
+                     COL_PROCESS_ID,
+                     COL_PROC_DEF_NAME,
+                     COL_TASK_DEF_NAME,
+                     COL_EXECUTABLE,
+                     COL_ATTEMPTS,
+                     COL_STARTED,
+                     COL_STATUS,
+                     COL_REASON,
+                     COL_ENDED_AT)
       TaskMarshaller.marshalTask(task, stmt, cols)
       stmt.execute()
     }
@@ -136,30 +182,36 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
     rs.map(TaskMarshaller.unmarshalTask).toList
   }
 
-  override def findReportedTaskStatus(taskId: UUID): Option[ReportedTaskStatus] = {
+  override def findReportedTaskStatus(
+      taskId: UUID): Option[ReportedTaskStatus] = {
     import ReportedTaskStatusTable._
     val sql = s"SELECT * FROM $TABLE WHERE $COL_TASK_ID = ?"
     val stmt = conn.prepareStatement(sql)
     stmt.setObject(1, taskId)
     val rs = stmt.executeQuery()
     rs.map { row =>
-      val endedAt = javaDate(row.getTimestamp(COL_ENDED_AT))
-      ReportedTaskStatus(
-        taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
-        status = row.getString(COL_STATUS) match {
-          case STATUS_SUCCEEDED => TaskStatus.Success(endedAt)
-          case STATUS_FAILED => TaskStatus.Failure(endedAt, Option(row.getString(COL_REASON)))
-        }
-      )
-    }.toList.headOption
+        val endedAt = javaDate(row.getTimestamp(COL_ENDED_AT))
+        ReportedTaskStatus(
+          taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
+          status = row.getString(COL_STATUS) match {
+            case STATUS_SUCCEEDED => TaskStatus.Success(endedAt)
+            case STATUS_FAILED =>
+              TaskStatus.Failure(endedAt, Option(row.getString(COL_REASON)))
+          }
+        )
+      }
+      .toList
+      .headOption
   }
 
-  override def saveReportedTaskStatus(reportedTaskStatus: ReportedTaskStatus) = {
+  override def saveReportedTaskStatus(
+      reportedTaskStatus: ReportedTaskStatus) = {
     import ReportedTaskStatusTable._
     findReportedTaskStatus(reportedTaskStatus.taskId) match {
       case Some(_) => false
       case _ =>
-        val sql = s"INSERT INTO $TABLE($COL_TASK_ID, $COL_STATUS, $COL_REASON, $COL_ENDED_AT) VALUES (?, ?::task_status, ?, ?)"
+        val sql =
+          s"INSERT INTO $TABLE($COL_TASK_ID, $COL_STATUS, $COL_REASON, $COL_ENDED_AT) VALUES (?, ?::task_status, ?, ?)"
         val stmt = conn.prepareStatement(sql)
         stmt.setObject(1, reportedTaskStatus.taskId)
         stmt.setString(2, reportedTaskStatus.status match {
@@ -168,7 +220,7 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
         })
         stmt.setString(3, reportedTaskStatus.status match {
           case TaskStatus.Failure(_, reasons) => reasons.mkString(",")
-          case _ => null
+          case _                              => null
         })
         stmt.setTimestamp(4, reportedTaskStatus.status.endedAt)
         stmt.execute()
@@ -183,9 +235,9 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
                     limit: Option[Int] = None): Seq[Process] = {
     import ProcessTable._
     val statusCodesOpt = statuses.map(_.map {
-      case ProcessStatusType.Running => STATUS_RUNNING
+      case ProcessStatusType.Running   => STATUS_RUNNING
       case ProcessStatusType.Succeeded => STATUS_SUCCEEDED
-      case ProcessStatusType.Failed => STATUS_FAILED
+      case ProcessStatusType.Failed    => STATUS_FAILED
     })
     val whereClauses = Seq(
       processDefinitionName.map(_ => s"$COL_DEF_NAME = ?"),
@@ -194,7 +246,7 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
       statuses.map(_ => s"?::process_status[] @> ARRAY[$COL_STATUS]")
     ).flatMap(_.toSeq)
     val whereClause = {
-      if(whereClauses.isEmpty) ""
+      if (whereClauses.isEmpty) ""
       else "WHERE " + whereClauses.mkString("\n  AND ")
     }
     val limitClause = limit.map(_ => "LIMIT ?").getOrElse("")
@@ -214,7 +266,8 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
     processDefinitionName.foreach(stmt.setString(nextIndex(), _))
     start.foreach(stmt.setTimestamp(nextIndex(), _))
     end.foreach(stmt.setTimestamp(nextIndex(), _))
-    statusCodesOpt.foreach(statusCodes => stmt.setArray(nextIndex(), makeStringArray(statusCodes)))
+    statusCodesOpt.foreach(statusCodes =>
+      stmt.setArray(nextIndex(), makeStringArray(statusCodes)))
     limit.foreach(stmt.setInt(nextIndex(), _))
 
     val rs = stmt.executeQuery()
@@ -241,7 +294,7 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
       statuses.map(_ => s"$COL_STATUS IN UNNEST(?)")
     )
     val whereClause = {
-      if(whereClauses.isEmpty) ""
+      if (whereClauses.isEmpty) ""
       else whereClauses.flatten.mkString("\n  AND")
     }
     val limitClause = limit.map(_ => "LIMIT ?").getOrElse("")
@@ -262,7 +315,8 @@ class PostgresProcessDao(implicit conn: Connection) extends ProcessDao {
     taskDefinitionName.foreach(stmt.setString(nextIndex(), _))
     start.foreach(stmt.setTimestamp(nextIndex(), _))
     end.foreach(stmt.setTimestamp(nextIndex(), _))
-    statusCodesOpt.foreach(statusCodes => stmt.setArray(nextIndex(), makeStringArray(statusCodes)))
+    statusCodesOpt.foreach(statusCodes =>
+      stmt.setArray(nextIndex(), makeStringArray(statusCodes)))
     limit.foreach(stmt.setInt(nextIndex(), _))
 
     val rs = stmt.executeQuery()

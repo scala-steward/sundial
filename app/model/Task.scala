@@ -16,7 +16,8 @@ object TaskStatus {
     override def statusType = TaskStatusType.Success
     override def toString = "Success"
   }
-  case class Failure(endedAt: Date, reason: Option[String]) extends CompletedTaskStatus {
+  case class Failure(endedAt: Date, reason: Option[String])
+      extends CompletedTaskStatus {
     override def statusType = TaskStatusType.Failure
     override def toString = "Failure, reason: " + reason.getOrElse("Unknown")
   }
@@ -35,21 +36,21 @@ object TaskStatusType {
 }
 
 case class Task(
-  id: UUID,
-  processId: UUID,
-  processDefinitionName: String,
-  taskDefinitionName: String,
-  // we store the executable here so that if the underlying task definition changes,
-  // we have a record of the original executable that this task ran with
-  executable: Executable,
-  previousAttempts: Int,
-  startedAt: Date,
-  status: TaskStatus
+    id: UUID,
+    processId: UUID,
+    processDefinitionName: String,
+    taskDefinitionName: String,
+    // we store the executable here so that if the underlying task definition changes,
+    // we have a record of the original executable that this task ran with
+    executable: Executable,
+    previousAttempts: Int,
+    startedAt: Date,
+    status: TaskStatus
 ) {
 
   def endedAt: Option[Date] = status match {
     case s: CompletedTaskStatus => Some(s.endedAt)
-    case _ => None
+    case _                      => None
   }
 
 }

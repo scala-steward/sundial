@@ -9,7 +9,8 @@ import dao.postgres.marshalling.PostgresEmrExecutorStatus
 import model.EmrJobState
 import util.JdbcUtil._
 
-class PostgresEmrStateDao(implicit conn: Connection) extends ExecutableStateDao[EmrJobState] {
+class PostgresEmrStateDao(implicit conn: Connection)
+    extends ExecutableStateDao[EmrJobState] {
 
   override def loadState(taskId: UUID) = {
     import EmrStateTable._
@@ -18,16 +19,18 @@ class PostgresEmrStateDao(implicit conn: Connection) extends ExecutableStateDao[
     stmt.setObject(1, taskId)
     val rs = stmt.executeQuery()
     rs.map { row =>
-      EmrJobState(
-        taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
-        jobName = row.getString(COL_JOB_NAME),
-        clusterId = row.getString(COL_CLUSTER_ID),
-        stepIds = row.getString(COL_STEP_ID).split(","),
-        region = row.getString(COL_REGION),
-        asOf = javaDate(row.getTimestamp(COL_AS_OF)),
-        status = PostgresEmrExecutorStatus(rs.getString(COL_STATUS))
-      )
-    }.toList.headOption
+        EmrJobState(
+          taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
+          jobName = row.getString(COL_JOB_NAME),
+          clusterId = row.getString(COL_CLUSTER_ID),
+          stepIds = row.getString(COL_STEP_ID).split(","),
+          region = row.getString(COL_REGION),
+          asOf = javaDate(row.getTimestamp(COL_AS_OF)),
+          status = PostgresEmrExecutorStatus(rs.getString(COL_STATUS))
+        )
+      }
+      .toList
+      .headOption
   }
 
   override def saveState(state: EmrJobState) = {

@@ -11,14 +11,16 @@ class InMemoryTaskLogsDao extends TaskLogsDao {
 
   private val events = collection.mutable.HashMap[UUID, Seq[TaskEventLog]]()
 
-  override def saveEvents(eventsToAdd: Seq[TaskEventLog]): Unit = lock.synchronized {
-    eventsToAdd.foreach { event =>
-      val bucket = events.get(event.taskId).getOrElse(Seq.empty)
-      events.put(event.taskId, bucket :+ event)
+  override def saveEvents(eventsToAdd: Seq[TaskEventLog]): Unit =
+    lock.synchronized {
+      eventsToAdd.foreach { event =>
+        val bucket = events.get(event.taskId).getOrElse(Seq.empty)
+        events.put(event.taskId, bucket :+ event)
+      }
     }
-  }
 
-  override def loadEventsForTask(taskId: UUID): Seq[TaskEventLog] = lock.synchronized {
-    events.getOrElse(taskId, Seq.empty)
-  }
+  override def loadEventsForTask(taskId: UUID): Seq[TaskEventLog] =
+    lock.synchronized {
+      events.getOrElse(taskId, Seq.empty)
+    }
 }

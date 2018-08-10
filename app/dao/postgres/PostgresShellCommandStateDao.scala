@@ -9,7 +9,8 @@ import dao.postgres.marshalling.PostgresECSExecutorStatus
 import model.ShellCommandState
 import util.JdbcUtil._
 
-class PostgresShellCommandStateDao(implicit conn: Connection) extends ExecutableStateDao[ShellCommandState] {
+class PostgresShellCommandStateDao(implicit conn: Connection)
+    extends ExecutableStateDao[ShellCommandState] {
 
   override def loadState(taskId: UUID) = {
     import ShellCommandStateTable._
@@ -18,12 +19,14 @@ class PostgresShellCommandStateDao(implicit conn: Connection) extends Executable
     stmt.setObject(1, taskId)
     val rs = stmt.executeQuery()
     rs.map { row =>
-      ShellCommandState(
-        taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
-        asOf = javaDate(row.getTimestamp(COL_AS_OF)),
-        status = PostgresECSExecutorStatus(rs.getString(COL_STATUS))
-      )
-    }.toList.headOption
+        ShellCommandState(
+          taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
+          asOf = javaDate(row.getTimestamp(COL_AS_OF)),
+          status = PostgresECSExecutorStatus(rs.getString(COL_STATUS))
+        )
+      }
+      .toList
+      .headOption
   }
 
   override def saveState(state: ShellCommandState) = {
@@ -40,9 +43,9 @@ class PostgresShellCommandStateDao(implicit conn: Connection) extends Executable
       stmt.setString(1, PostgresECSExecutorStatus(state.status))
       stmt.setTimestamp(2, state.asOf)
       stmt.setObject(3, state.taskId)
-      stmt.executeUpdate() >0
+      stmt.executeUpdate() > 0
     }
-    if(!didUpdate) {
+    if (!didUpdate) {
       val sql =
         s"""
            |INSERT INTO $TABLE

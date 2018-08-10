@@ -17,15 +17,16 @@ class Graphify {
   def toGv(uuid: UUID) = "_" + uuid.toString.replace("-", "_")
 
   def toHumanTime(millis: Long): String = {
-    if(millis < 10000) {
+    if (millis < 10000) {
       s"${millis}ms"
-    } else if(millis < TimeUnit.MINUTES.toMillis(3)) {
+    } else if (millis < TimeUnit.MINUTES.toMillis(3)) {
       s"${TimeUnit.MILLISECONDS.toSeconds(millis)}sec"
-    } else if(millis < TimeUnit.HOURS.toMillis(3)) {
+    } else if (millis < TimeUnit.HOURS.toMillis(3)) {
       s"${TimeUnit.MILLISECONDS.toMinutes(millis)}min"
     } else {
       val hours = TimeUnit.MILLISECONDS.toHours(millis)
-      val minutes = TimeUnit.MILLISECONDS.toMinutes(millis - TimeUnit.HOURS.toMillis(hours))
+      val minutes =
+        TimeUnit.MILLISECONDS.toMinutes(millis - TimeUnit.HOURS.toMillis(hours))
       s"${hours}hrs ${minutes.formatted("%02d")}mins"
     }
   }
@@ -36,7 +37,8 @@ class Graphify {
     (for {
       process <- dao.processDao.loadProcess(processId)
       tasks = dao.processDao.loadTasksForProcess(processId)
-      processDefinition <- dao.processDefinitionDao.loadProcessDefinition(process.processDefinitionName)
+      processDefinition <- dao.processDefinitionDao.loadProcessDefinition(
+        process.processDefinitionName)
       taskDefinitions = dao.processDefinitionDao.loadTaskDefinitions(process.id)
     } yield {
       // build a graph out of the task definitions
@@ -44,7 +46,9 @@ class Graphify {
 
       val font = "helvetica";
 
-      val title = s"<b>${processDefinition.name}</b> started at ${new SimpleDateFormat("M/d/y hh:mm a").format(process.startedAt)}"
+      val title =
+        s"<b>${processDefinition.name}</b> started at ${new SimpleDateFormat(
+          "M/d/y hh:mm a").format(process.startedAt)}"
 
       sb.append(s"digraph ${safeName(process.processDefinitionName)} {\n")
       sb.append("  rankdir=BT;\n")
@@ -53,16 +57,23 @@ class Graphify {
       sb.append(s"""  edge [fontname = "$font"];""").append("\n")
       sb.append("  labelloc=\"t\";\n")
       //sb.append(s"""  label=<$title>;""").append("\n")
-      sb.append("  node [fontsize = 10, shape = box, style = filled, color = black];\n")
+      sb.append(
+        "  node [fontsize = 10, shape = box, style = filled, color = black];\n")
       taskDefinitions.foreach { taskDef =>
-        val theseTasks = tasks.filter(_.taskDefinitionName == taskDef.name).sortBy(_.startedAt).reverse
+        val theseTasks = tasks
+          .filter(_.taskDefinitionName == taskDef.name)
+          .sortBy(_.startedAt)
+          .reverse
         val lastTask = theseTasks.headOption
-        val failures = theseTasks.map(_.status).collect { case TaskStatus.Failure(_, _) => 1 }.sum
+        val failures = theseTasks
+          .map(_.status)
+          .collect { case TaskStatus.Failure(_, _) => 1 }
+          .sum
         val color = lastTask.map(_.status) match {
-          case Some(TaskStatus.Running()) => "cyan3"
-          case Some(TaskStatus.Success(_)) => "darkolivegreen1"
+          case Some(TaskStatus.Running())     => "cyan3"
+          case Some(TaskStatus.Success(_))    => "darkolivegreen1"
           case Some(TaskStatus.Failure(_, _)) => "salmon"
-          case _ => "wheat"
+          case _                              => "wheat"
         }
         val timeRange = (for {
           first <- theseTasks.reverse.headOption
@@ -73,24 +84,27 @@ class Graphify {
           last.endedAt match {
             case Some(endedAt) =>
               val duration = endedAt.getTime() - first.startedAt.getTime()
-              Seq(s"$firstStr - ${fmt.format(endedAt)}", s"${toHumanTime(duration)}")
+              Seq(s"$firstStr - ${fmt.format(endedAt)}",
+                  s"${toHumanTime(duration)}")
             case _ =>
               Seq(s"$firstStr - now")
           }
         }).getOrElse(Seq.empty)
         val labelParts =
           Seq(s"<b>${taskDef.name}</b>") ++
-          timeRange ++
-          (if(failures > 0) Seq(s"$failures failures") else Seq.empty)
+            timeRange ++
+            (if (failures > 0) Seq(s"$failures failures") else Seq.empty)
         val label = labelParts.mkString("<br/>")
-        sb.append(s"""  ${safeName(taskDef.name)} [label=<$label>, fillcolor=$color];\n""")
+        sb.append(
+          s"""  ${safeName(taskDef.name)} [label=<$label>, fillcolor=$color];\n""")
       }
       taskDefinitions.foreach { taskDef =>
         taskDef.dependencies.required.foreach { dep =>
           sb.append(s"  ${safeName(taskDef.name)} -> ${safeName(dep)};\n")
         }
         taskDef.dependencies.optional.foreach { dep =>
-          sb.append(s"  ${safeName(taskDef.name)} -> ${safeName(dep)} [style=dashed];\n")
+          sb.append(
+            s"  ${safeName(taskDef.name)} -> ${safeName(dep)} [style=dashed];\n")
         }
       }
       sb.append("}\n")

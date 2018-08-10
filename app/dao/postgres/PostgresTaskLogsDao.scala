@@ -28,7 +28,8 @@ class PostgresTaskLogsDao(implicit conn: Connection) extends TaskLogsDao {
   }
 
   override def loadEventsForTask(taskId: UUID) = {
-    val stmt = conn.prepareStatement(s"SELECT * FROM $TABLE WHERE $COL_TASK_ID = ?")
+    val stmt =
+      conn.prepareStatement(s"SELECT * FROM $TABLE WHERE $COL_TASK_ID = ?")
     stmt.setObject(1, taskId)
     stmt.executeQuery().map(unmarshal).toList
   }

@@ -1,6 +1,10 @@
 package service.emr
 
-import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, HadoopJarStepConfig, StepConfig}
+import com.amazonaws.services.elasticmapreduce.model.{
+  ActionOnFailure,
+  HadoopJarStepConfig,
+  StepConfig
+}
 import model.{CopyFileJob, EmrExecutorState, EmrJobExecutable, ExecutorStatus}
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers._
@@ -16,7 +20,13 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
   "emrStateHelper" should "return failed" in {
 
     emrStateHelper.getOverallExecutorState(
-      List("COMPLETED", "FAILED", "CANCELLED", "INTERRUPTED", "CANCEL_PENDING", "RUNNING", "PENDING")
+      List("COMPLETED",
+           "FAILED",
+           "CANCELLED",
+           "INTERRUPTED",
+           "CANCEL_PENDING",
+           "RUNNING",
+           "PENDING")
     ) should be(ExecutorStatus.Failed(None))
 
   }
@@ -82,7 +92,9 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
           )
       )
 
-    emrStateHelper.toStepConfig(Some(List(CopyFileJob("source", "destination")))) should be(Seq(s3DistCpStep))
+    emrStateHelper.toStepConfig(
+      Some(List(CopyFileJob("source", "destination")))) should be(
+      Seq(s3DistCpStep))
 
   }
 
@@ -95,8 +107,13 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
     when(executable.s3JarPath).thenReturn("s3://bucket")
     when(executable.args).thenReturn(List("arg1", "arg2"))
 
-    emrStateHelper.buildSparkArgs(executable) should be (
-      List("spark-submit", "--class", "com.gilt.MainClass", "s3://bucket", "arg1", "arg2")
+    emrStateHelper.buildSparkArgs(executable) should be(
+      List("spark-submit",
+           "--class",
+           "com.gilt.MainClass",
+           "s3://bucket",
+           "arg1",
+           "arg2")
     )
 
   }

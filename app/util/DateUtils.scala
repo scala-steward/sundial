@@ -20,9 +20,9 @@ object DateUtils {
   def prettyDuration(amount: Long, unit: TimeUnit): String = {
     if (unit.toSeconds(amount) < 120) {
       s"${unit.toSeconds(amount)} seconds"
-    } else if(unit.toMinutes(amount) < 180) {
+    } else if (unit.toMinutes(amount) < 180) {
       s"${unit.toMinutes(amount)} minutes"
-    } else if(unit.toHours(amount) < 72) {
+    } else if (unit.toHours(amount) < 72) {
       s"${unit.toHours(amount)} hours"
     } else {
       s"${unit.toDays(amount)} days"

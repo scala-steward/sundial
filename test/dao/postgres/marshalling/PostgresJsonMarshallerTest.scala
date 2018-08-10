@@ -29,9 +29,10 @@ class PostgresJsonMarshallerTest extends PlaySpec {
           | }]
         """.stripMargin
 
-      val expectedTeams: Seq[Team] = Vector(Team("teamName", "teamEmail", "on_state_change_and_failures"))
+      val expectedTeams: Seq[Team] =
+        Vector(Team("teamName", "teamEmail", "on_state_change_and_failures"))
       val actualTeams = postgresJsonMarshaller.toTeams(json)
-      actualTeams must be (expectedTeams)
+      actualTeams must be(expectedTeams)
     }
 
     "correctly serialise a Seq[Team] in a json string" in {
@@ -43,9 +44,11 @@ class PostgresJsonMarshallerTest extends PlaySpec {
           |   "notify_action": "on_state_change_and_failures"
           | }]
         """.stripMargin
-      val expectedTeams: Seq[Team] = Vector(Team("teamName", "teamEmail", "on_state_change_and_failures"))
+      val expectedTeams: Seq[Team] =
+        Vector(Team("teamName", "teamEmail", "on_state_change_and_failures"))
       val actualJson = postgresJsonMarshaller.toJson(expectedTeams)
-      objectMapper.readTree(actualJson) must be (objectMapper.readTree(expectedJson))
+      objectMapper.readTree(actualJson) must be(
+        objectMapper.readTree(expectedJson))
     }
 
     "correctly deserialize a json string into Seq[Notification]" in {
@@ -56,13 +59,16 @@ class PostgresJsonMarshallerTest extends PlaySpec {
         """.stripMargin
 
       val notifications = Vector(
-        EmailNotification("name", "email", NotificationOptions.OnStateChangeAndFailures.toString),
+        EmailNotification(
+          "name",
+          "email",
+          NotificationOptions.OnStateChangeAndFailures.toString),
         PagerdutyNotification("service-key", "http://google.com", 1)
       )
 
       val actualNotifications = postgresJsonMarshaller.toNotifications(json)
 
-      actualNotifications must be (notifications)
+      actualNotifications must be(notifications)
 
     }
 
@@ -74,14 +80,18 @@ class PostgresJsonMarshallerTest extends PlaySpec {
         """.stripMargin
 
       val notifications = Vector(
-        EmailNotification("name", "email", NotificationOptions.OnStateChangeAndFailures.toString),
+        EmailNotification(
+          "name",
+          "email",
+          NotificationOptions.OnStateChangeAndFailures.toString),
         PagerdutyNotification("service-key", "http://google.com", 1)
       )
 
       println(s"bla1: ${postgresJsonMarshaller.toJson(notifications)}")
       println(s"bla2: ${objectMapper.writeValueAsString(notifications)}")
 
-      objectMapper.readTree(json) must be (objectMapper.readTree(postgresJsonMarshaller.toJson(notifications)))
+      objectMapper.readTree(json) must be(
+        objectMapper.readTree(postgresJsonMarshaller.toJson(notifications)))
 
     }
 

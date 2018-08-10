@@ -6,7 +6,8 @@ import model._
 trait ProcessDao {
   def loadRunningProcesses(): Seq[Process]
   def loadProcess(id: UUID): Option[Process]
-  def loadPreviousProcess(id: UUID, processDefinitionName: String): Option[Process]
+  def loadPreviousProcess(id: UUID,
+                          processDefinitionName: String): Option[Process]
   def findProcesses(processDefinitionName: Option[String] = None,
                     start: Option[Date] = None,
                     end: Option[Date] = None,

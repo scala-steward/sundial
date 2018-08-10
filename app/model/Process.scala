@@ -24,10 +24,14 @@ object ProcessStatus {
   }
 }
 
-case class Process(id: UUID, processDefinitionName: String, startedAt: Date, status: ProcessStatus, taskFilter: Option[Seq[String]] = None) {
+case class Process(id: UUID,
+                   processDefinitionName: String,
+                   startedAt: Date,
+                   status: ProcessStatus,
+                   taskFilter: Option[Seq[String]] = None) {
   def endedAt: Option[Date] = status match {
-    case ProcessStatus.Running() => None
+    case ProcessStatus.Running()       => None
     case ProcessStatus.Succeeded(when) => Some(when)
-    case ProcessStatus.Failed(when) => Some(when)
+    case ProcessStatus.Failed(when)    => Some(when)
   }
 }

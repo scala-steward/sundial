@@ -20,7 +20,9 @@ object ShellCommandRegistry {
   // stdout and stderr for the process - otherwise we might erroneously
   // think that the process has failed, when in reality we just haven't
   // received its status message yet
-  def putCommand(uuid: UUID, process: java.lang.Process, doneCheck: () => Boolean): Unit = {
+  def putCommand(uuid: UUID,
+                 process: java.lang.Process,
+                 doneCheck: () => Boolean): Unit = {
     synchronized {
       commands = commands + (uuid -> process)
       checks = checks + (uuid -> doneCheck)
@@ -33,7 +35,8 @@ object ShellCommandRegistry {
 
 }
 
-class ShellCommandExecutor @Inject() (daoFactory: SundialDaoFactory) extends SpecificTaskExecutor[ShellCommandExecutable, ShellCommandState] {
+class ShellCommandExecutor @Inject()(daoFactory: SundialDaoFactory)
+    extends SpecificTaskExecutor[ShellCommandExecutable, ShellCommandState] {
 
   private val threadPool = Executors.newCachedThreadPool()
 
@@ -44,54 +47,78 @@ class ShellCommandExecutor @Inject() (daoFactory: SundialDaoFactory) extends Spe
   // The script can indicate success/failure by emitting "**status=success" or "**status=failure".
   // The script can set metadata using "**metadata:KEY=VALUE".
   // Any other log message will be interpreted as task event log.
-  private def redirectOutput(stream: InputStream, kind: String, task: Task): AtomicBoolean = {
+  private def redirectOutput(stream: InputStream,
+                             kind: String,
+                             task: Task): AtomicBoolean = {
     val doneFlag = new AtomicBoolean(false)
     threadPool.submit(new Runnable {
-      override def run(): Unit = daoFactory.withSundialDao { dao =>
-        val br = new BufferedReader(new InputStreamReader(stream))
-        var line: String = null
-        do {
-          line = br.readLine()
-          if(line != null) {
-            if(line.startsWith("**status=")) {
-              val status = line.substring(line.indexOf("=") + 1) match {
-                case "success" => TaskStatus.Success(new Date())
-                case "failure" => TaskStatus.Failure(new Date(), Some("shell command reported failure"))
+      override def run(): Unit = daoFactory.withSundialDao {
+        dao =>
+          val br = new BufferedReader(new InputStreamReader(stream))
+          var line: String = null
+          do {
+            line = br.readLine()
+            if (line != null) {
+              if (line.startsWith("**status=")) {
+                val status = line.substring(line.indexOf("=") + 1) match {
+                  case "success" => TaskStatus.Success(new Date())
+                  case "failure" =>
+                    TaskStatus.Failure(new Date(),
+                                       Some("shell command reported failure"))
+                }
+                dao.processDao.saveReportedTaskStatus(
+                  new ReportedTaskStatus(task.id, status))
+              } else if (line.startsWith("**metadata:")) {
+                val parts = line.substring(line.indexOf(":") + 1)
+                val key = parts.substring(0, parts.indexOf("="))
+                val value = parts.substring(parts.indexOf("=") + 1)
+                dao.taskMetadataDao.saveMetadataEntries(
+                  Seq(
+                    TaskMetadataEntry(UUID.randomUUID(),
+                                      task.id,
+                                      new Date(),
+                                      key,
+                                      value)))
+              } else {
+                val event = TaskEventLog(UUID.randomUUID(),
+                                         task.id,
+                                         new Date(),
+                                         "shell",
+                                         s"[$kind] $line")
+                dao.taskLogsDao.saveEvents(Seq(event))
               }
-              dao.processDao.saveReportedTaskStatus(new ReportedTaskStatus(task.id, status))
-            } else if(line.startsWith("**metadata:")) {
-              val parts = line.substring(line.indexOf(":") + 1)
-              val key = parts.substring(0, parts.indexOf("="))
-              val value = parts.substring(parts.indexOf("=") + 1)
-              dao.taskMetadataDao.saveMetadataEntries(Seq(TaskMetadataEntry(UUID.randomUUID(), task.id, new Date(), key, value)))
-            } else {
-              val event = TaskEventLog(UUID.randomUUID(), task.id, new Date(), "shell", s"[$kind] $line")
-              dao.taskLogsDao.saveEvents(Seq(event))
             }
-          }
-        } while(line != null)
-        doneFlag.set(true)
+          } while (line != null)
+          doneFlag.set(true)
       }
     })
     doneFlag
   }
 
-  override protected def actuallyStartExecutable(executable: ShellCommandExecutable, task: Task)
-                                                (implicit dao: SundialDao): ShellCommandState = {
+  override protected def actuallyStartExecutable(
+      executable: ShellCommandExecutable,
+      task: Task)(implicit dao: SundialDao): ShellCommandState = {
     val scriptFile = File.createTempFile("sundial", ".sh")
     val bw = new BufferedWriter(new FileWriter(scriptFile))
     bw.write(executable.script)
     bw.close()
 
-    val builder = new ProcessBuilder().command(Seq("bash", scriptFile.getAbsolutePath()).asJava)
+    val builder = new ProcessBuilder()
+      .command(Seq("bash", scriptFile.getAbsolutePath()).asJava)
     // communicate to the script how many attempts have been made before through an env variable
     // this is important for our unit tests and should not be removed!
-    builder.environment().put("SUNDIAL_TASK_PREVIOUS_ATTEMPTS", task.previousAttempts.toString())
+    builder
+      .environment()
+      .put("SUNDIAL_TASK_PREVIOUS_ATTEMPTS", task.previousAttempts.toString())
     builder.environment().putAll(executable.environmentVariables.asJava)
     val shellProcess = builder.start()
-    val stdoutFlag = redirectOutput(shellProcess.getInputStream(), "stdout", task)
-    val stderrFlag = redirectOutput(shellProcess.getInputStream(), "stderr", task)
-    ShellCommandRegistry.putCommand(task.id, shellProcess, () => stdoutFlag.get() && stderrFlag.get())
+    val stdoutFlag =
+      redirectOutput(shellProcess.getInputStream(), "stdout", task)
+    val stderrFlag =
+      redirectOutput(shellProcess.getInputStream(), "stderr", task)
+    ShellCommandRegistry.putCommand(task.id,
+                                    shellProcess,
+                                    () => stdoutFlag.get() && stderrFlag.get())
     ShellCommandState(task.id, new Date(), ExecutorStatus.Running)
   }
 
@@ -104,25 +131,31 @@ class ShellCommandExecutor @Inject() (daoFactory: SundialDaoFactory) extends Spe
       case e: IllegalThreadStateException => true
     }
 
-  override protected def actuallyRefreshState(state: ShellCommandState)
-                                             (implicit dao: SundialDao): ShellCommandState = {
+  override protected def actuallyRefreshState(state: ShellCommandState)(
+      implicit dao: SundialDao): ShellCommandState = {
     ShellCommandRegistry.getCommand(state.taskId) match {
       case Some(shellProcess) =>
-        if(isAlive(shellProcess) || !ShellCommandRegistry.checkDone(state.taskId)) {
+        if (isAlive(shellProcess) || !ShellCommandRegistry.checkDone(
+              state.taskId)) {
           state.copy(status = ExecutorStatus.Running)
-        } else if(shellProcess.exitValue() == 0) {
+        } else if (shellProcess.exitValue() == 0) {
           state.copy(status = ExecutorStatus.Succeeded)
         } else {
-          state.copy(status = ExecutorStatus.Failed(Some(s"Shell command exit value ${shellProcess.exitValue()}")))
+          state.copy(
+            status = ExecutorStatus.Failed(
+              Some(s"Shell command exit value ${shellProcess.exitValue()}")))
         }
       case _ =>
         // missing from registry – never started
-        state.copy(status = ExecutorStatus.Failed(Some("Shell command never started")))
+        state.copy(
+          status = ExecutorStatus.Failed(Some("Shell command never started")))
     }
   }
 
-  override protected def actuallyKillExecutable(state: ShellCommandState, task: Task, reason: String)
-                                               (implicit dao: SundialDao): Unit = {
+  override protected def actuallyKillExecutable(
+      state: ShellCommandState,
+      task: Task,
+      reason: String)(implicit dao: SundialDao): Unit = {
     ShellCommandRegistry.getCommand(state.taskId).foreach { shellProcess =>
       shellProcess.destroy()
     }

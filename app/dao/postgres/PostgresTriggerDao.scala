@@ -4,14 +4,22 @@ import java.sql.Connection
 import java.util.UUID
 
 import dao.TriggerDao
-import dao.postgres.common.{KillProcessRequestTable, ProcessTriggerRequestTable, TaskTriggerRequestTable}
-import dao.postgres.marshalling.{TaskTriggerRequestMarshaller, ProcessTriggerRequestMarshaller}
+import dao.postgres.common.{
+  KillProcessRequestTable,
+  ProcessTriggerRequestTable,
+  TaskTriggerRequestTable
+}
+import dao.postgres.marshalling.{
+  TaskTriggerRequestMarshaller,
+  ProcessTriggerRequestMarshaller
+}
 import model.{KillProcessRequest, TaskTriggerRequest, ProcessTriggerRequest}
 import util.JdbcUtil._
 
 class PostgresTriggerDao(implicit conn: Connection) extends TriggerDao {
 
-  override def loadOpenProcessTriggerRequests(processDefinitionNameOpt: Option[String]) = {
+  override def loadOpenProcessTriggerRequests(
+      processDefinitionNameOpt: Option[String]) = {
     import ProcessTriggerRequestTable._
     val stmt = processDefinitionNameOpt match {
       case Some(processDefinitionName) =>
@@ -51,11 +59,15 @@ class PostgresTriggerDao(implicit conn: Connection) extends TriggerDao {
            |  $COL_REQUEST_ID = ?
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_PROCESS_DEF_NAME, COL_REQUESTED_AT, COL_STARTED_PROCESS_ID, COL_TASK_FILTER, COL_REQUEST_ID)
+      val cols = Seq(COL_PROCESS_DEF_NAME,
+                     COL_REQUESTED_AT,
+                     COL_STARTED_PROCESS_ID,
+                     COL_TASK_FILTER,
+                     COL_REQUEST_ID)
       ProcessTriggerRequestMarshaller.marshal(request, stmt, cols)
       stmt.executeUpdate() > 0
     }
-    if(!didUpdate) {
+    if (!didUpdate) {
       val sql =
         s"""
          |INSERT INTO $TABLE
@@ -64,14 +76,19 @@ class PostgresTriggerDao(implicit conn: Connection) extends TriggerDao {
          |(?, ?, ?, ?, ?)
        """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_REQUEST_ID, COL_PROCESS_DEF_NAME, COL_REQUESTED_AT, COL_STARTED_PROCESS_ID, COL_TASK_FILTER)
+      val cols = Seq(COL_REQUEST_ID,
+                     COL_PROCESS_DEF_NAME,
+                     COL_REQUESTED_AT,
+                     COL_STARTED_PROCESS_ID,
+                     COL_TASK_FILTER)
       ProcessTriggerRequestMarshaller.marshal(request, stmt, cols)
       stmt.execute()
     }
     request
   }
 
-  override def loadOpenTaskTriggerRequests(processDefinitionNameOpt: Option[String]) = {
+  override def loadOpenTaskTriggerRequests(
+      processDefinitionNameOpt: Option[String]) = {
     import TaskTriggerRequestTable._
     val stmt = processDefinitionNameOpt match {
       case Some(processDefinitionName) =>
@@ -111,11 +128,15 @@ class PostgresTriggerDao(implicit conn: Connection) extends TriggerDao {
            |  $COL_REQUEST_ID = ?
          """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_PROCESS_DEF_NAME, COL_TASK_DEF_NAME, COL_REQUESTED_AT, COL_STARTED_PROCESS_ID, COL_REQUEST_ID)
+      val cols = Seq(COL_PROCESS_DEF_NAME,
+                     COL_TASK_DEF_NAME,
+                     COL_REQUESTED_AT,
+                     COL_STARTED_PROCESS_ID,
+                     COL_REQUEST_ID)
       TaskTriggerRequestMarshaller.marshal(request, stmt, cols)
       stmt.executeUpdate() > 0
     }
-    if(!didUpdate) {
+    if (!didUpdate) {
       val sql =
         s"""
          |INSERT INTO $TABLE
@@ -124,14 +145,19 @@ class PostgresTriggerDao(implicit conn: Connection) extends TriggerDao {
          |(?, ?, ?, ?, ?)
        """.stripMargin
       val stmt = conn.prepareStatement(sql)
-      val cols = Seq(COL_REQUEST_ID, COL_PROCESS_DEF_NAME, COL_TASK_DEF_NAME, COL_REQUESTED_AT, COL_STARTED_PROCESS_ID)
+      val cols = Seq(COL_REQUEST_ID,
+                     COL_PROCESS_DEF_NAME,
+                     COL_TASK_DEF_NAME,
+                     COL_REQUESTED_AT,
+                     COL_STARTED_PROCESS_ID)
       TaskTriggerRequestMarshaller.marshal(request, stmt, cols)
       stmt.execute()
     }
     request
   }
 
-  override def loadKillProcessRequests(processId: UUID): Seq[KillProcessRequest] = {
+  override def loadKillProcessRequests(
+      processId: UUID): Seq[KillProcessRequest] = {
     import KillProcessRequestTable._
     val sql =
       s"""
@@ -149,7 +175,8 @@ class PostgresTriggerDao(implicit conn: Connection) extends TriggerDao {
     }.toList
   }
 
-  override def saveKillProcessRequest(request: KillProcessRequest): KillProcessRequest = {
+  override def saveKillProcessRequest(
+      request: KillProcessRequest): KillProcessRequest = {
     import KillProcessRequestTable._
     // Insert-only
     val sql =

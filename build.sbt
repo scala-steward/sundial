@@ -12,6 +12,8 @@ scalaVersion := "2.12.6"
 
 val prometheusLibVersion = "0.9.0-M5"
 
+scalafmtOnCompile := true
+
 libraryDependencies ++= Seq(
     jdbc,
     guice,

@@ -12,7 +12,8 @@ import play.api.libs.json.Json
 import play.api.mvc.InjectedController
 import util.Conversions._
 
-class Tasks @Inject() (daoFactory: SundialDaoFactory) extends InjectedController {
+class Tasks @Inject()(daoFactory: SundialDaoFactory)
+    extends InjectedController {
 
   def get(processDefinitionName: String,
           taskDefinitionName: String,
@@ -22,7 +23,7 @@ class Tasks @Inject() (daoFactory: SundialDaoFactory) extends InjectedController
           limit: Option[Int]) = Action {
 
     val allowedStatusTypes = {
-      if(allowedStatuses.isEmpty) {
+      if (allowedStatuses.isEmpty) {
         None
       } else {
         Some(allowedStatuses.map(ModelConverter.toInternalTaskStatusType))
@@ -41,27 +42,32 @@ class Tasks @Inject() (daoFactory: SundialDaoFactory) extends InjectedController
     Ok(Json.toJson(result))
   }
 
-  def postLogEntriesByTaskId(taskId: UUID) = Action(parse.json[List[v1.models.LogEntry]]) { request =>
-    daoFactory.withSundialDao { implicit dao =>
-      val events = request.body.map(ModelConverter.toInternalLogEntry(taskId, _))
-      dao.taskLogsDao.saveEvents(events)
+  def postLogEntriesByTaskId(taskId: UUID) =
+    Action(parse.json[List[v1.models.LogEntry]]) { request =>
+      daoFactory.withSundialDao { implicit dao =>
+        val events =
+          request.body.map(ModelConverter.toInternalLogEntry(taskId, _))
+        dao.taskLogsDao.saveEvents(events)
+      }
+
+      Created
     }
 
-    Created
-  }
+  def postMetadataByTaskId(taskId: UUID) =
+    Action(parse.json[List[v1.models.MetadataEntry]]) { request =>
+      daoFactory.withSundialDao { implicit dao =>
+        val entries =
+          request.body.map(ModelConverter.toInternalMetadataEntry(taskId, _))
+        dao.taskMetadataDao.saveMetadataEntries(entries)
+      }
 
-  def postMetadataByTaskId(taskId: UUID) = Action(parse.json[List[v1.models.MetadataEntry]]) { request =>
-    daoFactory.withSundialDao { implicit dao =>
-      val entries = request.body.map(ModelConverter.toInternalMetadataEntry(taskId, _))
-      dao.taskMetadataDao.saveMetadataEntries(entries)
+      Created
     }
-
-    Created
-  }
 
   def postSucceedByTaskId(taskId: UUID) = Action {
     daoFactory.withSundialDao { implicit dao =>
-      dao.processDao.saveReportedTaskStatus(ReportedTaskStatus(taskId, model.TaskStatus.Success(new Date())))
+      dao.processDao.saveReportedTaskStatus(
+        ReportedTaskStatus(taskId, model.TaskStatus.Success(new Date())))
     }
 
     Created
@@ -69,7 +75,9 @@ class Tasks @Inject() (daoFactory: SundialDaoFactory) extends InjectedController
 
   def postFailByTaskId(taskId: UUID) = Action {
     daoFactory.withSundialDao { implicit dao =>
-      dao.processDao.saveReportedTaskStatus(ReportedTaskStatus(taskId, model.TaskStatus.Failure(new Date(), Some("Marked as failed via API"))))
+      dao.processDao.saveReportedTaskStatus(ReportedTaskStatus(
+        taskId,
+        model.TaskStatus.Failure(new Date(), Some("Marked as failed via API"))))
     }
 
     Created

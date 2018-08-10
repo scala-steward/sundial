@@ -9,7 +9,8 @@ import dao.postgres.marshalling.PostgresECSExecutorStatus
 import model.ECSContainerState
 import util.JdbcUtil._
 
-class PostgresECSServiceStateDao(implicit conn: Connection) extends ExecutableStateDao[ECSContainerState] {
+class PostgresECSServiceStateDao(implicit conn: Connection)
+    extends ExecutableStateDao[ECSContainerState] {
 
   override def loadState(taskId: UUID) = {
     import ECSStateTable._
@@ -18,13 +19,15 @@ class PostgresECSServiceStateDao(implicit conn: Connection) extends ExecutableSt
     stmt.setObject(1, taskId)
     val rs = stmt.executeQuery()
     rs.map { row =>
-      ECSContainerState(
-        taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
-        asOf = javaDate(row.getTimestamp(COL_AS_OF)),
-        status = PostgresECSExecutorStatus(rs.getString(COL_STATUS)),
-        ecsTaskArn = rs.getString(COL_TASK_ARN)
-      )
-    }.toList.headOption
+        ECSContainerState(
+          taskId = row.getObject(COL_TASK_ID).asInstanceOf[UUID],
+          asOf = javaDate(row.getTimestamp(COL_AS_OF)),
+          status = PostgresECSExecutorStatus(rs.getString(COL_STATUS)),
+          ecsTaskArn = rs.getString(COL_TASK_ARN)
+        )
+      }
+      .toList
+      .headOption
   }
 
   override def saveState(state: ECSContainerState) = {
@@ -46,7 +49,7 @@ class PostgresECSServiceStateDao(implicit conn: Connection) extends ExecutableSt
       stmt.setObject(4, state.taskId)
       stmt.executeUpdate() > 0
     }
-    if(!didUpdate) {
+    if (!didUpdate) {
       val sql =
         s"""
            |INSERT INTO $TABLE

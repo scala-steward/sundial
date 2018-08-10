@@ -12,7 +12,12 @@ import service.GlobalLock
 import play.api.db.DBApi
 import util.JdbcUtil._
 
-case class GlobalLockMetricValues(executions: Int, failedExecutions: Int, acquires: Int, failedAcquires: Int, interrupts: Int, completions: Int)
+case class GlobalLockMetricValues(executions: Int,
+                                  failedExecutions: Int,
+                                  acquires: Int,
+                                  failedAcquires: Int,
+                                  interrupts: Int,
+                                  completions: Int)
 class GlobalLockMetrics {
   val executions = new AtomicInteger()
   val failedExecutions = new AtomicInteger()
@@ -34,7 +39,7 @@ class GlobalLockMetrics {
 case class Lease(leaseId: UUID, start: Date, end: Date)
 
 @Singleton
-class PostgresGlobalLock @Inject() (dbApi: DBApi) extends GlobalLock {
+class PostgresGlobalLock @Inject()(dbApi: DBApi) extends GlobalLock {
 
   val metrics = new GlobalLockMetrics()
 
@@ -57,7 +62,7 @@ class PostgresGlobalLock @Inject() (dbApi: DBApi) extends GlobalLock {
     val start = new Date()
     val end = new Date(start.getTime() + LEASE_LENGTH_MS)
     val desiredLease = Lease(UUID.randomUUID(), start, end)
-    if(!acquireLease(desiredLease)) {
+    if (!acquireLease(desiredLease)) {
       metrics.failedExecutions.incrementAndGet()
       metrics.failedAcquires.incrementAndGet()
     } else {
@@ -78,21 +83,25 @@ class PostgresGlobalLock @Inject() (dbApi: DBApi) extends GlobalLock {
 
       var currentLease: Lease = desiredLease
       var done: Boolean = false
-      while(!done) {
+      while (!done) {
         metrics.wakes.incrementAndGet()
-        if(semaphore.tryAcquire(CHECK_TIME_MS, TimeUnit.MILLISECONDS)) {
+        if (semaphore.tryAcquire(CHECK_TIME_MS, TimeUnit.MILLISECONDS)) {
           // thread completed normally
           done = true
           metrics.completions.incrementAndGet()
-        } else if(!thread.isAlive) {
+        } else if (!thread.isAlive) {
           // something appears to have happened that caused the thread to terminate
           done = true
-        } else if(!thread.isInterrupted) {
+        } else if (!thread.isInterrupted) {
           // if we're getting close to the end of the lease, renew the lease
           // if we can't renew the lease, interrupt the thread
-          val isTooCloseToEnd = new Date().after(new Date(currentLease.end.getTime - RENEW_BUFFER_MS))
-          if(isTooCloseToEnd) {
-            val nextLease = Lease(UUID.randomUUID(), currentLease.end, new Date(currentLease.end.getTime() + LEASE_LENGTH_MS))
+          val isTooCloseToEnd = new Date()
+            .after(new Date(currentLease.end.getTime - RENEW_BUFFER_MS))
+          if (isTooCloseToEnd) {
+            val nextLease = Lease(
+              UUID.randomUUID(),
+              currentLease.end,
+              new Date(currentLease.end.getTime() + LEASE_LENGTH_MS))
             if (acquireLease(nextLease)) {
               metrics.acquires.incrementAndGet()
               currentLease = nextLease
@@ -127,15 +136,17 @@ class PostgresGlobalLock @Inject() (dbApi: DBApi) extends GlobalLock {
         stmt.setTimestamp(2, lease.end)
         val rs = stmt.executeQuery()
         rs.map { row =>
-          Lease(
-            row.getObject(COL_LEASE_ID).asInstanceOf[UUID],
-            javaDate(row.getTimestamp("lease_start")),
-            javaDate(row.getTimestamp("lease_end"))
-          )
-        }.toList.headOption
+            Lease(
+              row.getObject(COL_LEASE_ID).asInstanceOf[UUID],
+              javaDate(row.getTimestamp("lease_start")),
+              javaDate(row.getTimestamp("lease_end"))
+            )
+          }
+          .toList
+          .headOption
       }
 
-      if(conflictingLease.isEmpty) {
+      if (conflictingLease.isEmpty) {
         val sql =
           s"""
              |INSERT INTO $TABLE

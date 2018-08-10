@@ -4,7 +4,11 @@ import java.io.ByteArrayOutputStream
 
 import com.fasterxml.jackson.core.JsonEncoding
 import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
-import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode, PropertyNamingStrategy}
+import com.fasterxml.jackson.databind.{
+  DeserializationFeature,
+  JsonNode,
+  PropertyNamingStrategy
+}
 import com.hbc.svc.sundial.v1.models.NotificationOptions
 import model._
 import util.Json
@@ -69,19 +73,19 @@ object PostgresJsonMarshaller {
   def toExecutable(json: String): Executable = {
     val tree = mapper.readTree(json)
     tree.get(EXECUTABLE_TYPE_KEY).asText() match {
-      case EXECUTABLE_SHELL => mapper.treeToValue[ShellCommandExecutable](tree)
+      case EXECUTABLE_SHELL  => mapper.treeToValue[ShellCommandExecutable](tree)
       case EXECUTABLE_DOCKER => mapper.treeToValue[ECSExecutable](tree)
-      case EXECUTABLE_BATCH => mapper.treeToValue[BatchExecutable](tree)
-      case EXECUTABLE_EMR => mapper.treeToValue[EmrJobExecutable](tree)
+      case EXECUTABLE_BATCH  => mapper.treeToValue[BatchExecutable](tree)
+      case EXECUTABLE_EMR    => mapper.treeToValue[EmrJobExecutable](tree)
     }
   }
 
   def toJson(executable: Executable): String = {
     val executableType = executable match {
       case _: ShellCommandExecutable => EXECUTABLE_SHELL
-      case _: ECSExecutable => EXECUTABLE_DOCKER
-      case _: BatchExecutable => EXECUTABLE_BATCH
-      case _: EmrJobExecutable => EXECUTABLE_EMR
+      case _: ECSExecutable          => EXECUTABLE_DOCKER
+      case _: BatchExecutable        => EXECUTABLE_BATCH
+      case _: EmrJobExecutable       => EXECUTABLE_EMR
     }
     val tree: ObjectNode = mapper.valueToTree(executable)
     tree.put(EXECUTABLE_TYPE_KEY, executableType)
@@ -92,21 +96,22 @@ object PostgresJsonMarshaller {
     val tree = mapper.readTree(json)
     tree.get(SCHEDULE_TYPE_KEY).asText() match {
       case SCHEDULE_CONTINUOUS => mapper.treeToValue[ContinuousSchedule](tree)
-      case SCHEDULE_CRON => mapper.treeToValue[CronSchedule](tree)
+      case SCHEDULE_CRON       => mapper.treeToValue[CronSchedule](tree)
     }
   }
 
   def toJson(schedule: ProcessSchedule): String = {
     val scheduleType = schedule match {
       case s: ContinuousSchedule => SCHEDULE_CONTINUOUS
-      case s: CronSchedule => SCHEDULE_CRON
+      case s: CronSchedule       => SCHEDULE_CRON
     }
     val tree: ObjectNode = mapper.valueToTree(schedule)
     tree.put(SCHEDULE_TYPE_KEY, scheduleType)
     toJson(tree)
   }
 
-  @deprecated(message = "deprecated in favour of Notifications", since = "0.0.10")
+  @deprecated(message = "deprecated in favour of Notifications",
+              since = "0.0.10")
   def toTeams(json: String): Seq[Team] = {
     if (json == null || json.isEmpty) {
       Seq.empty
@@ -114,15 +119,22 @@ object PostgresJsonMarshaller {
       mapper.readTree(json) match {
         case n: ArrayNode =>
           n.map { node =>
-            val notificationOptions = Option(node.get(TEAM_NOTIFY)).map(_.asText("")).flatMap(NotificationOptions.fromString).getOrElse(NotificationOptions.OnStateChangeAndFailures)
-            Team(name = node.get(TEAM_NAME).asText(), email = node.get(TEAM_EMAIL).asText(), notifyAction = notificationOptions.toString)
+            val notificationOptions = Option(node.get(TEAM_NOTIFY))
+              .map(_.asText(""))
+              .flatMap(NotificationOptions.fromString)
+              .getOrElse(NotificationOptions.OnStateChangeAndFailures)
+            Team(name = node.get(TEAM_NAME).asText(),
+                 email = node.get(TEAM_EMAIL).asText(),
+                 notifyAction = notificationOptions.toString)
           }.toList
-        case _ => throw new IllegalStateException(s"Teams JSON is not an array: $json")
+        case _ =>
+          throw new IllegalStateException(s"Teams JSON is not an array: $json")
       }
     }
   }
 
-  @deprecated(message = "deprecated in favour of Notifications", since = "0.0.10")
+  @deprecated(message = "deprecated in favour of Notifications",
+              since = "0.0.10")
   def toJson(teams: Seq[Team]): String = {
     val tree = mapper.getNodeFactory.arrayNode()
     teams.foreach { team =>

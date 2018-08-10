@@ -11,15 +11,19 @@ import scala.collection.JavaConverters._
 
 // The AWS SDK doesn't provide proper model classes, so we make our own
 
-case class BatchJobDefinition(definitionName: String, container: BatchContainerDefinition, jobRoleArn: Option[String])
-case class BatchContainerDefinition(image: String, vCpus: Int, memory: Int,
+case class BatchJobDefinition(definitionName: String,
+                              container: BatchContainerDefinition,
+                              jobRoleArn: Option[String])
+case class BatchContainerDefinition(image: String,
+                                    vCpus: Int,
+                                    memory: Int,
                                     command: Seq[String],
-                                    environmentVariables: Map[String, String] = Map.empty,
+                                    environmentVariables: Map[String, String] =
+                                      Map.empty,
                                     computeEnvironment: Option[String] = None)
 
 @Singleton
 class BatchHelper @Inject()() {
-
 
   /**
     *
@@ -29,7 +33,11 @@ class BatchHelper @Inject()() {
     * @param batchClient
     * @return
     */
-  def runJob(jobName: String, jobQueue: String, jobDefinitionName: String, startedBy: String)(implicit batchClient: AWSBatch): SubmitJobResult ={
+  def runJob(
+      jobName: String,
+      jobQueue: String,
+      jobDefinitionName: String,
+      startedBy: String)(implicit batchClient: AWSBatch): SubmitJobResult = {
     val runTaskRequest = new SubmitJobRequest()
       .withJobQueue(jobQueue)
       .withJobName(jobName)
@@ -39,20 +47,25 @@ class BatchHelper @Inject()() {
     batchClient.submitJob(runTaskRequest)
   }
 
-
-  def registerJobDefinition(jobDefinition: BatchJobDefinition)
-                           (implicit batchClient: AWSBatch): RegisterJobDefinitionResult ={
+  def registerJobDefinition(jobDefinition: BatchJobDefinition)(
+      implicit batchClient: AWSBatch): RegisterJobDefinitionResult = {
     val containerDef = jobDefinition.container
     val containerProperties = new ContainerProperties()
       .withCommand(containerDef.command.asJavaCollection)
-      .withEnvironment(containerDef.environmentVariables.map { case (key, value) =>
-        new KeyValuePair().withName(key).withValue(value)
-      }.toList.asJava)
+      .withEnvironment(
+        containerDef.environmentVariables
+          .map {
+            case (key, value) =>
+              new KeyValuePair().withName(key).withValue(value)
+          }
+          .toList
+          .asJava)
       .withImage(containerDef.image)
       .withMemory(containerDef.memory)
       .withVcpus(containerDef.vCpus)
 
-    val containerPropertiesWithJobRoleArn = jobDefinition.jobRoleArn.fold(containerProperties)(containerProperties.withJobRoleArn(_))
+    val containerPropertiesWithJobRoleArn = jobDefinition.jobRoleArn.fold(
+      containerProperties)(containerProperties.withJobRoleArn(_))
 
     val registerTaskDefinitionRequest = new RegisterJobDefinitionRequest()
       .withContainerProperties(containerPropertiesWithJobRoleArn)
@@ -63,7 +76,6 @@ class BatchHelper @Inject()() {
     batchClient.registerJobDefinition(registerTaskDefinitionRequest)
   }
 
-
   /**
     *
     * @param jobId job id
@@ -71,7 +83,8 @@ class BatchHelper @Inject()() {
     * @param batchClient
     * @return
     */
-  def stopTask(jobId:String, reason: String)(implicit batchClient: AWSBatch): TerminateJobResult ={
+  def stopTask(jobId: String, reason: String)(
+      implicit batchClient: AWSBatch): TerminateJobResult = {
     val cancelJobRequest = new CancelJobRequest()
       .withJobId(jobId)
       .withReason(reason)
@@ -84,30 +97,39 @@ class BatchHelper @Inject()() {
     batchClient.terminateJob(terminateJobRequest)
   }
 
-  def describeJobDefinition(jobDefinitionName: String)(implicit batchClient: AWSBatch): Option[JobDefinition] = {
-    val request = new DescribeJobDefinitionsRequest().withJobDefinitionName(jobDefinitionName)
-    batchClient.describeJobDefinitions(request).getJobDefinitions.asScala.sortBy(_.getRevision.intValue() * -1).headOption
+  def describeJobDefinition(jobDefinitionName: String)(
+      implicit batchClient: AWSBatch): Option[JobDefinition] = {
+    val request = new DescribeJobDefinitionsRequest()
+      .withJobDefinitionName(jobDefinitionName)
+    batchClient
+      .describeJobDefinitions(request)
+      .getJobDefinitions
+      .asScala
+      .sortBy(_.getRevision.intValue() * -1)
+      .headOption
   }
 
-  private def asInternalModel(jobDefinition: JobDefinition): BatchJobDefinition = {
+  private def asInternalModel(
+      jobDefinition: JobDefinition): BatchJobDefinition = {
     val containerProperties = jobDefinition.getContainerProperties
     val containerDefintion = BatchContainerDefinition(
       image = containerProperties.getImage,
       vCpus = containerProperties.getVcpus,
       memory = containerProperties.getMemory,
       command = containerProperties.getCommand.asScala.toList,
-      environmentVariables = containerProperties.getEnvironment.asScala.map { kvp =>
-        kvp.getName -> kvp.getValue
+      environmentVariables = containerProperties.getEnvironment.asScala.map {
+        kvp =>
+          kvp.getName -> kvp.getValue
       }.toMap
     )
     BatchJobDefinition(definitionName = jobDefinition.getJobDefinitionName,
-      container = containerDefintion,
-      jobRoleArn = Option(containerProperties.getJobRoleArn))
+                       container = containerDefintion,
+                       jobRoleArn = Option(containerProperties.getJobRoleArn))
   }
 
   def matches(actual: JobDefinition, expected: BatchJobDefinition): Boolean = {
     val actualInternal = asInternalModel(actual)
-    if(actualInternal != expected) {
+    if (actualInternal != expected) {
       Logger.info(s"desired Batch job definition: $expected")
       Logger.info(s"actual Batch job definition: $actualInternal")
       false
@@ -116,7 +138,8 @@ class BatchHelper @Inject()() {
     }
   }
 
-  def describeJob(jobId: UUID)(implicit batchClient: AWSBatch): Option[JobDetail] ={
+  def describeJob(jobId: UUID)(
+      implicit batchClient: AWSBatch): Option[JobDetail] = {
     val describeJobsRequest = new DescribeJobsRequest()
       .withJobs(jobId.toString)
     val describeJobsResponse = batchClient.describeJobs(describeJobsRequest)

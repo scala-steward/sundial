@@ -11,7 +11,7 @@ class PostgresSundialDao(implicit conn: Connection) extends SundialDao {
   }
 
   override def close() {
-    if(!conn.isClosed) {
+    if (!conn.isClosed) {
       conn.commit()
       conn.close()
     }

@@ -12,7 +12,12 @@ import play.api.inject.ApplicationLifecycle
 import scala.concurrent.Future
 import scala.util.control.NonFatal
 
-case class MetricValues(wakes: Long, steps: Long, processStarts: Long, taskStarts: Long, processFinishes: Long, processTerminations: Long)
+case class MetricValues(wakes: Long,
+                        steps: Long,
+                        processStarts: Long,
+                        taskStarts: Long,
+                        processFinishes: Long,
+                        processTerminations: Long)
 
 // mostly for verifying test cases
 class SundialMetrics {
@@ -23,7 +28,13 @@ class SundialMetrics {
   val processFinishes = new AtomicLong()
   val processTerminations = new AtomicLong()
 
-  def values = MetricValues(wakes.get(), steps.get(), processStarts.get(), taskStarts.get(), processFinishes.get(), processTerminations.get())
+  def values =
+    MetricValues(wakes.get(),
+                 steps.get(),
+                 processStarts.get(),
+                 taskStarts.get(),
+                 processFinishes.get(),
+                 processTerminations.get())
 
   override def toString: String = {
     s"SundialMetrics(wakes=$wakes, steps=$steps, processStarts=$processStarts, taskStarts=$taskStarts, processFinishes=$processFinishes, processTerminations=$processTerminations)"
@@ -32,7 +43,8 @@ class SundialMetrics {
 
 sealed trait RunReason
 case class ScheduleRunReason(schedule: ProcessSchedule) extends RunReason
-case class ProcessTriggerRunReason(request: ProcessTriggerRequest) extends RunReason
+case class ProcessTriggerRunReason(request: ProcessTriggerRequest)
+    extends RunReason
 case class TaskTriggerRunReason(request: TaskTriggerRequest) extends RunReason
 
 // globally single-threaded coordinator
@@ -41,11 +53,11 @@ case class TaskTriggerRunReason(request: TaskTriggerRequest) extends RunReason
 // those threads are joined before continuing
 // executions of doWork() should be very fast (a few seconds)
 @Singleton
-class Sundial @Inject() (
-  globalLock: GlobalLock,
-  processStepper: ProcessStepper,
-  daoFactory: SundialDaoFactory,
-  applicationLifecycle: ApplicationLifecycle
+class Sundial @Inject()(
+    globalLock: GlobalLock,
+    processStepper: ProcessStepper,
+    daoFactory: SundialDaoFactory,
+    applicationLifecycle: ApplicationLifecycle
 ) {
 
   val metrics = new SundialMetrics()
@@ -63,7 +75,7 @@ class Sundial @Inject() (
       this.setDaemon(true)
 
       override def run(): Unit = {
-        while(!stopped.get()) {
+        while (!stopped.get()) {
           Thread.sleep(delayMs)
           try {
             doWork()
@@ -103,63 +115,86 @@ class Sundial @Inject() (
     }
   }
 
-  private def processProcessDefinition(processDefinition: ProcessDefinition, runningProcesses: Seq[Process]) = {
+  private def processProcessDefinition(processDefinition: ProcessDefinition,
+                                       runningProcesses: Seq[Process]) = {
     daoFactory.withSundialDao { dao =>
       // if the start of the last run was before the most recently scheduled run time,
       // we are scheduled to run
       // if the task has never run before, we use the time that the process definition
       // was created; if the process runs at 4PM, and we create it at 3PM, it runs an hour
       // later, so the create time is in effect the earliest actual run time
-      val mostRecent = dao.processDao.loadMostRecentProcess(processDefinition.name)
+      val mostRecent =
+        dao.processDao.loadMostRecentProcess(processDefinition.name)
 
-      determineProcessDefinitionRunReason(processDefinition, mostRecent, dao).foreach { reason =>
-        val isCurrentlyRunning = isRunning(mostRecent)
-        val isProcessAbleToRun = canRun(processDefinition, runningProcesses, mostRecent, isCurrentlyRunning)
-        (isCurrentlyRunning, isProcessAbleToRun) match {
-          case (true, _) => handleOverlap(processDefinition, mostRecent, reason, dao)
-          case (false, true) => startProcess(processDefinition, reason, dao)
-          case (_, false) => // No op
+      determineProcessDefinitionRunReason(processDefinition, mostRecent, dao)
+        .foreach { reason =>
+          val isCurrentlyRunning = isRunning(mostRecent)
+          val isProcessAbleToRun = canRun(processDefinition,
+                                          runningProcesses,
+                                          mostRecent,
+                                          isCurrentlyRunning)
+          (isCurrentlyRunning, isProcessAbleToRun) match {
+            case (true, _) =>
+              handleOverlap(processDefinition, mostRecent, reason, dao)
+            case (false, true) => startProcess(processDefinition, reason, dao)
+            case (_, false)    => // No op
+          }
         }
+    }
+  }
+
+  private def handleOverlap(processDefinition: ProcessDefinition,
+                            mostRecentExecutionOption: Option[Process],
+                            runReason: RunReason,
+                            dao: SundialDao) =
+    (processDefinition.overlapAction, mostRecentExecutionOption) match {
+      case (ProcessOverlapAction.Terminate, Some(mostRecentExecution)) => {
+        dao.triggerDao.saveKillProcessRequest(
+          KillProcessRequest(UUID.randomUUID(),
+                             mostRecentExecution.id,
+                             new Date(System.currentTimeMillis())))
+        // Step the process first, to kill its current task
+        processStepper.step(mostRecentExecution, dao, metrics)
+        // Then, start a new process for the process definition
+        startProcess(processDefinition, runReason, dao)
       }
+      case (_, _) => // No op; this covers the "wait" overlap action.
     }
-  }
 
-  private def handleOverlap(processDefinition: ProcessDefinition, mostRecentExecutionOption: Option[Process], runReason: RunReason, dao: SundialDao) = (processDefinition.overlapAction, mostRecentExecutionOption) match {
-    case (ProcessOverlapAction.Terminate, Some(mostRecentExecution)) => {
-      dao.triggerDao.saveKillProcessRequest(KillProcessRequest(UUID.randomUUID(), mostRecentExecution.id, new Date(System.currentTimeMillis())))
-      // Step the process first, to kill its current task
-      processStepper.step(mostRecentExecution, dao, metrics)
-      // Then, start a new process for the process definition
-      startProcess(processDefinition, runReason, dao)
-    }
-    case (_, _) => // No op; this covers the "wait" overlap action.
-  }
-
-  private def startProcess(processDefinition: ProcessDefinition, reason: RunReason, dao: SundialDao) = {
+  private def startProcess(processDefinition: ProcessDefinition,
+                           reason: RunReason,
+                           dao: SundialDao) = {
     metrics.processStarts.incrementAndGet()
     val baseProcess = Process(id = UUID.randomUUID(),
-      processDefinitionName = processDefinition.name,
-      startedAt = new Date(),
-      status = ProcessStatus.Running())
+                              processDefinitionName = processDefinition.name,
+                              startedAt = new Date(),
+                              status = ProcessStatus.Running())
 
-    createRunningTaskDefinitionsFromTemplate(processDefinition, baseProcess.id, dao)
+    createRunningTaskDefinitionsFromTemplate(processDefinition,
+                                             baseProcess.id,
+                                             dao)
 
     val process = reason match {
       case TaskTriggerRunReason(request) => {
-        val savedProcess = dao.processDao.saveProcess(baseProcess.copy(taskFilter = Some(Seq(request.taskDefinitionName))))
-        dao.triggerDao.saveTaskTriggerRequest(request.copy(startedProcessId = Some(savedProcess.id)))
+        val savedProcess = dao.processDao.saveProcess(
+          baseProcess.copy(taskFilter = Some(Seq(request.taskDefinitionName))))
+        dao.triggerDao.saveTaskTriggerRequest(
+          request.copy(startedProcessId = Some(savedProcess.id)))
         savedProcess
       }
       case ProcessTriggerRunReason(request) => {
         request match {
           case ProcessTriggerRequest(_, _, _, Some(filter), _) => {
-            val savedProcess = dao.processDao.saveProcess(baseProcess.copy(taskFilter = Some(filter)))
-            dao.triggerDao.saveProcessTriggerRequest(request.copy(startedProcessId = Some(savedProcess.id)))
+            val savedProcess = dao.processDao.saveProcess(
+              baseProcess.copy(taskFilter = Some(filter)))
+            dao.triggerDao.saveProcessTriggerRequest(
+              request.copy(startedProcessId = Some(savedProcess.id)))
             savedProcess
           }
           case _ => {
             val savedProcess = dao.processDao.saveProcess(baseProcess)
-            dao.triggerDao.saveProcessTriggerRequest(request.copy(startedProcessId = Some(savedProcess.id)))
+            dao.triggerDao.saveProcessTriggerRequest(
+              request.copy(startedProcessId = Some(savedProcess.id)))
             savedProcess
           }
         }
@@ -174,8 +209,12 @@ class Sundial @Inject() (
     processStepper.step(process, dao, metrics)
   }
 
-  private def createRunningTaskDefinitionsFromTemplate(processDefinition: ProcessDefinition, processId: UUID, dao: SundialDao): Unit = {
-    val taskDefinitionTemplates = dao.processDefinitionDao.loadTaskDefinitionTemplates(processDefinition.name)
+  private def createRunningTaskDefinitionsFromTemplate(
+      processDefinition: ProcessDefinition,
+      processId: UUID,
+      dao: SundialDao): Unit = {
+    val taskDefinitionTemplates = dao.processDefinitionDao
+      .loadTaskDefinitionTemplates(processDefinition.name)
     taskDefinitionTemplates.foreach { taskDefinitionTemplate =>
       val taskDefinition = TaskDefinition(
         taskDefinitionTemplate.name,
@@ -190,7 +229,10 @@ class Sundial @Inject() (
     }
   }
 
-  private def determineProcessDefinitionRunReason(processDefinition: ProcessDefinition, mostRecent: Option[Process], dao: SundialDao): Option[RunReason] = {
+  private def determineProcessDefinitionRunReason(
+      processDefinition: ProcessDefinition,
+      mostRecent: Option[Process],
+      dao: SundialDao): Option[RunReason] = {
     val lastRun = mostRecent
       .map(_.startedAt)
       .getOrElse(processDefinition.createdAt)
@@ -215,7 +257,10 @@ class Sundial @Inject() (
       .filter(_.processDefinitionName == processDefinition.name)
       .sortBy(_.requestedAt)
       .headOption
-    (scheduleToRun, processDefinition.isPaused, nextProcessTrigger, nextTaskTrigger) match {
+    (scheduleToRun,
+     processDefinition.isPaused,
+     nextProcessTrigger,
+     nextTaskTrigger) match {
       case (Some(schedule), false, _, _) =>
         Some(ScheduleRunReason(schedule))
       case (_, _, Some(processTrigger), _) =>
@@ -231,7 +276,7 @@ class Sundial @Inject() (
     mostRecentExecution.exists { process =>
       process.status match {
         case ProcessStatus.Running() => true
-        case _ => false
+        case _                       => false
       }
     }
   }
@@ -239,8 +284,13 @@ class Sundial @Inject() (
   /**
     * Returns true if the the provided process definition is able to be executed and false if not.
     */
-  private def canRun(processDefinition: ProcessDefinition, runningProcesses: Seq[Process], mostRecentExecution: Option[Process], isCurrentlyRunning: Boolean): Boolean = {
-    val justRan = runningProcesses.map(_.processDefinitionName).contains(processDefinition.name)
+  private def canRun(processDefinition: ProcessDefinition,
+                     runningProcesses: Seq[Process],
+                     mostRecentExecution: Option[Process],
+                     isCurrentlyRunning: Boolean): Boolean = {
+    val justRan = runningProcesses
+      .map(_.processDefinitionName)
+      .contains(processDefinition.name)
     !justRan && !isCurrentlyRunning
   }
 

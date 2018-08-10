@@ -12,7 +12,8 @@ class InMemoryProcessDao extends ProcessDao {
 
   private val processes = new collection.mutable.HashMap[UUID, Process]()
   private val tasks = new collection.mutable.HashMap[UUID, Task]
-  private val reportedTaskStatuses = new collection.mutable.HashMap[UUID, ReportedTaskStatus]
+  private val reportedTaskStatuses =
+    new collection.mutable.HashMap[UUID, ReportedTaskStatus]
 
   def allProcesses() = lock.synchronized {
     processes.values.toList
@@ -23,17 +24,19 @@ class InMemoryProcessDao extends ProcessDao {
       val status = process.status
       status match {
         case ProcessStatus.Running() => true
-        case _ => false
+        case _                       => false
       }
     }.toList
   }
 
-  override def loadTasksForProcess(processId: UUID): Seq[Task] = lock.synchronized {
-    tasks.values.filter(_.processId == processId).toList
-  }
+  override def loadTasksForProcess(processId: UUID): Seq[Task] =
+    lock.synchronized {
+      tasks.values.filter(_.processId == processId).toList
+    }
 
   // will fail if already exists; TODO should this throw an exception instead?
-  override def saveReportedTaskStatus(reportedTaskStatus: ReportedTaskStatus): Boolean = lock.synchronized {
+  override def saveReportedTaskStatus(
+      reportedTaskStatus: ReportedTaskStatus): Boolean = lock.synchronized {
     reportedTaskStatuses.get(reportedTaskStatus.taskId) match {
       case Some(_) => false
       case _ =>
@@ -52,7 +55,8 @@ class InMemoryProcessDao extends ProcessDao {
     task
   }
 
-  override def findReportedTaskStatus(taskId: UUID): Option[ReportedTaskStatus] = lock.synchronized {
+  override def findReportedTaskStatus(
+      taskId: UUID): Option[ReportedTaskStatus] = lock.synchronized {
     reportedTaskStatuses.get(taskId)
   }
 
@@ -60,7 +64,9 @@ class InMemoryProcessDao extends ProcessDao {
     processes.get(id)
   }
 
-  override def loadPreviousProcess(id: UUID, processDefinitionName: String): Option[Process] = lock.synchronized {
+  override def loadPreviousProcess(
+      id: UUID,
+      processDefinitionName: String): Option[Process] = lock.synchronized {
     processes.values
       .filter(_.processDefinitionName == processDefinitionName)
       .filterNot(_.id == id)
@@ -70,8 +76,8 @@ class InMemoryProcessDao extends ProcessDao {
       .headOption
   }
 
-
-  override def loadMostRecentProcess(processDefinitionName: String): Option[Process] = lock.synchronized {
+  override def loadMostRecentProcess(
+      processDefinitionName: String): Option[Process] = lock.synchronized {
     processes.values
       .filter(_.processDefinitionName == processDefinitionName)
       .toSeq
@@ -88,18 +94,21 @@ class InMemoryProcessDao extends ProcessDao {
                              start: Option[Date],
                              end: Option[Date],
                              statuses: Option[Seq[ProcessStatusType]],
-                             limit: Option[Int]): Seq[Process] = lock.synchronized {
-    val result = processes.values
-      .filter { process =>
-        processDefinitionName.map(_ == process.processDefinitionName).getOrElse(true) &&
+                             limit: Option[Int]): Seq[Process] =
+    lock.synchronized {
+      val result = processes.values
+        .filter { process =>
+          processDefinitionName
+            .map(_ == process.processDefinitionName)
+            .getOrElse(true) &&
           start.map(_.before(process.startedAt)).getOrElse(true) &&
           end.map(_.after(process.startedAt)).getOrElse(true) &&
           statuses.map(_ contains process.status.statusType).getOrElse(true)
-      }
-      .toSeq
-      .sortBy(-_.startedAt.getTime)
-    limit.map(result.take).getOrElse(result)
-  }
+        }
+        .toSeq
+        .sortBy(-_.startedAt.getTime)
+      limit.map(result.take).getOrElse(result)
+    }
 
   override def findTasks(processDefinitionName: Option[String],
                          taskDefinitionName: Option[String],
@@ -109,10 +118,12 @@ class InMemoryProcessDao extends ProcessDao {
                          limit: Option[Int]): Seq[Task] = lock.synchronized {
     val result = tasks.values
       .filter { task =>
-        processDefinitionName.map(_ == task.processDefinitionName).getOrElse(true) &&
-          start.map(_.before(task.startedAt)).getOrElse(true) &&
-          end.map(_.after(task.startedAt)).getOrElse(true) &&
-          statuses.map(_ contains task.status.statusType).getOrElse(true)
+        processDefinitionName
+          .map(_ == task.processDefinitionName)
+          .getOrElse(true) &&
+        start.map(_.before(task.startedAt)).getOrElse(true) &&
+        end.map(_.after(task.startedAt)).getOrElse(true) &&
+        statuses.map(_ contains task.status.statusType).getOrElse(true)
       }
       .toSeq
       .sortBy(-_.startedAt.getTime)

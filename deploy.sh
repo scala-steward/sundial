@@ -1,6 +1,5 @@
 #!/bin/sh
 
-: "${BUILD_ID?Need to set BUILD_ID}"
 : "${DOCKER_REGISTRY?Need to set DOCKER_REGISTRY}"
 : "${ECS_COMPANION_TAG?Need to set ECS_COMPANION_TAG}"
 # An s3 bucket for deployment assets

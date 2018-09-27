@@ -553,8 +553,8 @@ package com.hbc.svc.sundial.v1.models {
     }
     case object Pig extends EmrApplication { override def toString = "Pig" }
     case object Spark extends EmrApplication { override def toString = "Spark" }
-    case object Graphite extends EmrApplication {
-      override def toString = "Graphite"
+    case object Ganglia extends EmrApplication {
+      override def toString = "Ganglia"
     }
 
     /**
@@ -575,7 +575,7 @@ package com.hbc.svc.sundial.v1.models {
       * above.
       */
     val all: scala.List[EmrApplication] =
-      scala.List(Hadoop, Hive, Mahout, Pig, Spark, Graphite)
+      scala.List(Hadoop, Hive, Mahout, Pig, Spark, Ganglia)
 
     private[this] val byName: Map[String, EmrApplication] =
       all.map(x => x.toString.toLowerCase -> x).toMap

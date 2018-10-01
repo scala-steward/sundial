@@ -8,7 +8,7 @@ version := "git describe --tags --dirty --always".!!.stripPrefix("v").trim
 enablePlugins(PlayScala, PlayAkkaHttpServer)
 disablePlugins(PlayNettyServer)
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.7"
 
 val prometheusLibVersion = "0.9.0-M5"
 

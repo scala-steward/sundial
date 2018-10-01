@@ -76,7 +76,7 @@ pipeline {
         
         stage('Code Checkout') {
             steps {
-                git url: 'https://github.com/gilt/sundial.git'           
+                git url: 'https://github.com/saksdirect/sundial.git'
             }
         }
         

@@ -8,7 +8,7 @@ version := "git describe --tags --dirty --always".!!.stripPrefix("v").trim
 enablePlugins(PlayScala, PlayAkkaHttpServer)
 disablePlugins(PlayNettyServer)
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.7"
 
 val prometheusLibVersion = "0.9.0-M5"
 
@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
     evolutions,
     ws,
   "org.playframework.anorm" %% "anorm" % "2.6.2",
-    "com.amazonaws"                % "aws-java-sdk"              % "1.11.336",
+    "com.amazonaws"                % "aws-java-sdk"              % "1.11.412",
     "commons-io"                   % "commons-io"                % "2.4",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.2.1",           // used only for CronExpression.getNextValidTimeAfter
     "org.postgresql"               % "postgresql"                % "42.2.2",

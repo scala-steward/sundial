@@ -9,6 +9,7 @@ import org.scalatestplus.play.PlaySpec
 import play.api.inject.ApplicationLifecycle
 import play.api.{Application, Configuration}
 import service._
+import service.emr.EmrServiceExecutor
 
 class InMemoryGlobalLock extends GlobalLock {
   val lock = new Object()

@@ -1,10 +1,10 @@
 package service
 
 import javax.inject.Inject
-
 import dao.{ExecutableStateDao, SundialDao}
 import model._
 import play.api.{Application, Configuration, Logger}
+import service.emr.EmrServiceExecutor
 
 trait SpecificTaskExecutor[
     ExecutableType <: Executable, StateType <: ExecutableState] {

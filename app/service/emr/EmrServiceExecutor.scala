@@ -238,7 +238,7 @@ class EmrServiceExecutor @Inject()(emrClientFactory: EmrClientFactory)
               .getSteps
               .asScala
 
-            EmrJobState(
+            val jobState = EmrJobState(
               task.id,
               executable.jobName,
               flowId,
@@ -248,6 +248,9 @@ class EmrServiceExecutor @Inject()(emrClientFactory: EmrClientFactory)
               emrStateHelper.getOverallExecutorState(
                 steps.map(_.getStatus.getState))
             )
+
+            Logger.info(s"Submitted $jobState to cluster")
+            jobState
 
           }
 

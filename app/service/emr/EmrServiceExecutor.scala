@@ -231,26 +231,44 @@ class EmrServiceExecutor @Inject()(emrClientFactory: EmrClientFactory)
                 executable.emrClusterDetails.securityConfiguration.orNull)
 
             // aka the cluster id
-            val flowId = emrClient.runJobFlow(request).getJobFlowId
+            try {
+              val flowId = emrClient.runJobFlow(request).getJobFlowId
 
-            val steps = emrClient
-              .listSteps(new ListStepsRequest().withClusterId(flowId))
-              .getSteps
-              .asScala
+              val steps = emrClient
+                .listSteps(new ListStepsRequest().withClusterId(flowId))
+                .getSteps
+                .asScala
 
-            val jobState = EmrJobState(
-              task.id,
-              executable.jobName,
-              flowId,
-              steps.map(_.getId),
-              executable.region,
-              new Date(),
-              emrStateHelper.getOverallExecutorState(
-                steps.map(_.getStatus.getState))
-            )
+              val jobState = EmrJobState(
+                task.id,
+                executable.jobName,
+                flowId,
+                steps.map(_.getId),
+                executable.region,
+                new Date(),
+                emrStateHelper.getOverallExecutorState(
+                  steps.map(_.getStatus.getState))
+              )
 
-            Logger.info(s"Submitted $jobState to cluster")
-            jobState
+              Logger.info(s"Submitted $jobState to cluster")
+              jobState
+
+            } catch {
+              case NonFatal(e) =>
+                Logger.error("Exception creating EMR cluster", e)
+                EmrJobState(
+                  task.id,
+                  executable.jobName,
+                  "N/A",
+                  List("N/A"),
+                  executable.region,
+                  new Date(),
+                  ExecutorStatus.Failed(
+                    Some(
+                      s"Could not create new EMR cluster due to ${e.getMessage}")
+                  )
+                )
+            }
 
           }
 

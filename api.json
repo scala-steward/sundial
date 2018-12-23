@@ -707,6 +707,8 @@
         {
           "name": "spark_packages",
           "type": "[maven_package]",
+          "required": false,
+          "default": "[]",
           "description": "External maven dependencies to include with Spark job"
         },
         {

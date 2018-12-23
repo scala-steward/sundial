@@ -149,7 +149,7 @@ package com.hbc.svc.sundial.v1.models {
       `class`: String,
       s3JarPath: String,
       sparkConf: Seq[String],
-      sparkPackages: Seq[com.hbc.svc.sundial.v1.models.MavenPackage],
+      sparkPackages: Seq[com.hbc.svc.sundial.v1.models.MavenPackage] = Nil,
       args: Seq[String],
       s3LogDetails: _root_.scala.Option[
         com.hbc.svc.sundial.v1.models.S3LogDetails] = None,
@@ -1614,7 +1614,7 @@ package com.hbc.svc.sundial.v1.models {
         s3JarPath <- (__ \ "s3_jar_path").read[String]
         sparkConf <- (__ \ "spark_conf").read[Seq[String]]
         sparkPackages <- (__ \ "spark_packages")
-          .read[Seq[com.hbc.svc.sundial.v1.models.MavenPackage]]
+          .readWithDefault[Seq[com.hbc.svc.sundial.v1.models.MavenPackage]](Nil)
         args <- (__ \ "args").read[Seq[String]]
         s3LogDetails <- (__ \ "s3_log_details")
           .readNullable[com.hbc.svc.sundial.v1.models.S3LogDetails]

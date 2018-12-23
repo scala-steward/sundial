@@ -56,8 +56,21 @@ class EmrStepHelper {
     val sparkConfigs = executable.sparkConf
       .flatMap(conf => List(ConfOption, conf))
 
+    val packages = if (executable.sparkPackages.isEmpty) {
+      List.empty
+    } else {
+      List(
+        PackagesOption,
+        executable.sparkPackages
+          .map { mavenPackage =>
+            mavenPackage.groupId + ":" + mavenPackage.artifactId + ":" + mavenPackage.version
+          }
+          .mkString(","))
+    }
+
     List(SparkSubmitCommand) ++
       sparkConfigs ++
+      packages ++
       List(
         ClassOption,
         executable.clazz,
@@ -114,6 +127,8 @@ object EmrStepHelper {
   private val ConfOption = "--conf"
 
   private val ClassOption = "--class"
+
+  private val PackagesOption = "--packages"
 
   private val CommandRunnerJar = "command-runner.jar"
 

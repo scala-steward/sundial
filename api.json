@@ -705,6 +705,11 @@
           "description": "options that will be sent to spark as --conf key=value, e.g. `--conf spark.driver.extraJavaOptions=-Denvironment=integration`"
         },
         {
+          "name": "spark_packages",
+          "type": "[maven_package]",
+          "description": "External maven dependencies to include with Spark job"
+        },
+        {
           "name": "args",
           "type": "[string]",
           "required": true,
@@ -987,6 +992,22 @@
       "fields": [
         {
           "name": "status",
+          "type": "string"
+        }
+      ]
+    },
+    "maven_package": {
+      "fields": [
+        {
+          "name": "group_id",
+          "type": "string"
+        },
+        {
+          "name": "artifact_id",
+          "type": "string"
+        },
+        {
+          "name": "version",
           "type": "string"
         }
       ]

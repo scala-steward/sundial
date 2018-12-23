@@ -48,6 +48,7 @@ class EmrServiceExecutorTest extends FlatSpec with MockitoSugar with Matchers {
                                       "",
                                       Seq.empty,
                                       Seq.empty,
+                                      Seq.empty,
                                       None,
                                       None,
                                       None)
@@ -80,6 +81,7 @@ class EmrServiceExecutorTest extends FlatSpec with MockitoSugar with Matchers {
                                       "us-east-1",
                                       "",
                                       "",
+                                      Seq.empty,
                                       Seq.empty,
                                       Seq.empty,
                                       None,
@@ -125,6 +127,7 @@ class EmrServiceExecutorTest extends FlatSpec with MockitoSugar with Matchers {
                                       "us-east-1",
                                       "",
                                       "",
+                                      Seq.empty,
                                       Seq.empty,
                                       Seq.empty,
                                       None,

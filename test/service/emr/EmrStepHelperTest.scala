@@ -5,6 +5,7 @@ import com.amazonaws.services.elasticmapreduce.model.{
   HadoopJarStepConfig,
   StepConfig
 }
+import com.hbc.svc.sundial.v1.models.MavenPackage
 import model.{CopyFileJob, EmrExecutorState, EmrJobExecutable, ExecutorStatus}
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers._
@@ -103,6 +104,7 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
     val executable = mock[EmrJobExecutable]
 
     when(executable.sparkConf).thenReturn(Seq.empty[String])
+    when(executable.sparkPackages).thenReturn(Seq.empty[MavenPackage])
     when(executable.clazz).thenReturn("com.gilt.MainClass")
     when(executable.s3JarPath).thenReturn("s3://bucket")
     when(executable.args).thenReturn(List("arg1", "arg2"))
@@ -116,6 +118,27 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
            "arg2")
     )
 
+  }
+
+  it should "handle maven dependencies" in {
+    val executable = mock[EmrJobExecutable]
+    when(executable.sparkConf).thenReturn(Seq.empty[String])
+    when(executable.sparkPackages).thenReturn(
+      Seq(MavenPackage("org.apache.spark", "spark-avro_2.11", "2.4.0")))
+    when(executable.clazz).thenReturn("com.gilt.MainClass")
+    when(executable.s3JarPath).thenReturn("s3://bucket")
+    when(executable.args).thenReturn(List("arg1", "arg2"))
+
+    emrStateHelper.buildSparkArgs(executable) should be(
+      List("spark-submit",
+           "--packages",
+           "org.apache.spark:spark-avro_2.11:2.4.0",
+           "--class",
+           "com.gilt.MainClass",
+           "s3://bucket",
+           "arg1",
+           "arg2")
+    )
   }
 
 }

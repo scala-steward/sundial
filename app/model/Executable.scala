@@ -2,7 +2,7 @@ package model
 
 import java.util.{Date, UUID}
 
-import com.hbc.svc.sundial.v1.models.EmrConfiguration
+import com.hbc.svc.sundial.v1.models.{EmrConfiguration, MavenPackage}
 
 sealed trait ExecutorStatus {
   def isDone: Boolean
@@ -117,6 +117,7 @@ case class EmrJobExecutable(emrClusterDetails: EmrClusterDetails,
                             clazz: String,
                             s3JarPath: String,
                             sparkConf: Seq[String],
+                            sparkPackages: Seq[MavenPackage],
                             args: Seq[String],
                             s3LogDetailsOpt: Option[LogDetails],
                             loadData: Option[Seq[CopyFileJob]],

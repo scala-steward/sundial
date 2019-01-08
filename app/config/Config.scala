@@ -1,28 +1,6 @@
 package config
 
 import javax.inject.Inject
-
-import com.amazonaws.services.batch.{AWSBatch, AWSBatchClientBuilder}
-import com.amazonaws.services.cloudformation.{
-  AmazonCloudFormation,
-  AmazonCloudFormationClientBuilder
-}
-import com.amazonaws.services.ec2.{AmazonEC2, AmazonEC2ClientBuilder}
-import com.amazonaws.services.ecs.model.{
-  PlacementStrategy,
-  PlacementStrategyType
-}
-import com.amazonaws.services.ecs.{AmazonECS, AmazonECSClientBuilder}
-import com.amazonaws.services.logs.{AWSLogs, AWSLogsClientBuilder}
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
-import com.amazonaws.services.simpledb.{
-  AmazonSimpleDB,
-  AmazonSimpleDBClientBuilder
-}
-import com.amazonaws.services.simpleemail.{
-  AmazonSimpleEmailServiceAsync,
-  AmazonSimpleEmailServiceAsyncClientBuilder
-}
 import com.google.inject.{AbstractModule, Provides, Singleton}
 import dao.SundialDaoFactory
 import dto.DisplayModels
@@ -36,6 +14,13 @@ import service.notifications.{
   Notification,
   PagerdutyNotifications
 }
+import software.amazon.awssdk.services.batch.BatchClient
+import software.amazon.awssdk.services.cloudformation.CloudFormationClient
+import software.amazon.awssdk.services.cloudwatchlogs.CloudWatchLogsClient
+import software.amazon.awssdk.services.ec2.Ec2Client
+import software.amazon.awssdk.services.emr.EmrClient
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.ses.SesClient
 
 @Singleton
 class PrometheusJmxInstrumentation @Inject()(implicit val registry: Registry) {
@@ -62,17 +47,16 @@ class Config(environment: Environment, configuration: Configuration)
     bind(classOf[Registry]).toInstance(DefaultRegistry())
 
     // AWS Clients
-    bind(classOf[AWSBatch]).toInstance(AWSBatchClientBuilder.defaultClient())
-    bind(classOf[AmazonS3]).toInstance(AmazonS3ClientBuilder.defaultClient())
-    bind(classOf[AWSLogs]).toInstance(AWSLogsClientBuilder.defaultClient())
-    bind(classOf[AmazonECS]).toInstance(AmazonECSClientBuilder.defaultClient())
-    bind(classOf[AmazonEC2]).toInstance(AmazonEC2ClientBuilder.defaultClient())
-    bind(classOf[AmazonCloudFormation])
-      .toInstance(AmazonCloudFormationClientBuilder.defaultClient())
-    bind(classOf[AmazonSimpleDB])
-      .toInstance(AmazonSimpleDBClientBuilder.defaultClient())
-    bind(classOf[AmazonSimpleEmailServiceAsync])
-      .toInstance(AmazonSimpleEmailServiceAsyncClientBuilder.defaultClient())
+    bind(classOf[BatchClient]).toInstance(BatchClient.create())
+    bind(classOf[S3Client]).toInstance(S3Client.create())
+    bind(classOf[CloudWatchLogsClient])
+      .toInstance(CloudWatchLogsClient.create())
+    bind(classOf[Ec2Client]).toInstance(Ec2Client.create())
+    bind(classOf[EmrClient]).toInstance(EmrClient.create())
+    bind(classOf[CloudFormationClient])
+      .toInstance(CloudFormationClient.create())
+    bind(classOf[SesClient])
+      .toInstance(SesClient.create())
 
     bind(classOf[PrometheusJmxInstrumentation]).asEagerSingleton()
 
@@ -82,11 +66,10 @@ class Config(environment: Environment, configuration: Configuration)
 
   @Provides
   @Singleton
-  def notifications(
-      wsClient: WSClient,
-      daoFactory: SundialDaoFactory,
-      displayModels: DisplayModels,
-      sesClient: AmazonSimpleEmailServiceAsync): Seq[Notification] = {
+  def notifications(wsClient: WSClient,
+                    daoFactory: SundialDaoFactory,
+                    displayModels: DisplayModels,
+                    sesClient: SesClient): Seq[Notification] = {
     configuration.getOptional[String]("notifications.mode") match {
       case Some("browser") =>
         Seq(
@@ -110,34 +93,6 @@ class Config(environment: Environment, configuration: Configuration)
           new PagerdutyNotifications(wsClient, daoFactory)
         )
       case _ => Seq.empty
-    }
-  }
-
-  @Provides
-  @Singleton
-  def taskPlacementStrategy(): PlacementStrategy = {
-    val taskPlacementString = configuration
-      .getOptional[String]("ecs.defaultTaskPlacement")
-      .getOrElse("random")
-      .toLowerCase
-    val binpackPlacement = configuration
-      .getOptional[String]("ecs.binpackPlacement")
-      .getOrElse("memory")
-      .toLowerCase
-    val spreadPlacement = configuration
-      .getOptional[String]("ecs.spreadPlacement")
-      .getOrElse("host")
-      .toLowerCase
-    val placementStrategyType =
-      PlacementStrategyType.fromValue(taskPlacementString)
-    val placementStrategy =
-      new PlacementStrategy().withType(placementStrategyType)
-    placementStrategyType match {
-      case PlacementStrategyType.Binpack =>
-        placementStrategy.withField(binpackPlacement)
-      case PlacementStrategyType.Random => placementStrategy
-      case PlacementStrategyType.Spread =>
-        placementStrategy.withField(spreadPlacement)
     }
   }
 

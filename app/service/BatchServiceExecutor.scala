@@ -1,22 +1,18 @@
 package service
 
 import java.util.{Date, UUID}
-import javax.inject.{Inject, Named}
 
-import com.amazonaws.services.batch.AWSBatch
-import com.amazonaws.services.batch.model.JobDetail
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.simpledb.AmazonSimpleDB
+import javax.inject.{Inject, Named}
 import dao.SundialDao
 import model._
 import play.api.{Configuration, Logger}
+import software.amazon.awssdk.services.batch.BatchClient
+import software.amazon.awssdk.services.batch.model.{JobDetail, JobStatus}
 import util._
 
 class BatchServiceExecutor @Inject()(config: Configuration,
-                                     injectedBatchClient: AWSBatch,
+                                     injectedBatchClient: BatchClient,
                                      batchHelper: BatchHelper,
-                                     s3Client: AmazonS3,
-                                     sdbClient: AmazonSimpleDB,
                                      @Named("sundialUrl") sundialUrl: String)
     extends SpecificTaskExecutor[BatchExecutable, BatchContainerState] {
 
@@ -58,7 +54,7 @@ class BatchServiceExecutor @Inject()(config: Configuration,
       Logger.debug(s"Result of Batch describe task definition: $latestOpt")
       if (latestOpt.exists(batchHelper.matches(_, desiredTaskDefinition))) {
         Logger.debug("Batch job definition matched desired")
-        latestOpt.map(_.getJobDefinitionName)
+        latestOpt.map(_.jobDefinitionName())
       } else {
         Logger.debug("Batch job definition didn't match desired")
         None
@@ -73,7 +69,7 @@ class BatchServiceExecutor @Inject()(config: Configuration,
         val registerTaskResult =
           batchHelper.registerJobDefinition(desiredTaskDefinition)
         Logger.debug(s"Register result: $registerTaskResult")
-        registerTaskResult.getJobDefinitionName
+        registerTaskResult.jobDefinitionName()
     }
 
     val jobQueue = executable.jobQueue.getOrElse(defaultJobQueue)
@@ -85,8 +81,8 @@ class BatchServiceExecutor @Inject()(config: Configuration,
                                           "sundial")
     Logger.debug(s"Run task result: $runJobResult")
 
-    val jobName = runJobResult.getJobName
-    val jobId = UUID.fromString(runJobResult.getJobId)
+    val jobName = runJobResult.jobName()
+    val jobId = UUID.fromString(runJobResult.jobId())
 
     BatchContainerState(task.id,
                         new Date(),
@@ -109,11 +105,11 @@ class BatchServiceExecutor @Inject()(config: Configuration,
       Logger.debug(s"Describe task result from Batch: $batchJobOpt")
       batchJobOpt match {
         case Some(batchJob) =>
-          val batchStatus = batchJob.getStatus
+          val batchStatus = batchJob.status()
           Logger.debug(s"Task status: $batchStatus")
-          require(batchJob.getJobId == state.jobId.toString) // and the same arn
+          require(batchJob.jobId() == state.jobId.toString) // and the same arn
           val (exitCode, exitReason) = getTaskExitCodeAndReason(batchJob)
-          val logStreamName = batchJob.getContainer.getLogStreamName()
+          val logStreamName = batchJob.container().logStreamName()
           state.copy(
             status =
               batchStatusToSundialStatus(batchStatus, exitCode, exitReason),
@@ -141,31 +137,31 @@ class BatchServiceExecutor @Inject()(config: Configuration,
   }
 
   private def batchStatusToSundialStatus(
-      batchStatus: String,
+      batchStatus: JobStatus,
       exitCode: Option[Int],
       exitReason: Option[String]): ExecutorStatus = {
     (batchStatus, exitCode, exitReason) match {
-      case ("RUNNING", _, _)                            => ExecutorStatus.Running
-      case ("SUBMITTED", _, _)                          => BatchExecutorStatus.Submitted
-      case ("PENDING", _, _)                            => BatchExecutorStatus.Pending
-      case ("RUNNABLE", _, _)                           => BatchExecutorStatus.Runnable
-      case ("STARTING", _, _)                           => BatchExecutorStatus.Starting
-      case ("SUCCEEDED", _, _)                          => ExecutorStatus.Succeeded
-      case ("FAILED", Some(exitCode), Some(exitReason)) =>
+      case (JobStatus.RUNNING, _, _)                            => ExecutorStatus.Running
+      case (JobStatus.SUBMITTED, _, _)                          => BatchExecutorStatus.Submitted
+      case (JobStatus.PENDING, _, _)                            => BatchExecutorStatus.Pending
+      case (JobStatus.RUNNABLE, _, _)                           => BatchExecutorStatus.Runnable
+      case (JobStatus.STARTING, _, _)                           => BatchExecutorStatus.Starting
+      case (JobStatus.SUCCEEDED, _, _)                          => ExecutorStatus.Succeeded
+      case (JobStatus.FAILED, Some(exitCode), Some(exitReason)) =>
         // The task has stopped running and the application threw an exception
         ExecutorStatus.Failed(
           Some(s"Exit code $exitCode, Exit reason $exitReason"))
 
-      case ("FAILED", Some(exitCode), None) =>
+      case (JobStatus.FAILED, Some(exitCode), None) =>
         // The task has stopped running and the application threw an exception
         ExecutorStatus.Failed(Some(s"Exit code $exitCode"))
 
-      case ("FAILED", None, Some(exitReason)) =>
+      case (JobStatus.FAILED, None, Some(exitReason)) =>
         // The task has stopped running and the container failed for some unknown ECS related issue
         ExecutorStatus.Failed(
           Some(s"Container stopped, no exit code, exit reason: $exitReason"))
 
-      case ("FAILED", None, None) =>
+      case (JobStatus.FAILED, None, None) =>
         ExecutorStatus.Failed(Some("Container stopped, no exit code"))
 
       case _ =>
@@ -176,9 +172,9 @@ class BatchServiceExecutor @Inject()(config: Configuration,
 
   private def getTaskExitCodeAndReason(
       batchJob: JobDetail): (Option[Int], Option[String]) = {
-    val container = batchJob.getContainer
-    val exitCode = Option(container.getExitCode())
-    val exitReason = Option(container.getReason)
+    val container = batchJob.container()
+    val exitCode = Option(container.exitCode())
+    val exitReason = Option(container.reason())
     (exitCode.map(_.toInt), exitReason)
   }
 }

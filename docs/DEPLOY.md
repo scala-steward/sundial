@@ -1,15 +1,8 @@
 ## Deployment Setup
 
-There are 3 steps to deplolying Sundial.
+There are 2 steps to deplolying Sundial.
 
-The first is deploying the companion container.
-
-The companion container is located within the companion-container/ directory in this project. It is recommended you deploy to Amazon Container Registry (https://aws.amazon.com/ecr/) or a private hosted Docker registry as Sundial currently doesn't support username/password based authentication on registries.
-
-Edit publish-companion-container.sh script and replace variables with details of your own registry. Run the script.
-When the script has finished, it will output the full path to the companion container in your Docker registry. Edit conf/application.conf and replace the companion container path with the path to your version. 
-
-The second step is creating the Sundial stack. 
+The first step is creating the Sundial stack. 
 Inside aws/ directory is a file called cfn.json . This is the Cloudformation template to be deployed using Amazon Cloudformation. 
 Go to Amazon AWS Console -> Cloudformation -> Create Stack. Choose "Upload a template to Amazon S3" and point it to this cfn.json file. Fill out the parameters on the next page. You will need to know your VPC id as well as the private Subnet ids for your VPC.
 
@@ -41,14 +34,17 @@ ELBSubnets: Choose public subnets if you chose internet-facing ELB, private sube
 
 HostedZoneName: Name of hosted zone to set up DNS entry in. Look this up under Route53 in console. Use full name including periods.
 
-JobClusterSize: Number of job instances you want in your ECS cluster
+BatchComputeEnvironmentName: The name of the aws batch compute environment. Okay to leave as default
 
-JobInstanceFilesystemDiskSpace: Amount of EBS space to allocate to each job instance.
+BatchJobQueueName: The name of the aws batch job queue. Okay to leave as default
 
-JobInstanceFilesystemDiskType:
+BatchSpotInstanceBidPercentage: The minimum percentage that a Spot Instance price must be when compared with the
+      On-Demand price for that instance type before instances are launched. For example, if your
+      bid percentage is 20%, then the Spot price must be below 20% of the current On-Demand price
+      for that EC2 instance
 
-JobInstanceDockerDiskSpace: Amount of EBS space to allocate to each job instance's docker containers.
+BatchInstanceMaxvCpus: The maximum number of EC2 vCPUs that an environment can reach
 
-JobInstanceDockerDiskType:
+BatchInstanceMinvCpus: The minimum number of EC2 vCPUs that an environment should maintain. Default is 0
 
-JobInstanceType:
+BatchInstanceDesiredvCpus: This should be dynamically managed by AWS

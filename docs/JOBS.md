@@ -1,5 +1,5 @@
 # Sample job template
-### Using ECS (docker_image_command executable)
+### Using AWS Batch (batch_image_command executable)
 ```json
 {
   "process_definition_name": "SampleProcessName",
@@ -14,12 +14,11 @@
     {
       "task_definition_name": "starting-task",
       "executable": {
-        "docker_image_command": {
+        "batch_image_command": {
           "image": "dockerregistryurl/imagename",
           "tag": "0.0.1",
           "command": ["jobstart.sh"],
-          "log_paths": ["/opt/job/log/application.log"],
-          "cpu": 1000,
+          "vCpus": 1,
           "memory": 5000,
           "environment_variables" : [
             {
@@ -71,22 +70,6 @@
   "paused": false
 }
 ```
-### Using AWS Batch (batch_image_command executable) -- recommended
-
-```json
-{"executable": {
-        "batch_image_command": {
-          "image": "dockerregistryurl/imagename",
-          "tag": "0.0.1",
-          "command": [],
-          "vCpus": 1,
-          "memory": 1000,
-           "job_role_arn": "<<IAM role for job (see details below)>>",
-          "environment_variables": []
-        }
-      }
-      }
-```
 
 PUT this job template to http://sundialurl/api/process_definitions/SampleProcessName
 
@@ -104,8 +87,7 @@ PUT this job template to http://sundialurl/api/process_definitions/SampleProcess
 * **image**: For Docker images path to registry and docker image. eg: docker-registry-url/imagename
 * **tag**: Tag of Docker image. Could use "latest" but better to be explicit and update the process definition at the same time as deploying new Docker image.
 * **command**: Array of commands to be passed as Docker CMD parameter
-* **log_paths**: Location of application logs within the Docker container. Sundial will stream these logs to Cloudwatch for live viewing and also collect the logs at end of task run and upload to S3.
-* **cpu**: How much CPU to allocate on ECS instace
+* **vCpus**: How much vCPUs to allocate on ECS instace
 * **memory**: How much memory to allocate on ECS instance
 * **environment_variables**: These will be passed as environment variables to running container
 * **dependencies**: Tasks that need to run before this task runs

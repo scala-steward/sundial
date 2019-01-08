@@ -2,23 +2,20 @@ package service.notifications
 
 import java.util.UUID
 
-import com.amazonaws.services.simpleemail.{
-  AmazonSimpleEmailServiceAsync,
-  AmazonSimpleEmailServiceAsyncClientBuilder
-}
-import com.amazonaws.services.simpleemail.model._
-import com.hbc.svc.sundial.v1.models.NotificationOptions
+import com.hbc.svc.sundial.v2.models.NotificationOptions
 import dao._
 import dto.{DisplayModels, ProcessDTO}
 import model._
 import play.api.Logger
+import software.amazon.awssdk.services.ses.SesClient
+import software.amazon.awssdk.services.ses.model._
 
 import scala.collection.JavaConverters._
 
 class EmailNotifications(daoFactory: SundialDaoFactory,
                          fromAddress: String,
                          displayModels: DisplayModels,
-                         sesClient: AmazonSimpleEmailServiceAsync)
+                         sesClient: SesClient)
     extends Notification {
 
   private def getSubject(processDTO: ProcessDTO): String = {
@@ -65,13 +62,19 @@ class EmailNotifications(daoFactory: SundialDaoFactory,
     if (filteredTeams.nonEmpty) {
       val toAddresses =
         filteredTeams.map(team => s"${team.name} <${team.email}>")
-      val sendEmailRequest = new SendEmailRequest()
-        .withDestination(new Destination().withToAddresses(toAddresses.asJava))
-        .withSource(fromAddress)
-        .withMessage(
-          new Message()
-            .withSubject(new Content(subject))
-            .withBody(new Body().withHtml(new Content(body))))
+      val sendEmailRequest = SendEmailRequest
+        .builder()
+        .destination(
+          Destination.builder().toAddresses(toAddresses.asJava).build())
+        .source(fromAddress)
+        .message(
+          Message
+            .builder()
+            .subject(Content.builder().data(subject).build())
+            .body(
+              Body.builder().html(Content.builder().data(body).build()).build())
+            .build())
+        .build()
       Logger.info(s"Email request: $sendEmailRequest")
       sesClient.sendEmail(sendEmailRequest)
     }

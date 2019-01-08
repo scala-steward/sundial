@@ -2,15 +2,6 @@ package service.emr
 
 import java.util.{Date, UUID}
 
-import cats.effect.{IO, Resource}
-import com.amazonaws.regions.Regions
-import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce
-import com.amazonaws.services.elasticmapreduce.model.{
-  ListStepsRequest,
-  ListStepsResult,
-  RunJobFlowRequest,
-  RunJobFlowResult
-}
 import dao.memory.InMemorySundialDao
 import model.ExecutorStatus.Failed
 import model._
@@ -18,26 +9,30 @@ import org.mockito.Matchers.any
 import org.mockito.Mockito.when
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.mockito.MockitoSugar
+import software.amazon.awssdk.services.emr.EmrClient
+import software.amazon.awssdk.services.emr.model.{
+  ListStepsRequest,
+  ListStepsResponse,
+  RunJobFlowRequest,
+  RunJobFlowResponse
+}
 
 class EmrServiceExecutorTest extends FlatSpec with MockitoSugar with Matchers {
 
-  private def mockEmrClient: IO[AmazonElasticMapReduce] = {
-    IO {
-      val mockEmrClient = mock[AmazonElasticMapReduce]
-      when(mockEmrClient.runJobFlow(any[RunJobFlowRequest]))
-        .thenReturn(new RunJobFlowResult)
-      when(mockEmrClient.listSteps(any[ListStepsRequest]))
-        .thenReturn(new ListStepsResult)
-      mockEmrClient
-    }
+  private def createMockEmrClient(): EmrClient = {
+
+    val mockEmrClient = mock[EmrClient]
+    when(mockEmrClient.runJobFlow(any[RunJobFlowRequest]))
+      .thenReturn(RunJobFlowResponse.builder().build())
+    when(mockEmrClient.listSteps(any[ListStepsRequest]))
+      .thenReturn(ListStepsResponse.builder().build())
+    mockEmrClient
+
   }
 
   "creating cluster with missing cluster name" should "return appropriate error message" in {
-    val mockEmrClientFactory = mock[EmrClientFactory]
-    val mockEmrClientResource = Resource.make(mockEmrClient)(_ => IO.unit)
-    when(mockEmrClientFactory.emrClientResource(any[Regions]))
-      .thenReturn(mockEmrClientResource)
-    val emrServiceExecutor = new EmrServiceExecutor(mockEmrClientFactory)
+    val mockEmrClient = createMockEmrClient
+    val emrServiceExecutor = new EmrServiceExecutor(mockEmrClient)
     implicit val sundialDao = new InMemorySundialDao
     val emrClusterDetails =
       EmrClusterDetails(None, None, existingCluster = false)
@@ -68,11 +63,8 @@ class EmrServiceExecutorTest extends FlatSpec with MockitoSugar with Matchers {
   }
 
   "creating cluster with missing release label" should "return appropriate error message" in {
-    val mockEmrClientFactory = mock[EmrClientFactory]
-    val mockEmrClientResource = Resource.make(mockEmrClient)(_ => IO.unit)
-    when(mockEmrClientFactory.emrClientResource(any[Regions]))
-      .thenReturn(mockEmrClientResource)
-    val emrServiceExecutor = new EmrServiceExecutor(mockEmrClientFactory)
+    val mockEmrClient = createMockEmrClient
+    val emrServiceExecutor = new EmrServiceExecutor(mockEmrClient)
     implicit val sundialDao = new InMemorySundialDao
     val emrClusterDetails =
       EmrClusterDetails(Some("ClusterName"), None, existingCluster = false)
@@ -103,11 +95,8 @@ class EmrServiceExecutorTest extends FlatSpec with MockitoSugar with Matchers {
   }
 
   "creating cluster with all the right things" should "return success" in {
-    val mockEmrClientFactory = mock[EmrClientFactory]
-    val mockEmrClientResource = Resource.make(mockEmrClient)(_ => IO.unit)
-    when(mockEmrClientFactory.emrClientResource(any[Regions]))
-      .thenReturn(mockEmrClientResource)
-    val emrServiceExecutor = new EmrServiceExecutor(mockEmrClientFactory)
+    val mockEmrClient = createMockEmrClient
+    val emrServiceExecutor = new EmrServiceExecutor(mockEmrClient)
     implicit val sundialDao = new InMemorySundialDao
     val emrClusterDetails =
       EmrClusterDetails(

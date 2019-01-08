@@ -3,8 +3,8 @@ package controllers
 import java.util.{Date, UUID}
 
 import javax.inject.Inject
-import com.hbc.svc.sundial.v1
-import com.hbc.svc.sundial.v1.models.json._
+import com.hbc.svc.sundial.v2
+import com.hbc.svc.sundial.v2.models.json._
 import controllers.ModelConverter.toInternalNotification
 import dao.SundialDaoFactory
 import model._
@@ -16,7 +16,7 @@ class ProcessDefinitions @Inject()(daoFactory: SundialDaoFactory)
     extends InjectedController {
 
   def get() = Action {
-    val result: Seq[v1.models.ProcessDefinition] = daoFactory.withSundialDao {
+    val result: Seq[v2.models.ProcessDefinition] = daoFactory.withSundialDao {
       implicit dao =>
         val definitions = dao.processDefinitionDao.loadProcessDefinitions()
         definitions.map(ModelConverter.toExternalProcessDefinition)
@@ -26,7 +26,7 @@ class ProcessDefinitions @Inject()(daoFactory: SundialDaoFactory)
   }
 
   def getByProcessDefinitionName(processDefinitionName: String) = Action {
-    val resultOpt: Option[v1.models.ProcessDefinition] =
+    val resultOpt: Option[v2.models.ProcessDefinition] =
       daoFactory.withSundialDao { implicit dao =>
         val definition =
           dao.processDefinitionDao.loadProcessDefinition(processDefinitionName)
@@ -40,7 +40,7 @@ class ProcessDefinitions @Inject()(daoFactory: SundialDaoFactory)
   }
 
   def putByProcessDefinitionName(processDefinitionName: String) =
-    Action(parse.json[v1.models.ProcessDefinition]) { request =>
+    Action(parse.json[v2.models.ProcessDefinition]) { request =>
       if (processDefinitionName != request.body.processDefinitionName) {
         BadRequest(
           s"URL process definition name ($processDefinitionName) does not match body process definitiion name (${request.body.processDefinitionName})")
@@ -51,7 +51,7 @@ class ProcessDefinitions @Inject()(daoFactory: SundialDaoFactory)
             .toMap
           val hasCycle = request.body.taskDefinitions.exists { taskDef =>
             CycleDetector
-              .hasCycle[v1.models.TaskDefinition](taskDef, current => {
+              .hasCycle[v2.models.TaskDefinition](taskDef, current => {
                 current.dependencies
                   .map(_.taskDefinitionName)
                   .map(taskDefinitionsByName)

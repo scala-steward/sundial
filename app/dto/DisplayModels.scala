@@ -2,21 +2,21 @@ package dto
 
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
-import javax.inject.{Inject, Named, Singleton}
 
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.model.{
-  CannedAccessControlList,
-  PutObjectRequest
-}
+import javax.inject.{Inject, Named, Singleton}
 import dao.SundialDao
 import model.TaskStatus.Failure
 import model._
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.{
+  ObjectCannedACL,
+  PutObjectRequest
+}
 import util.{DateUtils, Graphify}
 
 @Singleton
 class DisplayModels @Inject()(graphify: Graphify,
-                              s3Client: AmazonS3,
+                              s3Client: S3Client,
                               @Named("s3Bucket") s3Bucket: String) {
 
   def fetchProcessDto(processId: UUID, generateGraph: Boolean)(
@@ -36,11 +36,16 @@ class DisplayModels @Inject()(graphify: Graphify,
         val imageId = UUID.randomUUID()
         val key = s"email-images/$imageId"
         val putObjectRequest =
-          new PutObjectRequest(s3Bucket, key, graphify.toGraphViz(processId))
-            .withCannedAcl(CannedAccessControlList.PublicRead)
-        s3Client.putObject(putObjectRequest)
+          PutObjectRequest
+            .builder()
+            .bucket(s3Bucket)
+            .key(key)
+            .acl(ObjectCannedACL.PUBLIC_READ)
+            .build()
+        s3Client
+          .putObject(putObjectRequest, graphify.toGraphViz(processId).toPath)
 
-        Some(s3Client.getUrl(s3Bucket, key).toString())
+        Some(s"https://s3.amazonaws.com/$s3Bucket/$key")
       } else {
         None
       }

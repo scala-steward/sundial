@@ -2,10 +2,8 @@ package controllers
 
 import java.io.BufferedInputStream
 import java.util.UUID
-import javax.inject.{Inject, Named}
 
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.model.AmazonS3Exception
+import javax.inject.{Inject, Named}
 import dao.SundialDaoFactory
 import dto.DisplayModels
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
@@ -13,6 +11,8 @@ import org.apache.commons.io.IOUtils
 import play.api.http.FileMimeTypes
 import play.api.{Configuration, Logger}
 import play.api.mvc._
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.{GetObjectRequest, S3Exception}
 import util.Graphify
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,7 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class Application @Inject()(config: Configuration,
                             graphify: Graphify,
                             daoFactory: SundialDaoFactory,
-                            s3Client: AmazonS3,
+                            s3Client: S3Client,
                             displayModels: DisplayModels,
                             @Named("s3Bucket") s3Bucket: String,
                             fileMimeTypes: FileMimeTypes)
@@ -127,9 +127,14 @@ class Application @Inject()(config: Configuration,
         val taskId = UUID.fromString(taskIdStr)
 
         try {
-          val s3Object = s3Client.getObject(s3Bucket, s"logs/$taskId")
-          val tar = new TarArchiveInputStream(
-            new BufferedInputStream(s3Object.getObjectContent))
+          val getObjectRequest = GetObjectRequest
+            .builder()
+            .bucket(s3Bucket)
+            .key(s"logs/$taskId")
+            .build()
+          val inputStream = s3Client.getObject(getObjectRequest)
+          val tar =
+            new TarArchiveInputStream(new BufferedInputStream(inputStream))
 
           try {
             val logs = collection.mutable.MutableList[(String, String)]()
@@ -151,7 +156,7 @@ class Application @Inject()(config: Configuration,
           }
 
         } catch {
-          case e: AmazonS3Exception => {
+          case e: S3Exception => {
             Logger.error("Error retrieving logs from S3", e)
             NotFound(e.getMessage)
           }

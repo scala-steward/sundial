@@ -1,16 +1,18 @@
 package service.emr
 
-import com.amazonaws.services.elasticmapreduce.model.{
-  ActionOnFailure,
-  HadoopJarStepConfig,
-  StepConfig
-}
-import com.hbc.svc.sundial.v1.models.MavenPackage
+import com.hbc.svc.sundial.v2.models.MavenPackage
 import model.{CopyFileJob, EmrExecutorState, EmrJobExecutable, ExecutorStatus}
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers._
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
+import software.amazon.awssdk.services.emr.model.{
+  ActionOnFailure,
+  HadoopJarStepConfig,
+  StepConfig,
+  StepState
+}
+import software.amazon.awssdk.services.emr.model.StepState._
 
 import scala.collection.Seq
 
@@ -21,13 +23,13 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
   "emrStateHelper" should "return failed" in {
 
     emrStateHelper.getOverallExecutorState(
-      List("COMPLETED",
-           "FAILED",
-           "CANCELLED",
-           "INTERRUPTED",
-           "CANCEL_PENDING",
-           "RUNNING",
-           "PENDING")
+      List(COMPLETED,
+           FAILED,
+           CANCELLED,
+           INTERRUPTED,
+           CANCEL_PENDING,
+           RUNNING,
+           PENDING)
     ) should be(ExecutorStatus.Failed(None))
 
   }
@@ -35,7 +37,7 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
   it should "return completed when just one job completed successfully" in {
 
     emrStateHelper.getOverallExecutorState(
-      List("COMPLETED", "COMPLETED", "COMPLETED")
+      List(COMPLETED, COMPLETED, COMPLETED)
     ) should be(ExecutorStatus.Succeeded)
 
   }
@@ -43,7 +45,7 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
   it should "return completed when multiple jobs complete successfully" in {
 
     emrStateHelper.getOverallExecutorState(
-      List("COMPLETED", "COMPLETED", "COMPLETED")
+      List(COMPLETED, COMPLETED, COMPLETED)
     ) should be(ExecutorStatus.Succeeded)
 
   }
@@ -51,7 +53,7 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
   it should "return cancelled if at least a job got cancelled" in {
 
     emrStateHelper.getOverallExecutorState(
-      List("COMPLETED", "CANCELLED", "COMPLETED")
+      List(COMPLETED, CANCELLED, COMPLETED)
     ) should be(EmrExecutorState.Cancelled)
 
   }
@@ -59,7 +61,7 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
   it should "return cancel pending" in {
 
     emrStateHelper.getOverallExecutorState(
-      List("COMPLETED", "RUNNING", "CANCEL_PENDING", "PENDING")
+      List(COMPLETED, RUNNING, CANCEL_PENDING, PENDING)
     ) should be(EmrExecutorState.CancelPending)
 
   }
@@ -67,7 +69,7 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
   it should "return running if at least a job is running and no one else terminated in error or a cancellation is pending" in {
 
     emrStateHelper.getOverallExecutorState(
-      List("COMPLETED", "RUNNING", "PENDING")
+      List(COMPLETED, RUNNING, PENDING)
     ) should be(ExecutorStatus.Running)
 
   }
@@ -78,12 +80,15 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
 
   it should "build one s3 dist cp job" in {
 
-    val s3DistCpStep = new StepConfig()
-      .withActionOnFailure(ActionOnFailure.TERMINATE_CLUSTER)
-      .withName("s3-dist-cp")
-      .withHadoopJarStep(
-        new HadoopJarStepConfig("command-runner.jar")
-          .withArgs(
+    val s3DistCpStep = StepConfig
+      .builder()
+      .actionOnFailure(ActionOnFailure.TERMINATE_CLUSTER)
+      .name("s3-dist-cp")
+      .hadoopJarStep(
+        HadoopJarStepConfig
+          .builder()
+          .jar("command-runner.jar")
+          .args(
             List(
               "s3-dist-cp",
               "--s3Endpoint=s3.amazonaws.com",
@@ -91,7 +96,9 @@ class EmrStepHelperTest extends FlatSpec with MockitoSugar {
               "--dest=destination"
             ): _*
           )
+          .build()
       )
+      .build()
 
     emrStateHelper.toStepConfig(
       Some(List(CopyFileJob("source", "destination")))) should be(

@@ -1,17 +1,16 @@
 package config
 
-import java.util.Arrays.asList
 import javax.inject.Named
-
-import com.amazonaws.services.cloudformation.AmazonCloudFormation
-import com.amazonaws.services.cloudformation.model.{
+import com.google.inject.{AbstractModule, Provides, Singleton}
+import software.amazon.awssdk.regions.internal.util.EC2MetadataUtils
+import software.amazon.awssdk.services.cloudformation.CloudFormationClient
+import software.amazon.awssdk.services.cloudformation.model.{
   DescribeStackResourceRequest,
   DescribeStacksRequest
 }
-import com.amazonaws.services.ec2.AmazonEC2
-import com.amazonaws.services.ec2.model.{DescribeTagsRequest, Filter}
-import com.amazonaws.util.EC2MetadataUtils
-import com.google.inject.{AbstractModule, Provides, Singleton}
+import software.amazon.awssdk.services.ec2.Ec2Client
+import software.amazon.awssdk.services.ec2.model.DescribeTagsRequest
+import software.amazon.awssdk.services.ec2.model.Filter
 
 class StackConfig extends AbstractModule {
 
@@ -20,62 +19,57 @@ class StackConfig extends AbstractModule {
   @Provides
   @Named("cfnStackName")
   @Singleton
-  def cfnStackName(ec2Client: AmazonEC2): String = {
+  def cfnStackName(ec2Client: Ec2Client): String = {
     import scala.collection.JavaConverters._
     val instanceId = EC2MetadataUtils.getInstanceId
-    val resourceTypeFilter = new Filter("resource-type", asList("instance"))
-    val resourceIdFilter = new Filter("resource-id", asList(instanceId))
-    val stackIdFilter = new Filter("key", asList("aws:cloudformation:stack-id"))
-    val describeTagsRequest = new DescribeTagsRequest()
-      .withFilters(resourceTypeFilter, resourceIdFilter, stackIdFilter)
-    val tags = ec2Client.describeTags(describeTagsRequest).getTags
-    tags.asScala
-      .find(_.getKey == "aws:cloudformation:stack-id")
+    val resourceTypeFilter =
+      Filter.builder.name("resource-type").values("instance").build()
+    val resourceIdFilter =
+      Filter.builder().name("resource-id").values(instanceId).build()
+    val stackIdFilter =
+      Filter.builder().name("key").values("aws:cloudformation:stack-id").build()
+    val describeTagsRequest = DescribeTagsRequest
+      .builder()
+      .filters(resourceTypeFilter, resourceIdFilter, stackIdFilter)
+      .build()
+    val tags = ec2Client.describeTags(describeTagsRequest).tags().asScala
+    tags
+      .find(_.key() == "aws:cloudformation:stack-id")
       .getOrElse(sys.error("aws:cloudformation:stack-id tag is compulsory"))
-      .getValue
+      .value()
   }
 
   @Provides
   @Named("s3Bucket")
   @Singleton
-  def s3Bucket(cfnClient: AmazonCloudFormation,
+  def s3Bucket(cfnClient: CloudFormationClient,
                @Named("cfnStackName") cfnStackName: String): String = {
-    val describeStackRequest = new DescribeStackResourceRequest()
-      .withStackName(cfnStackName)
-      .withLogicalResourceId("S3Bucket")
+    val describeStackRequest = DescribeStackResourceRequest
+      .builder()
+      .stackName(cfnStackName)
+      .logicalResourceId("S3Bucket")
+      .build()
     cfnClient
       .describeStackResource(describeStackRequest)
-      .getStackResourceDetail
-      .getPhysicalResourceId
+      .stackResourceDetail()
+      .physicalResourceId()
   }
-
-  @Provides
-  @Named("sdbDomain")
-  @Singleton
-  def sdbDomain(cfnClient: AmazonCloudFormation,
-                @Named("cfnStackName") cfnStackName: String): String = {
-    val describeStackRequest = new DescribeStackResourceRequest()
-      .withStackName(cfnStackName)
-      .withLogicalResourceId("SimpleDBDomain")
-    cfnClient
-      .describeStackResource(describeStackRequest)
-      .getStackResourceDetail
-      .getPhysicalResourceId
-  }
-
   @Provides
   @Named("sundialUrl")
   @Singleton
-  def sundialUrl(cfnClient: AmazonCloudFormation,
+  def sundialUrl(cfnClient: CloudFormationClient,
                  @Named("cfnStackName") cfnStackName: String) = {
     import scala.collection.JavaConverters._
     val describeStackRequest =
-      new DescribeStacksRequest().withStackName(cfnStackName)
-    val stack = cfnClient.describeStacks(describeStackRequest).getStacks.get(0)
-    stack.getOutputs.asScala
-      .find(_.getOutputKey == "WebAddress")
+      DescribeStacksRequest.builder().stackName(cfnStackName).build()
+    val stack =
+      cfnClient.describeStacks(describeStackRequest).stacks().get(0)
+    stack
+      .outputs()
+      .asScala
+      .find(_.outputKey() == "WebAddress")
       .get
-      .getOutputValue
+      .outputValue()
   }
 
 }

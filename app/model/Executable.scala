@@ -2,7 +2,7 @@ package model
 
 import java.util.{Date, UUID}
 
-import com.hbc.svc.sundial.v1.models.{EmrConfiguration, MavenPackage}
+import com.hbc.svc.sundial.v2.models.{EmrConfiguration, MavenPackage}
 
 sealed trait ExecutorStatus {
   def isDone: Boolean

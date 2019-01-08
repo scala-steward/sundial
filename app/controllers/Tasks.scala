@@ -3,8 +3,8 @@ package controllers
 import java.util.{Date, UUID}
 
 import javax.inject.Inject
-import com.hbc.svc.sundial.v1
-import com.hbc.svc.sundial.v1.models.json._
+import com.hbc.svc.sundial.v2
+import com.hbc.svc.sundial.v2.models.json._
 import dao.SundialDaoFactory
 import model.ReportedTaskStatus
 import org.joda.time.DateTime
@@ -17,7 +17,7 @@ class Tasks @Inject()(daoFactory: SundialDaoFactory)
 
   def get(processDefinitionName: String,
           taskDefinitionName: String,
-          allowedStatuses: List[v1.models.TaskStatus],
+          allowedStatuses: List[v2.models.TaskStatus],
           startTime: Option[DateTime],
           endTime: Option[DateTime],
           limit: Option[Int]) = Action {
@@ -43,7 +43,7 @@ class Tasks @Inject()(daoFactory: SundialDaoFactory)
   }
 
   def postLogEntriesByTaskId(taskId: UUID) =
-    Action(parse.json[List[v1.models.LogEntry]]) { request =>
+    Action(parse.json[List[v2.models.LogEntry]]) { request =>
       daoFactory.withSundialDao { implicit dao =>
         val events =
           request.body.map(ModelConverter.toInternalLogEntry(taskId, _))
@@ -54,7 +54,7 @@ class Tasks @Inject()(daoFactory: SundialDaoFactory)
     }
 
   def postMetadataByTaskId(taskId: UUID) =
-    Action(parse.json[List[v1.models.MetadataEntry]]) { request =>
+    Action(parse.json[List[v2.models.MetadataEntry]]) { request =>
       daoFactory.withSundialDao { implicit dao =>
         val entries =
           request.body.map(ModelConverter.toInternalMetadataEntry(taskId, _))

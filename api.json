@@ -19,13 +19,6 @@
     "task_executable": {
       "types": [
         {
-          "type": "docker_image_command",
-          "description": "Docker image to run on ECS with Sundial companion container",
-          "deprecation": {
-            "description": "Running jobs on AWS ECS is now deprecated. Use AWS Batch via batch_image_command instead."
-          }
-        },
-        {
           "type": "shell_script_command",
           "description": "Shell command to run on Sundial service instance (Experimental)"
         },
@@ -479,53 +472,6 @@
           "type": "string",
           "required": false,
           "description": "Override default job queue, eg: for priority queue or GPU instances queue"
-        }
-      ]
-    },
-    "docker_image_command": {
-      "fields": [
-        {
-          "name": "image",
-          "type": "string",
-          "required": true
-        },
-        {
-          "name": "tag",
-          "type": "string",
-          "required": true,
-          "default": "latest"
-        },
-        {
-          "name": "command",
-          "type": "[string]",
-          "required": true
-        },
-        {
-          "name": "memory",
-          "type": "integer",
-          "required": false
-        },
-        {
-          "name": "cpu",
-          "type": "integer",
-          "required": false
-        },
-        {
-          "name": "taskRoleArn",
-          "type": "string",
-          "required": false
-        },
-        {
-          "name": "log_paths",
-          "type": "[string]",
-          "required": true,
-          "default": []
-        },
-        {
-          "name": "environment_variables",
-          "type": "[environment_variable]",
-          "required": true,
-          "default": []
         }
       ]
     },

@@ -2,16 +2,16 @@ package service.notifications
 
 import java.io.{BufferedWriter, File, FileWriter}
 
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceAsync
 import dao.SundialDaoFactory
 import dto.DisplayModels
 import model.{EmailNotification, ProcessStatus}
+import software.amazon.awssdk.services.ses.SesClient
 
 import scala.sys.process._
 
 class DevelopmentEmailNotifications(daoFactory: SundialDaoFactory,
                                     displayModels: DisplayModels,
-                                    sesClient: AmazonSimpleEmailServiceAsync)
+                                    sesClient: SesClient)
     extends EmailNotifications(daoFactory,
                                "noreply@yourdomain.com",
                                displayModels,

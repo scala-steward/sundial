@@ -54,17 +54,8 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
     implicit configuration: Configuration,
     application: Application) {
 
-  // Not perfect design here, but because of the deprecation it will be enough to just delete line below and update cases accordingly.
-  private val ecsContainerServiceExecutorOpt: Option[ECSServiceExecutor] =
-    configuration
-      .getOptional[String]("ecs.cluster")
-      .fold(Option.empty[ECSServiceExecutor])(_ =>
-        Some(application.injector.instanceOf(classOf[ECSServiceExecutor])))
-
   def startExecutable(task: Task)(implicit dao: SundialDao): Unit = {
     task.executable match {
-      case e: ECSExecutable if ecsContainerServiceExecutorOpt.isDefined =>
-        ecsContainerServiceExecutorOpt.get.startExecutable(e, task)
       case e: BatchExecutable => batchServiceExecutor.startExecutable(e, task)
       case e: ShellCommandExecutable =>
         shellCommandExecutor.startExecutable(e, task)
@@ -76,8 +67,6 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
   def killExecutable(task: Task, reason: String)(
       implicit dao: SundialDao): Unit = {
     task.executable match {
-      case _: ECSExecutable if ecsContainerServiceExecutorOpt.isDefined =>
-        ecsContainerServiceExecutorOpt.get.killExecutable(task, reason)
       case _: BatchExecutable =>
         batchServiceExecutor.killExecutable(task, reason)
       case _: ShellCommandExecutable =>
@@ -92,8 +81,6 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
       implicit dao: SundialDao): Option[ExecutorStatus] = {
     Logger.debug(s"Refreshing status for task $task")
     task.executable match {
-      case _: ECSExecutable if ecsContainerServiceExecutorOpt.isDefined =>
-        ecsContainerServiceExecutorOpt.get.refreshStatus(task)
       case _: BatchExecutable        => batchServiceExecutor.refreshStatus(task)
       case _: ShellCommandExecutable => shellCommandExecutor.refreshStatus(task)
       case _: EmrJobExecutable       => emrServiceExecutor.refreshStatus(task)

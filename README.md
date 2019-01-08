@@ -22,7 +22,7 @@ Features:
 
 # Getting started.
 
-Set up Sundial service and ECS cluster using Cloudformation template. See [DEPLOY.md](docs/DEPLOY.md) for details.
+Set up Sundial service and Batch queue using Cloudformation template. See [DEPLOY.md](docs/DEPLOY.md) for details.
 
 Submit your jobs using REST API. See description of job JSON format under [JOBS.md](docs/JOBS.md)
 
@@ -79,15 +79,7 @@ pipeline {
                 git url: 'https://github.com/saksdirect/sundial.git'
             }
         }
-        
-        stage('Building companion container') {
-            steps {
-                dir('companion-container') {
-                    sh './publish-companion.sh | grep ECS_COMPANION_TAG > ecs.env' 
-                }    
-            }
-        }
-        
+       
         stage('Deployment') {
             steps {
                 load 'companion-container/ecs.env'

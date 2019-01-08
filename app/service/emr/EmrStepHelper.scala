@@ -1,30 +1,33 @@
 package service.emr
 
-import com.amazonaws.services.elasticmapreduce.model.{
-  ActionOnFailure,
-  HadoopJarStepConfig,
-  StepConfig
-}
 import model.{CopyFileJob, EmrExecutorState, EmrJobExecutable, ExecutorStatus}
 import EmrStepHelper._
+import software.amazon.awssdk.services.emr.model.{
+  ActionOnFailure,
+  HadoopJarStepConfig,
+  StepConfig,
+  StepState
+}
 
 class EmrStepHelper {
 
-  def getOverallExecutorState(states: Seq[String]): ExecutorStatus = {
+  def getOverallExecutorState(states: Seq[StepState]): ExecutorStatus = {
 
     states match {
-      case jobStates if jobStates.forall(state => state == "COMPLETED") =>
+      case jobStates
+          if jobStates.forall(state => state == StepState.COMPLETED) =>
         ExecutorStatus.Succeeded
-      case jobStates if jobStates.contains("FAILED") =>
+      case jobStates if jobStates.contains(StepState.FAILED) =>
         ExecutorStatus.Failed(None)
-      case jobStates if jobStates.contains("CANCELLED") =>
+      case jobStates if jobStates.contains(StepState.CANCELLED) =>
         EmrExecutorState.Cancelled
-      case jobStates if jobStates.contains("INTERRUPTED") =>
+      case jobStates if jobStates.contains(StepState.INTERRUPTED) =>
         EmrExecutorState.Interrupted
-      case jobStates if jobStates.contains("CANCEL_PENDING") =>
+      case jobStates if jobStates.contains(StepState.CANCEL_PENDING) =>
         EmrExecutorState.CancelPending
-      case jobStates if jobStates.contains("RUNNING") => ExecutorStatus.Running
-      case jobStates if jobStates.contains("PENDING") =>
+      case jobStates if jobStates.contains(StepState.RUNNING) =>
+        ExecutorStatus.Running
+      case jobStates if jobStates.contains(StepState.PENDING) =>
         ExecutorStatus.Initializing
       case jobStates =>
         throw new IllegalArgumentException(
@@ -83,13 +86,18 @@ class EmrStepHelper {
                       args: Seq[String],
                       actionOnFailure: ActionOnFailure =
                         ActionOnFailure.TERMINATE_CLUSTER) = {
-    new StepConfig()
-      .withName(jobName)
-      .withActionOnFailure(actionOnFailure)
-      .withHadoopJarStep(
-        new HadoopJarStepConfig(CommandRunnerJar)
-          .withArgs(args: _*)
+    StepConfig
+      .builder()
+      .name(jobName)
+      .actionOnFailure(actionOnFailure)
+      .hadoopJarStep(
+        HadoopJarStepConfig
+          .builder()
+          .jar(CommandRunnerJar)
+          .args(args: _*)
+          .build()
       )
+      .build()
   }
 
   private val S3DistCp = "s3-dist-cp"
@@ -102,12 +110,15 @@ class EmrStepHelper {
     } else {
       ActionOnFailure.TERMINATE_CLUSTER
     }
-    new StepConfig()
-      .withActionOnFailure(actionOnFailure)
-      .withName(S3DistCp)
-      .withHadoopJarStep(
-        new HadoopJarStepConfig(CommandRunnerJar)
-          .withArgs(
+    StepConfig
+      .builder()
+      .actionOnFailure(actionOnFailure)
+      .name(S3DistCp)
+      .hadoopJarStep(
+        HadoopJarStepConfig
+          .builder()
+          .jar(CommandRunnerJar)
+          .args(
             List(
               S3DistCp,
               "--s3Endpoint=s3.amazonaws.com",
@@ -115,7 +126,9 @@ class EmrStepHelper {
               s"--dest=$destination"
             ): _*
           )
+          .build()
       )
+      .build()
   }
 
 }

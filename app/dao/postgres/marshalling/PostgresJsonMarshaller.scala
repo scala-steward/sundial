@@ -9,11 +9,11 @@ import com.fasterxml.jackson.databind.{
   JsonNode,
   PropertyNamingStrategy
 }
-import com.hbc.svc.sundial.v1.models.NotificationOptions
+import com.hbc.svc.sundial.v2.models.NotificationOptions
 import model._
 import util.Json
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class PostgresJsonMarshaller {
 
@@ -118,7 +118,7 @@ object PostgresJsonMarshaller {
     } else {
       mapper.readTree(json) match {
         case n: ArrayNode =>
-          n.map { node =>
+          n.asScala.map { node =>
             val notificationOptions = Option(node.get(TEAM_NOTIFY))
               .map(_.asText(""))
               .flatMap(NotificationOptions.fromString)

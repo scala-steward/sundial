@@ -4,12 +4,19 @@ import java.util.concurrent.TimeUnit
 import java.util.{Date, UUID}
 
 import javax.inject.Inject
-import com.amazonaws.services.logs.AWSLogs
-import com.amazonaws.services.logs.model.{GetLogEventsRequest, OutputLogEvent}
 import dao.SundialDaoFactory
 import model.{BatchExecutable, ECSExecutable, EmrJobExecutable}
 import org.apache.commons.lang3.StringEscapeUtils
 import play.api.mvc.InjectedController
+import software.amazon.awssdk.services.cloudwatchlogs.{
+  CloudWatchLogsAsyncClient,
+  CloudWatchLogsClient
+}
+import software.amazon.awssdk.services.cloudwatchlogs.model.{
+  GetLogEventsRequest,
+  OutputLogEvent,
+  ResourceNotFoundException
+}
 import util.{DateUtils, Json}
 
 import scala.collection.JavaConverters._
@@ -20,7 +27,8 @@ case class TaskLogsResponse(taskId: UUID,
                             nextToken: String,
                             events: Seq[OutputLogEvent])
 
-class LiveLogs @Inject()(daoFactory: SundialDaoFactory, logsClient: AWSLogs)
+class LiveLogs @Inject()(daoFactory: SundialDaoFactory,
+                         logsClient: CloudWatchLogsClient)
     extends InjectedController {
 
   private val TaskLogToken = "task_([^_]+)_(.*)".r
@@ -92,7 +100,7 @@ class LiveLogs @Inject()(daoFactory: SundialDaoFactory, logsClient: AWSLogs)
                                        nextToken,
                                        events))
                   } catch {
-                    case e: com.amazonaws.services.logs.model.ResourceNotFoundException =>
+                    case e: ResourceNotFoundException =>
                       None
                   }
                 }
@@ -145,10 +153,10 @@ class LiveLogs @Inject()(daoFactory: SundialDaoFactory, logsClient: AWSLogs)
           val logEvents = logResponses.toList
             .flatMap { logResponse =>
               logResponse.events.map { event =>
-                List(event.getTimestamp,
+                List(event.timestamp(),
                      logResponse.taskId,
                      logResponse.taskDefName,
-                     StringEscapeUtils.escapeHtml4(event.getMessage))
+                     StringEscapeUtils.escapeHtml4(event.message()))
               }
             }
             .sortBy(_.head.asInstanceOf[Long])
@@ -178,15 +186,17 @@ class LiveLogs @Inject()(daoFactory: SundialDaoFactory, logsClient: AWSLogs)
                              logStreamName: String,
                              tokenOpt: Option[String]) = {
 
-    val getLogRequest = new GetLogEventsRequest()
-      .withLogGroupName(logGroupName)
-      .withLogStreamName(logStreamName)
-      .withNextToken(tokenOpt.orNull)
+    val getLogRequest = GetLogEventsRequest
+      .builder()
+      .logGroupName(logGroupName)
+      .logStreamName(logStreamName)
+      .nextToken(tokenOpt.orNull)
+      .build()
 
     val response = logsClient.getLogEvents(getLogRequest)
 
-    val nextToken = response.getNextForwardToken
-    val events = response.getEvents
+    val nextToken = response.nextForwardToken()
+    val events = response.events()
     (nextToken, events.asScala)
 
   }

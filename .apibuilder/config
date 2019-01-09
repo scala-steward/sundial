@@ -1,0 +1,9 @@
+code:
+  hbc:
+    svc-sundial:
+      version: 2.0.0-dev
+      generators:
+        - generator: play_2_x_json
+          target: app/apidoc/
+          files:
+            - HbcSvcSundialV2Models.scala

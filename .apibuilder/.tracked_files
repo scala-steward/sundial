@@ -1,0 +1,5 @@
+---
+hbc:
+  svc-sundial:
+    play_2_x_json:
+    - app/apidoc/HbcSvcSundialV2Models.scala

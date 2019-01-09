@@ -7,3 +7,11 @@ code:
           target: app/apidoc/
           files:
             - HbcSvcSundialV2Models.scala
+  speedwing:
+    pagerduty-api:
+      version: 0.0.1
+      generators:
+        - generator: play_2_6_client
+          target: app/apidoc/
+          files:
+            - SpeedwingPagerdutyApiV0Client.scala

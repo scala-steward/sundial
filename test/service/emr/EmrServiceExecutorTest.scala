@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import dao.memory.InMemorySundialDao
 import model.ExecutorStatus.Failed
 import model._
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.mockito.MockitoSugar

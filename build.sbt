@@ -12,7 +12,7 @@ scalaVersion := "2.12.8"
 
 val prometheusLibVersion = "0.9.0-M5"
 
-val awsVersion = "2.3.5"
+val awsVersion = "2.3.8"
 
 scalafmtOnCompile := true
 

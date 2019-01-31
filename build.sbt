@@ -37,7 +37,7 @@ libraryDependencies ++= Seq(
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,
     "org.lyranthe.prometheus" %% "play26" % prometheusLibVersion,
     "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0",
-    "org.scalatestplus.play"       %% "scalatestplus-play"       % "3.1.2" % "test",
+    "org.scalatestplus.play"       %% "scalatestplus-play"       % "4.0.0" % "test",
     "org.mockito" % "mockito-core" % "2.23.4" % "test"
   )
 

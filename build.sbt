@@ -37,9 +37,9 @@ libraryDependencies ++= Seq(
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,
     "org.lyranthe.prometheus" %% "play26" % prometheusLibVersion,
     "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0",
-    "org.scalatestplus.play"       %% "scalatestplus-play"       % "3.1.2" % "test",
+    "org.scalatestplus.play"       %% "scalatestplus-play"       % "4.0.1" % "test",
     "org.mockito" % "mockito-core" % "2.24.0" % "test"
-  )
+)
 
 routesImport ++= Seq("com.hbc.svc.sundial.v2.Bindables.Core._", "com.hbc.svc.sundial.v2.Bindables.Models._")
 

@@ -152,15 +152,15 @@ Mappings:
       AMIID: ami-bc04d5de
   AWSRegionToLinuxAMI:
     us-east-1:
-      AMIID: ami-97785bed
+      AMIID: ami-0080e4c5bc078760e
     us-west-2:
-      AMIID: ami-824c4ee2
+      AMIID: ami-0ec6517f6edbf8044
     eu-west-1:
-      AMIID: ami-d834aba1
+      AMIID: ami-08935252a36e25f85
     ap-northeast-1:
-      AMIID: ami-ceafcba8
+      AMIID: ami-00a5245b4816c38e6
     ap-southeast-2:
-      AMIID: ami-942dd1f6
+      AMIID: ami-02fd0b06f06d93dfc
 Resources:
   JobInstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup

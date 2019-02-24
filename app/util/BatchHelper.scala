@@ -3,7 +3,7 @@ package util
 import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
-import play.api.Logger
+import play.api.Logging
 import software.amazon.awssdk.services.batch.BatchClient
 import software.amazon.awssdk.services.batch.model._
 
@@ -23,7 +23,7 @@ case class BatchContainerDefinition(image: String,
                                     computeEnvironment: Option[String] = None)
 
 @Singleton
-class BatchHelper @Inject()() {
+class BatchHelper @Inject()() extends Logging {
 
   /**
     *
@@ -147,8 +147,8 @@ class BatchHelper @Inject()() {
   def matches(actual: JobDefinition, expected: BatchJobDefinition): Boolean = {
     val actualInternal = asInternalModel(actual)
     if (actualInternal != expected) {
-      Logger.info(s"desired Batch job definition: $expected")
-      Logger.info(s"actual Batch job definition: $actualInternal")
+      logger.info(s"desired Batch job definition: $expected")
+      logger.info(s"actual Batch job definition: $actualInternal")
       false
     } else {
       true

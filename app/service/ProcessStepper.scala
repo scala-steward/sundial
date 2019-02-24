@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 import dao.SundialDao
 import model._
-import play.api.Logger
+import play.api.Logging
 import service.notifications.Notification
 
 import scala.collection.immutable.SortedMap
@@ -33,14 +33,14 @@ object TaskExecutionCondition {
 class ProcessStepper @Inject()(
     taskExecutor: TaskExecutor,
     notifications: Seq[Notification]
-) {
+) extends Logging {
 
   val EVENT_SOURCE_KEY = "scheduler"
 
   def step(process: Process,
            dao: SundialDao,
            metrics: SundialMetrics): Process = {
-    Logger.info(s"Stepping ${process}")
+    logger.info(s"Stepping ${process}")
     metrics.steps.incrementAndGet()
     val taskDefinitions =
       dao.processDefinitionDao.loadTaskDefinitions(process.id).filter {
@@ -51,7 +51,7 @@ class ProcessStepper @Inject()(
           }
       }
 
-    Logger.debug(s"Task definitions: $taskDefinitions")
+    logger.debug(s"Task definitions: $taskDefinitions")
 
     val baseTasks = dao.processDao.loadTasksForProcess(process.id).filter {
       task =>
@@ -61,7 +61,7 @@ class ProcessStepper @Inject()(
         }
     }
 
-    Logger.debug(s"Base tasks $baseTasks")
+    logger.debug(s"Base tasks $baseTasks")
 
     // Throughout here, we need both the task and the definition
     val tasks = baseTasks
@@ -84,7 +84,7 @@ class ProcessStepper @Inject()(
       }
       .toList
 
-    Logger.debug(s"Tasks with status: $tasks")
+    logger.debug(s"Tasks with status: $tasks")
 
     val hasKillRequest =
       !dao.triggerDao.loadKillProcessRequests(process.id).isEmpty
@@ -114,7 +114,7 @@ class ProcessStepper @Inject()(
           status = TaskStatus.Running()
         ))
       dao.ensureCommitted()
-      Logger.info(s"Starting task: $task")
+      logger.info(s"Starting task: $task")
       taskExecutor.startExecutable(task)(dao)
     }
 

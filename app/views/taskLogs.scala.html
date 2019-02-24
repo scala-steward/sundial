@@ -17,18 +17,20 @@
 
         <table>
             <tr>
-                @files.zipWithIndex.map { case ((name, _), ix) =>
+                @for(fileWithIndex <- files.zipWithIndex) {
                     <td style="padding-right:10px">
-                        <a href="#log_@ix">@name</a>
-                    </td>
+                        <a href="#log_@fileWithIndex._2">@fileWithIndex._1._1</a>
+                    </td>                    
                 }
             </tr>
         </table>
 
-        @files.zipWithIndex.map { case ((name, messages), ix) =>
-            <h2 name="log_@ix">@name</h2>
-            <pre style="white-space: pre-wrap;">@messages</pre>
+        @for(fileWithIndex <- files.zipWithIndex) {
+            val ((name, messages), ix) = fileWithIndex
+            <h2 name="log_@fileWithIndex._2">@fileWithIndex._1._1</h2>
+            <pre style="white-space: pre-wrap;">@fileWithIndex._1._2</pre>
         }
+
 
     </body>
 

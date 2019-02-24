@@ -3,11 +3,13 @@ package service
 import javax.inject.Inject
 import dao.{ExecutableStateDao, SundialDao}
 import model._
-import play.api.{Application, Configuration, Logger}
+import play.api.{Application, Configuration, Logging, Logger}
 import service.emr.EmrServiceExecutor
 
 trait SpecificTaskExecutor[
     ExecutableType <: Executable, StateType <: ExecutableState] {
+
+  protected def logger: Logger
 
   protected def stateDao(
       implicit dao: SundialDao): ExecutableStateDao[StateType]
@@ -27,7 +29,7 @@ trait SpecificTaskExecutor[
 
   def refreshStatus(task: Task)(
       implicit dao: SundialDao): Option[ExecutorStatus] = {
-    Logger.debug(s"Refreshing task state for task $task")
+    logger.debug(s"Refreshing task state for task $task")
     stateDao.loadState(task.id).map { state =>
       val newState = actuallyRefreshState(state)
       stateDao.saveState(newState)
@@ -52,7 +54,8 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
                              shellCommandExecutor: ShellCommandExecutor,
                              emrServiceExecutor: EmrServiceExecutor)(
     implicit configuration: Configuration,
-    application: Application) {
+    application: Application)
+    extends Logging {
 
   def startExecutable(task: Task)(implicit dao: SundialDao): Unit = {
     task.executable match {
@@ -60,7 +63,7 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
       case e: ShellCommandExecutable =>
         shellCommandExecutor.startExecutable(e, task)
       case e: EmrJobExecutable => emrServiceExecutor.startExecutable(e, task)
-      case _                   => Logger.warn(s"No Executor found for Task($task)")
+      case _                   => logger.warn(s"No Executor found for Task($task)")
     }
   }
 
@@ -73,19 +76,19 @@ class TaskExecutor @Inject()(batchServiceExecutor: BatchServiceExecutor,
         shellCommandExecutor.killExecutable(task, reason)
       case _: EmrJobExecutable =>
         emrServiceExecutor.killExecutable(task, reason)
-      case _ => Logger.warn(s"No Executor found for Task($task)")
+      case _ => logger.warn(s"No Executor found for Task($task)")
     }
   }
 
   def refreshStatus(task: Task)(
       implicit dao: SundialDao): Option[ExecutorStatus] = {
-    Logger.debug(s"Refreshing status for task $task")
+    logger.debug(s"Refreshing status for task $task")
     task.executable match {
       case _: BatchExecutable        => batchServiceExecutor.refreshStatus(task)
       case _: ShellCommandExecutable => shellCommandExecutor.refreshStatus(task)
       case _: EmrJobExecutable       => emrServiceExecutor.refreshStatus(task)
       case _ => {
-        Logger.warn(s"No Executor found for Task($task)")
+        logger.warn(s"No Executor found for Task($task)")
         None
       }
     }

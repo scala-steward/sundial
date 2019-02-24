@@ -4,7 +4,7 @@ import java.util.UUID
 
 import dao.SundialDaoFactory
 import model.{PagerdutyNotification, Process, ProcessStatusType}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.ws.WSClient
 import speedwing.pagerduty.api.v0.Client
 import speedwing.pagerduty.api.v0.models.{CreateEvent, EventType}
@@ -12,9 +12,8 @@ import speedwing.pagerduty.api.v0.models.{CreateEvent, EventType}
 import scala.util.{Failure, Success}
 
 class PagerdutyNotifications(wsClient: WSClient, daoFactory: SundialDaoFactory)
-    extends Notification {
-
-  private final val Log = Logger(classOf[PagerdutyNotifications])
+    extends Notification
+    with Logging {
 
   private final val PagerdutyPageMessage =
     "The Sundial Job %s, has failed at least %s time(s) in a row."
@@ -72,10 +71,10 @@ class PagerdutyNotifications(wsClient: WSClient, daoFactory: SundialDaoFactory)
 
         pagerdutyRequest.onComplete {
           case Success(pageId) =>
-            Logger.info(
+            logger.info(
               s"Successfully submitted Pagerduty request with Id [${pageId.incidentKey}]")
           case Failure(e) =>
-            Logger.error(s"Failed to submit Pagerduty request", e)
+            logger.error(s"Failed to submit Pagerduty request", e)
         }
       }
     })

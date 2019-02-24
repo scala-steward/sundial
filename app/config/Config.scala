@@ -6,7 +6,7 @@ import dao.SundialDaoFactory
 import dto.DisplayModels
 import org.lyranthe.prometheus.client.{DefaultRegistry, Registry, jmx}
 import play.api.libs.ws.WSClient
-import play.api.{Configuration, Environment, Logger}
+import play.api.{Configuration, Environment, Logging}
 import service._
 import service.notifications.{
   DevelopmentEmailNotifications,
@@ -28,20 +28,21 @@ class PrometheusJmxInstrumentation @Inject()(implicit val registry: Registry) {
 }
 
 class Config(environment: Environment, configuration: Configuration)
-    extends AbstractModule {
+    extends AbstractModule
+    with Logging {
 
   override def configure(): Unit = {
 
-    Logger.info(s" *** Starting Sundial *** ")
+    logger.info(s" *** Starting Sundial *** ")
 
-    Logger.info("Env Variables:")
+    logger.info("Env Variables:")
     sys.env.foreach {
-      case (key, value) => Logger.info(s"Key($key), Value($value)")
+      case (key, value) => logger.info(s"Key($key), Value($value)")
     }
 
-    Logger.info("Sundial Configuration:")
+    logger.info("Sundial Configuration:")
     configuration.entrySet.foreach { entry =>
-      Logger.info(s"Key(${entry._1}), Value[${entry._2.toString}]")
+      logger.info(s"Key(${entry._1}), Value[${entry._2.toString}]")
     }
 
     bind(classOf[Registry]).toInstance(DefaultRegistry())

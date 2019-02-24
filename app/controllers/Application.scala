@@ -9,7 +9,7 @@ import dto.DisplayModels
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.io.IOUtils
 import play.api.http.FileMimeTypes
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import play.api.mvc._
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.{GetObjectRequest, S3Exception}
@@ -24,7 +24,8 @@ class Application @Inject()(config: Configuration,
                             displayModels: DisplayModels,
                             @Named("s3Bucket") s3Bucket: String,
                             fileMimeTypes: FileMimeTypes)
-    extends InjectedController {
+    extends InjectedController
+    with Logging {
 
   private implicit val fmt = fileMimeTypes
 
@@ -157,7 +158,7 @@ class Application @Inject()(config: Configuration,
 
         } catch {
           case e: S3Exception => {
-            Logger.error("Error retrieving logs from S3", e)
+            logger.error("Error retrieving logs from S3", e)
             NotFound(e.getMessage)
           }
         }

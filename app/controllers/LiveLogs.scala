@@ -6,7 +6,7 @@ import java.util.{Date, UUID}
 import javax.inject.Inject
 import dao.SundialDaoFactory
 import model.{BatchExecutable, ECSExecutable, EmrJobExecutable}
-import org.apache.commons.lang3.StringEscapeUtils
+import org.apache.commons.text.StringEscapeUtils
 import play.api.mvc.InjectedController
 import software.amazon.awssdk.services.cloudwatchlogs.{
   CloudWatchLogsAsyncClient,

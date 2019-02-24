@@ -6,7 +6,7 @@ import com.hbc.svc.sundial.v2.models.NotificationOptions
 import dao._
 import dto.{DisplayModels, ProcessDTO}
 import model._
-import play.api.Logger
+import play.api.Logging
 import software.amazon.awssdk.services.ses.SesClient
 import software.amazon.awssdk.services.ses.model._
 
@@ -16,7 +16,8 @@ class EmailNotifications(daoFactory: SundialDaoFactory,
                          fromAddress: String,
                          displayModels: DisplayModels,
                          sesClient: SesClient)
-    extends Notification {
+    extends Notification
+    with Logging {
 
   private def getSubject(processDTO: ProcessDTO): String = {
     val prefix = if (processDTO.success) {
@@ -75,7 +76,7 @@ class EmailNotifications(daoFactory: SundialDaoFactory,
               Body.builder().html(Content.builder().data(body).build()).build())
             .build())
         .build()
-      Logger.info(s"Email request: $sendEmailRequest")
+      logger.info(s"Email request: $sendEmailRequest")
       sesClient.sendEmail(sendEmailRequest)
     }
   }

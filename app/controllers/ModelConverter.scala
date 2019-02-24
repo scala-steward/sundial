@@ -6,10 +6,10 @@ import com.hbc.svc.sundial.v2
 import com.hbc.svc.sundial.v2.models._
 import dao.SundialDao
 import model._
-import play.api.Logger
+import play.api.Logging
 import util.Conversions._
 
-object ModelConverter {
+object ModelConverter extends Logging {
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////
   // PROCESSES
@@ -506,7 +506,7 @@ object ModelConverter {
                               clusterId = Some(clusterId),
                               existingCluster = true)
           case EmrClusterUndefinedType(undefinedType) => {
-            Logger.error(s"UnsupportedClusterType($undefinedType)")
+            logger.error(s"UnsupportedClusterType($undefinedType)")
             throw new IllegalArgumentException(
               s"Cluster Type not supported: $undefinedType")
           }

@@ -9,6 +9,8 @@ import javax.inject.Inject
 import dao._
 import model._
 
+import play.api.Logging
+
 import scala.collection.JavaConverters._
 
 object ShellCommandRegistry {
@@ -36,7 +38,8 @@ object ShellCommandRegistry {
 }
 
 class ShellCommandExecutor @Inject()(daoFactory: SundialDaoFactory)
-    extends SpecificTaskExecutor[ShellCommandExecutable, ShellCommandState] {
+    extends SpecificTaskExecutor[ShellCommandExecutable, ShellCommandState]
+    with Logging {
 
   private val threadPool = Executors.newCachedThreadPool()
 

@@ -7,7 +7,7 @@ import com.hbc.svc.sundial.v2.models.EmrConfiguration
 import dao.{ExecutableStateDao, SundialDao}
 import javax.inject.Inject
 import model._
-import play.api.Logger
+import play.api.Logging
 import service.SpecificTaskExecutor
 import software.amazon.awssdk.services.emr.EmrClient
 import software.amazon.awssdk.services.emr.model.{
@@ -31,7 +31,8 @@ import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 class EmrServiceExecutor @Inject()(emrClient: EmrClient)
-    extends SpecificTaskExecutor[EmrJobExecutable, EmrJobState] {
+    extends SpecificTaskExecutor[EmrJobExecutable, EmrJobState]
+    with Logging {
 
   private val emrStateHelper = EmrStepHelper()
 
@@ -251,12 +252,12 @@ class EmrServiceExecutor @Inject()(emrClient: EmrClient)
           emrStateHelper.getOverallExecutorState(steps.map(_.status().state()))
         )
 
-        Logger.info(s"Submitted $jobState to cluster")
+        logger.info(s"Submitted $jobState to cluster")
         jobState
 
       } catch {
         case NonFatal(e) =>
-          Logger.error("Exception creating EMR cluster", e)
+          logger.error("Exception creating EMR cluster", e)
           EmrJobState(
             task.id,
             executable.jobName,
@@ -275,7 +276,7 @@ class EmrServiceExecutor @Inject()(emrClient: EmrClient)
     // This is sub-optimal (check for-comp on Option), but if for whichever reason the configuration is broken, this won't start any cluster and fail the job
     emrJobStateEither.fold(
       errorMessage => {
-        Logger.error(
+        logger.error(
           s"Could not create new EMR cluster ${executable.jobName} due to $errorMessage")
         EmrJobState(
           task.id,
@@ -326,7 +327,7 @@ class EmrServiceExecutor @Inject()(emrClient: EmrClient)
       val stepCancelResponse =
         response.cancelStepsInfoList.asScala.head
 
-      Logger.info(s"stepCancelResponse - Reason: ${stepCancelResponse
+      logger.info(s"stepCancelResponse - Reason: ${stepCancelResponse
         .reason()}, Status: ${stepCancelResponse.status()}")
 
     } else {
@@ -354,7 +355,7 @@ class EmrServiceExecutor @Inject()(emrClient: EmrClient)
       state.copy(status = emrStateHelper.getOverallExecutorState(statuses))
     } catch {
       case NonFatal(t) => {
-        Logger.error(s"Could not refresh State($state)", t)
+        logger.error(s"Could not refresh State($state)", t)
         state.copy(status = ExecutorStatus.Failed(Some(t.getMessage)))
       }
     }

@@ -5,7 +5,7 @@ import java.util.{Date, UUID}
 import javax.inject.{Inject, Named}
 import dao.SundialDao
 import model._
-import play.api.{Configuration, Logger}
+import play.api.{Configuration, Logging}
 import software.amazon.awssdk.services.batch.BatchClient
 import software.amazon.awssdk.services.batch.model.{JobDetail, JobStatus}
 import util._
@@ -14,7 +14,8 @@ class BatchServiceExecutor @Inject()(config: Configuration,
                                      injectedBatchClient: BatchClient,
                                      batchHelper: BatchHelper,
                                      @Named("sundialUrl") sundialUrl: String)
-    extends SpecificTaskExecutor[BatchExecutable, BatchContainerState] {
+    extends SpecificTaskExecutor[BatchExecutable, BatchContainerState]
+    with Logging {
 
   private val defaultJobQueue = config.get[String]("batch.job.queue")
 
@@ -51,12 +52,12 @@ class BatchServiceExecutor @Inject()(config: Configuration,
     val jobDefNameOpt = {
       // get the latest revision and see if it matches what we want to run
       val latestOpt = batchHelper.describeJobDefinition(task.taskDefinitionName)
-      Logger.debug(s"Result of Batch describe task definition: $latestOpt")
+      logger.debug(s"Result of Batch describe task definition: $latestOpt")
       if (latestOpt.exists(batchHelper.matches(_, desiredTaskDefinition))) {
-        Logger.debug("Batch job definition matched desired")
+        logger.debug("Batch job definition matched desired")
         latestOpt.map(_.jobDefinitionName())
       } else {
-        Logger.debug("Batch job definition didn't match desired")
+        logger.debug("Batch job definition didn't match desired")
         None
       }
 
@@ -65,21 +66,21 @@ class BatchServiceExecutor @Inject()(config: Configuration,
     val jobDefName = jobDefNameOpt match {
       case Some(arn) => arn
       case _ =>
-        Logger.debug("Registering Batch job definition")
+        logger.debug("Registering Batch job definition")
         val registerTaskResult =
           batchHelper.registerJobDefinition(desiredTaskDefinition)
-        Logger.debug(s"Register result: $registerTaskResult")
+        logger.debug(s"Register result: $registerTaskResult")
         registerTaskResult.jobDefinitionName()
     }
 
     val jobQueue = executable.jobQueue.getOrElse(defaultJobQueue)
 
-    Logger.debug("Starting task")
+    logger.debug("Starting task")
     val runJobResult = batchHelper.runJob(task.taskDefinitionName,
                                           jobQueue,
                                           jobDefName,
                                           "sundial")
-    Logger.debug(s"Run task result: $runJobResult")
+    logger.debug(s"Run task result: $runJobResult")
 
     val jobName = runJobResult.jobName()
     val jobId = UUID.fromString(runJobResult.jobId())
@@ -94,19 +95,19 @@ class BatchServiceExecutor @Inject()(config: Configuration,
 
   override protected def actuallyRefreshState(state: BatchContainerState)(
       implicit dao: SundialDao): BatchContainerState = {
-    Logger.debug(s"Refresh state for $state")
+    logger.debug(s"Refresh state for $state")
     // If the job name is null, this never started so we can't update the state
     if (state.jobName == null) {
-      Logger.debug(s"State: $state")
+      logger.debug(s"State: $state")
       state
     } else {
       // See what's the latest from the ECS task
       val batchJobOpt = batchHelper.describeJob(state.jobId)
-      Logger.debug(s"Describe task result from Batch: $batchJobOpt")
+      logger.debug(s"Describe task result from Batch: $batchJobOpt")
       batchJobOpt match {
         case Some(batchJob) =>
           val batchStatus = batchJob.status()
-          Logger.debug(s"Task status: $batchStatus")
+          logger.debug(s"Task status: $batchStatus")
           require(batchJob.jobId() == state.jobId.toString) // and the same arn
           val (exitCode, exitReason) = getTaskExitCodeAndReason(batchJob)
           val logStreamName = batchJob.container().logStreamName()
@@ -131,7 +132,7 @@ class BatchServiceExecutor @Inject()(config: Configuration,
       state: BatchContainerState,
       task: Task,
       reason: String)(implicit dao: SundialDao): Unit = {
-    Logger.info(
+    logger.info(
       s"Sundial requesting Batch to kill task ${task.taskDefinitionName} with Sundial ID ${task.id.toString} and job name ${state.jobName}")
     batchHelper.stopTask(state.jobName, reason)
   }

@@ -82,20 +82,6 @@ object ModelConverter extends Logging {
                                     "status",
                                     state.status.toString))
         }
-      case _: ECSExecutable =>
-        val stateOpt = dao.ecsContainerStateDao.loadState(task.id)
-        stateOpt.map { state =>
-          Seq(
-            v2.models.MetadataEntry(state.taskId,
-                                    state.asOf,
-                                    "status",
-                                    state.status.toString),
-            v2.models.MetadataEntry(state.taskId,
-                                    state.asOf,
-                                    "taskArn",
-                                    state.ecsTaskArn)
-          )
-        }
       case _: BatchExecutable =>
         val stateOpt = dao.batchContainerStateDao.loadState(task.id)
         stateOpt.map { state =>

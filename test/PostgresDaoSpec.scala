@@ -187,22 +187,23 @@ class PostgresDaoSpec @Inject()(dbApi: DBApi)
         val executables = Seq(
           ShellCommandExecutable("echo 'hello world'", Map.empty),
           ShellCommandExecutable("echo 'hello world'", Map("key" -> "value")),
-          ECSExecutable("ubuntu",
-                        "latest",
-                        Seq.empty,
-                        None,
-                        None,
-                        None,
-                        Seq.empty,
-                        Map.empty),
-          ECSExecutable("ubuntu",
-                        "latest",
-                        Seq("sleep", "1000"),
-                        Some(10),
-                        Some(1000),
-                        None,
-                        Seq("log/application.log"),
-                        Map("test" -> "value"))
+          BatchExecutable("ubuntu",
+                          "latest",
+                          Seq.empty,
+                          10,
+                          1,
+                          None,
+                          Map.empty,
+                          None),
+          BatchExecutable("ubuntu",
+                          "latest",
+                          Seq("sleep", "1000"),
+                          10,
+                          1,
+                          None,
+                          Map("test" -> "value"),
+                          None,
+          )
         )
         executables.map { executable =>
           val task = model.Task(UUID.randomUUID(),
@@ -492,11 +493,13 @@ class PostgresDaoSpec @Inject()(dbApi: DBApi)
   "PostgresContainerServiceStateDao" must {
     "save and load a container service state correctly" in database
       .withConnection { implicit conn =>
-        val dao = new PostgresECSServiceStateDao()
-        val state = new ECSContainerState(UUID.randomUUID(),
-                                          new Date(),
-                                          "some::task::arn",
-                                          ExecutorStatus.Initializing)
+        val dao = new PostgresBatchStateDao()
+        val state = new BatchContainerState(UUID.randomUUID(),
+                                            new Date(),
+                                            "some::task::arn",
+                                            UUID.randomUUID(),
+                                            None,
+                                            ExecutorStatus.Initializing)
         dao.saveState(state)
         dao.loadState(state.taskId) mustBe (Some(state))
         conn.commit()
@@ -504,11 +507,13 @@ class PostgresDaoSpec @Inject()(dbApi: DBApi)
 
     "update a container service state correctly" in database.withConnection {
       implicit conn =>
-        val dao = new PostgresECSServiceStateDao()
-        val state = new ECSContainerState(UUID.randomUUID(),
-                                          new Date(),
-                                          "some::task::arn",
-                                          ExecutorStatus.Initializing)
+        val dao = new PostgresBatchStateDao()
+        val state = new BatchContainerState(UUID.randomUUID(),
+                                            new Date(),
+                                            "some::task::arn",
+                                            UUID.randomUUID(),
+                                            None,
+                                            ExecutorStatus.Initializing)
         dao.saveState(state)
         dao.loadState(state.taskId) mustBe (Some(state))
         val updated = state.copy(status = ExecutorStatus.Running)

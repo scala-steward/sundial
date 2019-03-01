@@ -115,11 +115,6 @@
                                             <td style="padding:5px" width="130">
                                                 <a href="@routes.LiveLogs.logs(process.id.toString)#@taskAttempt.taskDefinitionName" target="_blank">View Live Logs</a>
                                             </td>
-                                            <td style="padding:5px" width="130">
-                                                @if(task.backend == TaskBackend.Ecs && taskAttempt.status.isComplete) {
-                                                    <a href="@routes.Application.taskLogs(taskAttempt.id.toString)" target="_blank">View Saved Logs</a>
-                                                }
-                                            </td>
                                         </tr>
                                         <tr>
                                             <td></td>

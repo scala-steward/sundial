@@ -73,17 +73,15 @@ object PostgresJsonMarshaller {
   def toExecutable(json: String): Executable = {
     val tree = mapper.readTree(json)
     tree.get(EXECUTABLE_TYPE_KEY).asText() match {
-      case EXECUTABLE_SHELL  => mapper.treeToValue[ShellCommandExecutable](tree)
-      case EXECUTABLE_DOCKER => mapper.treeToValue[ECSExecutable](tree)
-      case EXECUTABLE_BATCH  => mapper.treeToValue[BatchExecutable](tree)
-      case EXECUTABLE_EMR    => mapper.treeToValue[EmrJobExecutable](tree)
+      case EXECUTABLE_SHELL => mapper.treeToValue[ShellCommandExecutable](tree)
+      case EXECUTABLE_BATCH => mapper.treeToValue[BatchExecutable](tree)
+      case EXECUTABLE_EMR   => mapper.treeToValue[EmrJobExecutable](tree)
     }
   }
 
   def toJson(executable: Executable): String = {
     val executableType = executable match {
       case _: ShellCommandExecutable => EXECUTABLE_SHELL
-      case _: ECSExecutable          => EXECUTABLE_DOCKER
       case _: BatchExecutable        => EXECUTABLE_BATCH
       case _: EmrJobExecutable       => EXECUTABLE_EMR
     }

@@ -99,7 +99,6 @@ class DisplayModels @Inject()(graphify: Graphify,
 
     val backend = taskDef.executable match {
       case _: BatchExecutable        => TaskBackend.Batch
-      case _: ECSExecutable          => TaskBackend.Ecs
       case _: ShellCommandExecutable => TaskBackend.Shell
       case _: EmrJobExecutable       => TaskBackend.Emr
     }

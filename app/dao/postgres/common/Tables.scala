@@ -124,14 +124,6 @@ object ShellCommandStateTable {
   final val COL_STATUS = "status"
 }
 
-object ECSStateTable {
-  final val TABLE = "container_service_state"
-  final val COL_TASK_ID = "task_id"
-  final val COL_AS_OF = "as_of"
-  final val COL_STATUS = "status"
-  final val COL_TASK_ARN = "task_arn"
-}
-
 object EmrStateTable {
   final val TABLE = "emr_service_state"
   final val COL_TASK_ID = "task_id"

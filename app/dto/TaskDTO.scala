@@ -10,9 +10,6 @@ object TaskBackend {
   case object Batch extends TaskBackend {
     override val toString = "Batch"
   }
-  case object Ecs extends TaskBackend {
-    override val toString = "ECS"
-  }
   case object Shell extends TaskBackend {
     override val toString = "Shell"
   }

@@ -5,17 +5,13 @@ import java.util.{Date, UUID}
 
 import javax.inject.Inject
 import dao.SundialDaoFactory
-import model.{BatchExecutable, ECSExecutable, EmrJobExecutable}
+import model.{BatchExecutable, EmrJobExecutable}
 import org.apache.commons.text.StringEscapeUtils
 import play.api.mvc.InjectedController
-import software.amazon.awssdk.services.cloudwatchlogs.{
-  CloudWatchLogsAsyncClient,
-  CloudWatchLogsClient
-}
+import software.amazon.awssdk.services.cloudwatchlogs.{CloudWatchLogsClient}
 import software.amazon.awssdk.services.cloudwatchlogs.model.{
   GetLogEventsRequest,
   OutputLogEvent,
-  ResourceNotFoundException
 }
 import util.{DateUtils, Json}
 
@@ -85,25 +81,6 @@ class LiveLogs @Inject()(daoFactory: SundialDaoFactory,
             taskDefinitions
               .get(task.taskDefinitionName)
               .map(_.executable) match {
-              case Some(e: ECSExecutable) =>
-                e.logPaths.flatMap { logPath =>
-                  val tokenOpt = taskLogTokens.get(task.id -> logPath)
-                  try {
-                    val (nextToken, events) =
-                      fetchLogEvents("sundial/tasks-internal",
-                                     s"${task.id}_${logPath}",
-                                     tokenOpt)
-                    Some(
-                      TaskLogsResponse(task.id,
-                                       task.taskDefinitionName,
-                                       logPath,
-                                       nextToken,
-                                       events))
-                  } catch {
-                    case e: ResourceNotFoundException =>
-                      None
-                  }
-                }
               case Some(e: BatchExecutable) =>
                 val containerStateOpt =
                   dao.batchContainerStateDao.loadState(task.id)

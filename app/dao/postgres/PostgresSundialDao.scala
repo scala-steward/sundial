@@ -29,8 +29,6 @@ class PostgresSundialDao(implicit conn: Connection) extends SundialDao {
 
   override lazy val shellCommandStateDao = new PostgresShellCommandStateDao()
 
-  override lazy val ecsContainerStateDao = new PostgresECSServiceStateDao()
-
   override lazy val batchContainerStateDao = new PostgresBatchStateDao()
 
   override lazy val emrJobStateDao = new PostgresEmrStateDao()

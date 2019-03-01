@@ -20,9 +20,6 @@ class SundialSchedulingSpec extends PlaySpec with MockitoSugar {
 
   private val configuration = mock[Configuration]
 
-  when(configuration.getOptional[String]("ecs.cluster"))
-    .thenReturn(None) //Some("MY_ECS_CLUSTER"))
-
   def mockSundial(daoFactory: InMemorySundialDaoFactory): Sundial = {
     val mockTaskExecutor = new TaskExecutor(
       mock[BatchServiceExecutor],

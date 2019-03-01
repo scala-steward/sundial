@@ -46,21 +46,6 @@ sealed trait ExecutableState {
   def status: ExecutorStatus
 }
 
-case class ECSExecutable(image: String,
-                         tag: String = "latest",
-                         command: Seq[String],
-                         memory: Option[Int],
-                         cpu: Option[Int],
-                         taskRoleArn: Option[String],
-                         logPaths: Seq[String],
-                         environmentVariables: Map[String, String])
-    extends Executable
-case class ECSContainerState(taskId: UUID,
-                             asOf: Date,
-                             ecsTaskArn: String,
-                             status: ExecutorStatus)
-    extends ExecutableState
-
 case class BatchExecutable(image: String,
                            tag: String = "latest",
                            command: Seq[String],

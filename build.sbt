@@ -21,7 +21,7 @@ libraryDependencies ++= Seq(
     guice,
     evolutions,
     ws,
-  "org.playframework.anorm" %% "anorm" % "2.6.2",
+  "org.playframework.anorm" %% "anorm" % "2.6.3",
     "software.amazon.awssdk"       % "emr"              % awsVersion,
     "software.amazon.awssdk"       % "s3"               % awsVersion,
     "software.amazon.awssdk"       % "batch"            % awsVersion,

@@ -12,7 +12,7 @@ scalaVersion := "2.12.8"
 
 val prometheusLibVersion = "0.9.0-M5"
 
-val awsVersion = "2.5.32"
+val awsVersion = "2.7.5"
 
 scalafmtOnCompile := true
 
@@ -21,7 +21,7 @@ libraryDependencies ++= Seq(
     guice,
     evolutions,
     ws,
-  "org.playframework.anorm" %% "anorm" % "2.6.2",
+  "org.playframework.anorm" %% "anorm" % "2.6.4",
     "software.amazon.awssdk"       % "emr"              % awsVersion,
     "software.amazon.awssdk"       % "s3"               % awsVersion,
     "software.amazon.awssdk"       % "batch"            % awsVersion,
@@ -36,10 +36,10 @@ libraryDependencies ++= Seq(
     "org.apache.commons"           % "commons-compress"          % "1.18",
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,
     "org.lyranthe.prometheus" %% "play26" % prometheusLibVersion,
-    "org.apache.commons" % "commons-text" % "1.6",
+    "org.apache.commons" % "commons-text" % "1.7",
     "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0",
     "org.scalatestplus.play"       %% "scalatestplus-play"       % "4.0.3" % "test",
-    "org.mockito" % "mockito-core" % "2.27.0" % "test"
+    "org.mockito" % "mockito-core" % "3.0.0" % "test"
 )
 
 routesImport ++= Seq("com.hbc.svc.sundial.v2.Bindables.Core._", "com.hbc.svc.sundial.v2.Bindables.Models._")

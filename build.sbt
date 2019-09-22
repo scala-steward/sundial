@@ -31,7 +31,7 @@ libraryDependencies ++= Seq(
     "software.amazon.awssdk"       % "ec2"              % awsVersion,
     "commons-io"                   % "commons-io"                % "2.6",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.3.1",           // used only for CronExpression.getNextValidTimeAfter
-    "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.9.9",           // only for JSON serialization for PostgreSQL
+    "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.9.10",           // only for JSON serialization for PostgreSQL
     "org.postgresql"               % "postgresql"                % "42.2.6",
     "org.apache.commons"           % "commons-compress"          % "1.18",
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,

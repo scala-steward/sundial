@@ -4,7 +4,7 @@ resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/releas
 
 addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.7.3")
 
-addSbtPlugin("org.scoverage" %% "sbt-scoverage" % "1.5.1")
+addSbtPlugin("org.scoverage" %% "sbt-scoverage" % "1.6.1")
 
 addSbtPlugin("org.scoverage" %% "sbt-coveralls" % "1.2.2")
 

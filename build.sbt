@@ -33,7 +33,7 @@ libraryDependencies ++= Seq(
     "org.quartz-scheduler"         % "quartz"                    % "2.3.1",           // used only for CronExpression.getNextValidTimeAfter
     "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.9.9",           // only for JSON serialization for PostgreSQL
     "org.postgresql"               % "postgresql"                % "42.2.6",
-    "org.apache.commons"           % "commons-compress"          % "1.18",
+    "org.apache.commons"           % "commons-compress"          % "1.20",
     "org.lyranthe.prometheus" %% "client" % prometheusLibVersion,
     "org.lyranthe.prometheus" %% "play26" % prometheusLibVersion,
     "org.apache.commons" % "commons-text" % "1.7",

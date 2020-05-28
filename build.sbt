@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
     "software.amazon.awssdk"       % "cloudwatchlogs"       % awsVersion,
     "software.amazon.awssdk"       % "cloudformation"   % awsVersion,
     "software.amazon.awssdk"       % "ec2"              % awsVersion,
-    "commons-io"                   % "commons-io"                % "2.6",             // for utility functions
+    "commons-io"                   % "commons-io"                % "2.7",             // for utility functions
     "org.quartz-scheduler"         % "quartz"                    % "2.3.1",           // used only for CronExpression.getNextValidTimeAfter
     "com.fasterxml.jackson.module" %% "jackson-module-scala"     % "2.9.9",           // only for JSON serialization for PostgreSQL
     "org.postgresql"               % "postgresql"                % "42.2.6",

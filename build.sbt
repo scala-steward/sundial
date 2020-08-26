@@ -39,7 +39,7 @@ libraryDependencies ++= Seq(
     "org.apache.commons" % "commons-text" % "1.7",
     "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0",
     "org.scalatestplus.play"       %% "scalatestplus-play"       % "4.0.3" % "test",
-    "org.mockito" % "mockito-core" % "3.0.0" % "test"
+    "org.mockito" % "mockito-core" % "3.5.7" % "test"
 )
 
 routesImport ++= Seq("com.hbc.svc.sundial.v2.Bindables.Core._", "com.hbc.svc.sundial.v2.Bindables.Models._")
